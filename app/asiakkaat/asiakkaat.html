@@ -183,6 +183,7 @@ table.at td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
               <th>Y-tunnus</th>
               <th>Yhtiömuoto</th>
               <th>ALV</th>
+              <th>Sähköposti</th>
               <th>Vastuukirjanpitäjä</th>
               <th></th>
             </tr>
@@ -324,6 +325,7 @@ function renderAsiakkaat(lista) {
       '<td>' + (a.alv_velvollinen
         ? '<span class="badge badge-green">ALV</span>'
         : '<span class="badge badge-gray">Ei ALV</span>') + '</td>' +
+      '<td style="color:var(--inu)">' + esc(a.sahkoposti || '—') + '</td>' +
       '<td style="color:var(--inu)">' + esc(kb ? kb.sahkoposti : '—') + '</td>' +
       '<td><div class="act-btns">' +
         '<button class="act-btn act-btn-edit" onclick="muokkaaAsiakas(' + JSON.stringify(a).replace(/"/g,'&quot;') + ')">Muokkaa</button>' +
