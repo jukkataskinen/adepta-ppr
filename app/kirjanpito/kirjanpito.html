@@ -802,6 +802,7 @@ async function lataaYritykset() {
   }));
   if (YRITYKSET.length > 0) {
     curYritys = YRITYKSET[0];
+    document.getElementById('top-co').textContent = curYritys.nimi;
     renderCo();
     lataaRivit(curYritys.id);
   } else {
@@ -1004,7 +1005,7 @@ function renderCo(filter='') {
   list.innerHTML = '';
   YRITYKSET.filter(y => y.nimi.toLowerCase().includes(filter.toLowerCase())).forEach(y => {
     const div = document.createElement('div');
-    div.className = 'co-item' + (y.id === curYritys.id ? ' act' : '');
+    div.className = 'co-item' + (curYritys && y.id === curYritys.id ? ' act' : '');
     div.innerHTML = `<div class="co-name">${y.nimi}</div><div class="co-sub">${y.ytunnus} · ${y.tilikausi}</div>`;
     div.onclick = () => {
       if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
