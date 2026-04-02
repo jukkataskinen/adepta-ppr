@@ -802,10 +802,10 @@ async function lataaYritykset() {
   }));
   if (YRITYKSET.length > 0) {
     curYritys = YRITYKSET[0];
-    renderYritykset();
+    renderCo();
     lataaRivit(curYritys.id);
   } else {
-    renderYritykset();
+    renderCo();
   }
 }
 
