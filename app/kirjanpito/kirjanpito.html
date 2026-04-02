@@ -256,7 +256,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   <div class="tb-sep"></div>
   <div class="bc">
     <span>Yritykset</span><span class="bc-s">›</span>
-    <span class="a" id="top-co">Virtanen Ky</span>
+    <select id="top-co" onchange="vaihdaAsiakas(this.value)" style="background:transparent;color:#fff;border:none;font-family:var(--ffd);font-size:15px;cursor:pointer;outline:none;max-width:200px"></select>
     <span class="bc-s">›</span>
     <span class="a">Kirjanpito</span>
   </div>
@@ -802,7 +802,6 @@ async function lataaYritykset() {
   }));
   if (YRITYKSET.length > 0) {
     curYritys = YRITYKSET[0];
-    document.getElementById('top-co').textContent = curYritys.nimi;
     renderCo();
     lataaRivit(curYritys.id);
   } else {
@@ -917,7 +916,6 @@ function init() {
 
 // Lataa yrityksen rivit (localStorage tai demo)
 function lataaNakyma() {
-  document.getElementById('top-co').textContent = curYritys.nimi;
   renderCo();
   const saved = LS.loadRows();
   if (saved && saved.length > 0) {
@@ -1001,25 +999,45 @@ function naytaJono() {
 
 // ── COMPANY LIST ─────────────────────────────────────────────
 function renderCo(filter='') {
+  // Päivitä sivupalkin lista
   const list = document.getElementById('co-list');
-  list.innerHTML = '';
-  YRITYKSET.filter(y => y.nimi.toLowerCase().includes(filter.toLowerCase())).forEach(y => {
-    const div = document.createElement('div');
-    div.className = 'co-item' + (curYritys && y.id === curYritys.id ? ' act' : '');
-    div.innerHTML = `<div class="co-name">${y.nimi}</div><div class="co-sub">${y.ytunnus} · ${y.tilikausi}</div>`;
-    div.onclick = () => {
-      if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
-      curYritys = y;
-      document.getElementById('top-co').textContent = y.nimi;
-      lataaRivit(y.id);
-      renderCo();
-      checkImportQueue();
-      toast(`${y.nimi} ladattu`);
-    };
-    list.appendChild(div);
-  });
+  if (list) {
+    list.innerHTML = '';
+    YRITYKSET.filter(y => y.nimi.toLowerCase().includes(filter.toLowerCase())).forEach(y => {
+      const div = document.createElement('div');
+      div.className = 'co-item' + (curYritys && y.id === curYritys.id ? ' act' : '');
+      div.innerHTML = `<div class="co-name">${y.nimi}</div><div class="co-sub">${y.ytunnus}</div>`;
+      div.onclick = () => {
+        if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
+        curYritys = y;
+        renderCo();
+        lataaRivit(y.id);
+        checkImportQueue();
+        toast(`${y.nimi} ladattu`);
+      };
+      list.appendChild(div);
+    });
+  }
+  // Päivitä yläpalkin dropdown
+  const sel = document.getElementById('top-co');
+  if (sel && sel.tagName === 'SELECT') {
+    const currentId = curYritys?.id;
+    sel.innerHTML = YRITYKSET.map(y =>
+      `<option value="${y.id}" ${y.id === currentId ? 'selected' : ''}>${y.nimi}</option>`
+    ).join('');
+  }
 }
 function filterCo(v) { renderCo(v); }
+function vaihdaAsiakas(id) {
+  const y = YRITYKSET.find(y => y.id === id);
+  if (!y) return;
+  if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
+  curYritys = y;
+  renderCo();
+  lataaRivit(y.id);
+  checkImportQueue();
+  toast(`${y.nimi} ladattu`);
+}
 
 // ── PANEL SWITCH ─────────────────────────────────────────────
 function showPanel(name) {
