@@ -1010,7 +1010,8 @@ function renderCo(filter='') {
       if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
       curYritys = y;
       document.getElementById('top-co').textContent = y.nimi;
-      lataaNakyma();
+      lataaRivit(y.id);
+      renderCo();
       checkImportQueue();
       toast(`${y.nimi} ladattu`);
     };
