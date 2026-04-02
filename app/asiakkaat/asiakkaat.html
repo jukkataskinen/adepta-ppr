@@ -306,7 +306,7 @@ async function lataaKayttajat() {
   kayttajat = await res.json();
   const sel = document.getElementById('f-kirjanpitaja');
   sel.innerHTML = '<option value="">— Ei valittu —</option>' +
-    kayttajat.map(k => '<option value="' + k.id + '">' + (k.nimi || k.sahkoposti) + '</option>').join('');
+    kayttajat.map(k => '<option value="' + k.id + '">' + k.sahkoposti + '</option>').join('');
 }
 
 function renderAsiakkaat(lista) {
@@ -324,7 +324,7 @@ function renderAsiakkaat(lista) {
       '<td>' + (a.alv_velvollinen
         ? '<span class="badge badge-green">ALV</span>'
         : '<span class="badge badge-gray">Ei ALV</span>') + '</td>' +
-      '<td style="color:var(--inu)">' + esc(kb ? (kb.nimi || kb.sahkoposti) : '—') + '</td>' +
+      '<td style="color:var(--inu)">' + esc(kb ? kb.sahkoposti : '—') + '</td>' +
       '<td><div class="act-btns">' +
         '<button class="act-btn act-btn-edit" onclick="muokkaaAsiakas(' + JSON.stringify(a).replace(/"/g,'&quot;') + ')">Muokkaa</button>' +
         '<button class="act-btn act-btn-del" onclick="pyydaPoisto(\'' + a.id + '\',\'' + esc(a.nimi) + '\')">Poista</button>' +
