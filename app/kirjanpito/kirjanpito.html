@@ -3356,17 +3356,34 @@ function lisaaTosite() {
 }
 
 function renderTositeRivit() {
-  const tilivalinnat = TILIT.map(t => '<option value="' + t.nro + '">' + t.nro + ' ' + t.lbl + '</option>').join('');
   document.getElementById('tosite-tbody').innerHTML = tositeRivit.map((r, i) =>
     '<tr style="border-bottom:1px solid var(--bd)">' +
     '<td style="padding:4px 6px"><input type="date" data-row="' + i + '" data-col="0" value="' + r.pvm + '" oninput="tositeUpd(' + i + ',\'pvm\',this.value)" onkeydown="tositeKey(event,' + i + ',0)" style="width:120px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
     '<td style="padding:4px 6px"><input type="text" data-row="' + i + '" data-col="1" value="' + (r.tsnro||'') + '" oninput="tositeUpd(' + i + ',\'tsnro\',this.value)" onkeydown="tositeKey(event,' + i + ',1)" style="width:80px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
     '<td style="padding:4px 6px"><input type="text" data-row="' + i + '" data-col="2" value="' + (r.sel||'') + '" placeholder="Selite..." oninput="tositeUpd(' + i + ',\'sel\',this.value)" onkeydown="tositeKey(event,' + i + ',2)" style="width:180px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="3" onchange="tositeUpd(' + i + ',\'d\',this.value)" onkeydown="tositeKey(event,' + i + ',3)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Debet --</option>' + tilivalinnat + '</select></td>' +
-    '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="4" onchange="tositeUpd(' + i + ',\'k\',this.value)" onkeydown="tositeKey(event,' + i + ',4)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Kredit --</option>' + tilivalinnat + '</select></td>' +
+    '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
+    '<input type="text" value="' + (r.d ? r.d + ' ' + (TILIT.find(t=>t.nro===r.d)?.lbl||'') : '') + '" placeholder="Debet-tili..." ' +
+    'data-row="' + i + '" data-col="3" ' +
+    'onkeydown="tositeKey(event,' + i + ',3)" ' +
+    'oninput="tositeHakuTili(this,' + i + ',\'d\')" ' +
+    'onfocus="tositeAvaaLista(this,' + i + ',\'d\')" ' +
+    'onblur="setTimeout(()=>tositeSubjatLista(\'' + i + 'd\'),150)" ' +
+    'style="width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
+    '<div id="tili-lista-' + i + 'd" style="display:none;position:absolute;top:100%;left:0;width:280px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
+    '</div></td>' +
+    '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
+    '<input type="text" value="' + (r.k ? r.k + ' ' + (TILIT.find(t=>t.nro===r.k)?.lbl||'') : '') + '" placeholder="Kredit-tili..." ' +
+    'data-row="' + i + '" data-col="4" ' +
+    'onkeydown="tositeKey(event,' + i + ',4)" ' +
+    'oninput="tositeHakuTili(this,' + i + ',\'k\')" ' +
+    'onfocus="tositeAvaaLista(this,' + i + ',\'k\')" ' +
+    'onblur="setTimeout(()=>tositeSubjatLista(\'' + i + 'k\'),150)" ' +
+    'style="width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
+    '<div id="tili-lista-' + i + 'k" style="display:none;position:absolute;top:100%;left:0;width:280px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
+    '</div></td>' +
     '<td style="padding:4px 6px"><input type="number" data-row="' + i + '" data-col="5" value="' + (r.netto||'') + '" oninput="tositeUpd(' + i + ',\'netto\',parseFloat(this.value)||0)" onkeydown="tositeKey(event,' + i + ',5)" style="width:90px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right"></td>' +
     '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="6" onchange="tositeUpd(' + i + ',\'alvp\',parseFloat(this.value))" onkeydown="tositeKey(event,' + i + ',6)" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="0">0%</option><option value="10">10%</option><option value="14">14%</option><option value="25.5">25.5%</option></select></td>' +
-    '<td style="padding:4px 6px;text-align:right"><span style="font-size:12px;font-family:monospace">' + ((r.netto*(1+r.alvp/100))||0).toLocaleString('fi-FI',{minimumFractionDigits:2}) + '</span></td>' +
+    '<td style="padding:4px 6px;text-align:right"><span data-row="' + i + '" data-brutto style="font-size:12px;font-family:monospace">' + ((r.netto*(1+r.alvp/100))||0).toLocaleString('fi-FI',{minimumFractionDigits:2}) + '</span></td>' +
     '<td style="padding:4px 6px"><button onclick="poistaTosite(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
     '</tr>'
   ).join('');
@@ -3424,6 +3441,53 @@ function tositeUpd(i, f, v) {
     btn.style.opacity = (tositeDirty && tositeRivit.length > 0) ? '1' : '0.4';
   }
   // EI re-renderöintiä tekstikenttiin
+}
+
+function tositeAvaaLista(input, rowIdx, puoli) {
+  const q = input.value;
+  tositeRenderLista(rowIdx, puoli, q);
+}
+
+function tositeHakuTili(input, rowIdx, puoli) {
+  tositeUpd(rowIdx, puoli === 'd' ? 'd_teksti' : 'k_teksti', input.value);
+  tositeRenderLista(rowIdx, puoli, input.value);
+}
+
+function tositeRenderLista(rowIdx, puoli, q) {
+  const listaId = 'tili-lista-' + rowIdx + puoli;
+  const lista = document.getElementById(listaId);
+  if (!lista) return;
+  const hakusana = q.toLowerCase().trim();
+  const tulokset = TILIT.filter(t =>
+    !hakusana ||
+    t.nro.startsWith(hakusana) ||
+    t.lbl.toLowerCase().includes(hakusana)
+  ).slice(0, 20);
+  if (tulokset.length === 0) { lista.style.display = 'none'; return; }
+  lista.style.display = 'block';
+  lista.innerHTML = tulokset.map(t =>
+    '<div onmousedown="tositeValitseTili(' + rowIdx + ',\'' + puoli + '\',\'' + t.nro + '\',\'' + t.lbl.replace(/'/g,'') + '\')" ' +
+    'style="padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:center" ' +
+    'onmouseover="this.style.background=\'#f0f7f1\'" onmouseout="this.style.background=\'\'">' +
+    '<span style="font-weight:600;color:#3d6b43;min-width:40px">' + t.nro + '</span>' +
+    '<span>' + t.lbl + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function tositeValitseTili(rowIdx, puoli, nro, lbl) {
+  tositeRivit[rowIdx][puoli] = nro;
+  const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (puoli==='d'?3:4) + '"]');
+  if (input) input.value = nro + ' ' + lbl;
+  tositeSubjatLista(rowIdx + puoli);
+  tositeDirty = true;
+  // Fokus seuraavaan kenttään
+  setTimeout(() => focusTosite(rowIdx, puoli==='d' ? 4 : 5), 50);
+}
+
+function tositeSubjatLista(id) {
+  const lista = document.getElementById('tili-lista-' + id);
+  if (lista) lista.style.display = 'none';
 }
 
 function poistaTosite(i) {
