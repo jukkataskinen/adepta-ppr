@@ -284,6 +284,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="co-list" id="co-list"></div>
     <div class="sb-div"></div>
     <div class="sb-sec">Näkymä</div>
+    <div class="nav-item" id="nav-tosite" onclick="showPanel('tosite')"><span class="ic">✏️</span>Tositteen syöttö</div>
     <div class="nav-item act" id="nav-pk" onclick="showPanel('paivak')"><span class="ic">📒</span>Päiväkirja</div>
     <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')"><span class="ic">🏦</span>Pankkituonti</div>
     <div class="nav-item" id="nav-tositteet" onclick="showPanel('tositteet')"><span class="ic">📎</span>Tositteet</div>
@@ -297,6 +298,35 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   <div class="main" id="main">
 
     <!-- ─── PÄIVÄKIRJA PANEL ─── -->
+    <div id="panel-tosite" class="panel">
+  <h2>Tositteen syöttö</h2>
+  <div class="panel-sub">Syötä kirjanpitovientejä manuaalisesti</div>
+
+  <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+    <input type="date" id="ts-pvm" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px">
+    <input type="text" id="ts-tsnro" placeholder="Tositenro" style="width:100px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px">
+    <button onclick="lisaaTosite()" style="padding:6px 18px;background:#1D9E75;color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">+ Lisää rivi</button>
+    <button onclick="tallennaTositteet()" id="tosite-save-btn" disabled style="padding:6px 18px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer;opacity:0.4">Tallenna</button>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Päivä</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Selite</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Debet</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Kredit</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Netto €</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">ALV %</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Brutto €</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="tosite-tbody"></tbody>
+  </table>
+</div>
+
     <div id="panel-paivak" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
       <!-- Keyboard hints -->
       <div class="kb">
@@ -3305,6 +3335,88 @@ function toast(msg) {
 
 // ── START ────────────────────────────────────────────────────
 lataaYritykset();
+
+// ── TOSITTEEN SYÖTTÖ ─────────────────────────────────────────
+let tositeRivit = [];
+let tositeDirty = false;
+
+function lisaaTosite() {
+  const pvm = document.getElementById('ts-pvm').value || new Date().toISOString().slice(0,10);
+  const tsnro = document.getElementById('ts-tsnro').value || '';
+  const id = Date.now();
+  tositeRivit.push({ id, pvm, tsnro, sel: '', d: '', k: '', netto: 0, alvp: 0 });
+  tositeDirty = true;
+  renderTositeRivit();
+}
+
+function renderTositeRivit() {
+  const tilivalinnat = TILIT.map(t => '<option value="' + t.nro + '">' + t.nro + ' ' + t.lbl + '</option>').join('');
+  document.getElementById('tosite-tbody').innerHTML = tositeRivit.map((r, i) =>
+    '<tr style="border-bottom:1px solid var(--bd)">' +
+    '<td style="padding:4px 6px"><input type="date" value="' + r.pvm + '" onchange="tositeUpd(' + i + ',\'pvm\',this.value)" style="width:120px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.tsnro||'') + '" onchange="tositeUpd(' + i + ',\'tsnro\',this.value)" style="width:80px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.sel||'') + '" placeholder="Selite..." onchange="tositeUpd(' + i + ',\'sel\',this.value)" style="width:180px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    '<td style="padding:4px 6px"><select onchange="tositeUpd(' + i + ',\'d\',this.value)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Debet --</option>' + tilivalinnat + '</select></td>' +
+    '<td style="padding:4px 6px"><select onchange="tositeUpd(' + i + ',\'k\',this.value)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Kredit --</option>' + tilivalinnat + '</select></td>' +
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.netto||'') + '" onchange="tositeUpd(' + i + ',\'netto\',parseFloat(this.value)||0)" style="width:90px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right"></td>' +
+    '<td style="padding:4px 6px"><select onchange="tositeUpd(' + i + ',\'alvp\',parseFloat(this.value))" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="0">0%</option><option value="10">10%</option><option value="14">14%</option><option value="25.5">25.5%</option></select></td>' +
+    '<td style="padding:4px 6px;text-align:right"><span style="font-size:12px;font-family:monospace">' + ((r.netto*(1+r.alvp/100))||0).toLocaleString('fi-FI',{minimumFractionDigits:2}) + '</span></td>' +
+    '<td style="padding:4px 6px"><button onclick="poistaTosite(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
+    '</tr>'
+  ).join('');
+  document.getElementById('tosite-save-btn').disabled = !tositeDirty || tositeRivit.length === 0;
+  document.getElementById('tosite-save-btn').style.opacity = (tositeDirty && tositeRivit.length > 0) ? '1' : '0.4';
+}
+
+function tositeUpd(i, f, v) {
+  tositeRivit[i][f] = v;
+  tositeDirty = true;
+  renderTositeRivit();
+}
+
+function poistaTosite(i) {
+  tositeRivit.splice(i, 1);
+  renderTositeRivit();
+}
+
+async function tallennaTositteet() {
+  if (!curYritys || tositeRivit.length === 0) return;
+  const btn = document.getElementById('tosite-save-btn');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/ppr/paivakirja/lisaa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        asiakas_id: curYritys.id,
+        rivit: tositeRivit.filter(r => r.sel && r.d && r.k).map(r => ({
+          paivamaara: r.pvm,
+          tositenro: r.tsnro || null,
+          selite: r.sel,
+          debet_tili: r.d,
+          kredit_tili: r.k,
+          netto: r.netto,
+          alv_prosentti: r.alvp,
+        }))
+      })
+    });
+    const json = await res.json();
+    if (res.ok) {
+      tositeRivit = [];
+      tositeDirty = false;
+      renderTositeRivit();
+      toast('Tallennettu ✓ — ' + json.tallennettu + ' vientiä');
+      lataaRivit(curYritys.id);
+    } else {
+      toast('Virhe: ' + json.error);
+      btn.disabled = false;
+    }
+  } catch(e) {
+    toast('Verkkovirhe');
+    btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
