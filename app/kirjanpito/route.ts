@@ -5,6 +5,7 @@ import fs from 'fs'
 import path from 'path'
 
 export async function GET(request: NextRequest) {
+  console.log('supabaseAdmin:', !!supabaseAdmin, 'url:', !!process.env.NEXT_PUBLIC_SUPABASE_URL, 'key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
   const session = await auth0.getSession(request)
   if (!session) return NextResponse.redirect(new URL('/auth/login', request.url))
 
