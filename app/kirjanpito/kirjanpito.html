@@ -256,7 +256,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   <div class="tb-sep"></div>
   <div class="bc">
     <span>Yritykset</span><span class="bc-s">›</span>
-    <select id="top-co" onchange="vaihdaAsiakas(this.value)" style="background:transparent;color:#fff;border:none;font-family:var(--ffd);font-size:15px;cursor:pointer;outline:none;max-width:200px"></select>
+    <select id="top-co" onchange="vaihdaAsiakas(this.value)" style="background:var(--fd);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;font-family:var(--ffd);font-size:15px;cursor:pointer;outline:none;max-width:220px;padding:4px 8px"></select>
     <span class="bc-s">›</span>
     <span class="a">Kirjanpito</span>
   </div>
@@ -279,10 +279,6 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
   <!-- SIDEBAR -->
   <div class="sb">
-    <div class="sb-sec">Yritykset</div>
-    <input class="sb-search" type="text" placeholder="Hae yritystä…" oninput="filterCo(this.value)">
-    <div class="co-list" id="co-list"></div>
-    <div class="sb-div"></div>
     <div class="sb-sec">Näkymä</div>
     <div class="nav-item" id="nav-tosite" onclick="showPanel('tosite')"><span class="ic">✏️</span>Tositteen syöttö</div>
     <div class="nav-item act" id="nav-pk" onclick="showPanel('paivak')"><span class="ic">📒</span>Päiväkirja</div>
