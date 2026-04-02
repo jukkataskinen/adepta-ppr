@@ -3,16 +3,22 @@ import { NextResponse } from 'next/server'
 import { auth0 } from './lib/auth0'
 
 export async function middleware(request: NextRequest) {
-  const authRes = await auth0.middleware(request)
-  const pathname = request.nextUrl.pathname
-  if (pathname.startsWith('/auth')) return authRes
-  const session = await auth0.getSession(request)
-  if (!session) {
-    const loginUrl = new URL('/auth/login', request.nextUrl.origin)
-    loginUrl.searchParams.set('returnTo', pathname)
-    return NextResponse.redirect(loginUrl)
+  try {
+    const authRes = await auth0.middleware(request)
+    const pathname = request.nextUrl.pathname
+    if (pathname.startsWith('/auth')) return authRes
+    const session = await auth0.getSession(request)
+    if (!session) {
+      const loginUrl = new URL('/auth/login', request.nextUrl.origin)
+      loginUrl.searchParams.set('returnTo', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    return authRes
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('Middleware error:', message)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
-  return authRes
 }
 
 export const config = {
