@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
   if (!email || !rooli) return NextResponse.json({ error: 'email ja rooli vaaditaan' }, { status: 400 })
 
   const token = await getManagementToken()
+  console.log('token saatu:', !!token, 'domain:', process.env.AUTH0_DOMAIN)
 
   // Luo käyttäjä Auth0:aan
   const createRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
