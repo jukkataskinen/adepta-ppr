@@ -339,6 +339,12 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div class="kb-i"><kbd>Ctrl S</kbd> tallenna</div>
         <div class="kb-i"><kbd>Ctrl Z</kbd> kumoa</div>
         <span class="kb-sp"></span>
+        <div style="font-size:10px;color:var(--inu);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:6px 0 2px">Tositteen syöttö</div>
+        <div class="kb-i"><kbd>Tab</kbd> seuraava · <kbd>Shift+Tab</kbd> edellinen</div>
+        <div class="kb-i"><kbd>Enter</kbd> uusi rivi</div>
+        <div class="kb-i"><kbd>↑</kbd><kbd>↓</kbd> rivit</div>
+        <div class="kb-i"><kbd>Del</kbd> poista rivi</div>
+        <span class="kb-sp"></span>
         <div style="font-size:11px;color:var(--inu)">Tilikausi: <strong>1.1.2025 – 31.12.2025</strong></div>
       </div>
 
@@ -3353,19 +3359,53 @@ function renderTositeRivit() {
   const tilivalinnat = TILIT.map(t => '<option value="' + t.nro + '">' + t.nro + ' ' + t.lbl + '</option>').join('');
   document.getElementById('tosite-tbody').innerHTML = tositeRivit.map((r, i) =>
     '<tr style="border-bottom:1px solid var(--bd)">' +
-    '<td style="padding:4px 6px"><input type="date" value="' + r.pvm + '" onchange="tositeUpd(' + i + ',\'pvm\',this.value)" style="width:120px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><input type="text" value="' + (r.tsnro||'') + '" onchange="tositeUpd(' + i + ',\'tsnro\',this.value)" style="width:80px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><input type="text" value="' + (r.sel||'') + '" placeholder="Selite..." onchange="tositeUpd(' + i + ',\'sel\',this.value)" style="width:180px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><select onchange="tositeUpd(' + i + ',\'d\',this.value)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Debet --</option>' + tilivalinnat + '</select></td>' +
-    '<td style="padding:4px 6px"><select onchange="tositeUpd(' + i + ',\'k\',this.value)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Kredit --</option>' + tilivalinnat + '</select></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.netto||'') + '" onchange="tositeUpd(' + i + ',\'netto\',parseFloat(this.value)||0)" style="width:90px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right"></td>' +
-    '<td style="padding:4px 6px"><select onchange="tositeUpd(' + i + ',\'alvp\',parseFloat(this.value))" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="0">0%</option><option value="10">10%</option><option value="14">14%</option><option value="25.5">25.5%</option></select></td>' +
+    '<td style="padding:4px 6px"><input type="date" data-row="' + i + '" data-col="0" value="' + r.pvm + '" oninput="tositeUpd(' + i + ',\'pvm\',this.value)" onkeydown="tositeKey(event,' + i + ',0)" style="width:120px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    '<td style="padding:4px 6px"><input type="text" data-row="' + i + '" data-col="1" value="' + (r.tsnro||'') + '" oninput="tositeUpd(' + i + ',\'tsnro\',this.value)" onkeydown="tositeKey(event,' + i + ',1)" style="width:80px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    '<td style="padding:4px 6px"><input type="text" data-row="' + i + '" data-col="2" value="' + (r.sel||'') + '" placeholder="Selite..." oninput="tositeUpd(' + i + ',\'sel\',this.value)" onkeydown="tositeKey(event,' + i + ',2)" style="width:180px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="3" onchange="tositeUpd(' + i + ',\'d\',this.value)" onkeydown="tositeKey(event,' + i + ',3)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Debet --</option>' + tilivalinnat + '</select></td>' +
+    '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="4" onchange="tositeUpd(' + i + ',\'k\',this.value)" onkeydown="tositeKey(event,' + i + ',4)" style="width:160px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="">-- Kredit --</option>' + tilivalinnat + '</select></td>' +
+    '<td style="padding:4px 6px"><input type="number" data-row="' + i + '" data-col="5" value="' + (r.netto||'') + '" oninput="tositeUpd(' + i + ',\'netto\',parseFloat(this.value)||0)" onkeydown="tositeKey(event,' + i + ',5)" style="width:90px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right"></td>' +
+    '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="6" onchange="tositeUpd(' + i + ',\'alvp\',parseFloat(this.value))" onkeydown="tositeKey(event,' + i + ',6)" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="0">0%</option><option value="10">10%</option><option value="14">14%</option><option value="25.5">25.5%</option></select></td>' +
     '<td style="padding:4px 6px;text-align:right"><span style="font-size:12px;font-family:monospace">' + ((r.netto*(1+r.alvp/100))||0).toLocaleString('fi-FI',{minimumFractionDigits:2}) + '</span></td>' +
     '<td style="padding:4px 6px"><button onclick="poistaTosite(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
     '</tr>'
   ).join('');
   document.getElementById('tosite-save-btn').disabled = !tositeDirty || tositeRivit.length === 0;
   document.getElementById('tosite-save-btn').style.opacity = (tositeDirty && tositeRivit.length > 0) ? '1' : '0.4';
+}
+
+function tositeKey(e, rowIdx, col) {
+  const maxCol = 6;
+  if (e.key === 'Tab' || e.key === 'Enter') {
+    e.preventDefault();
+    if (e.shiftKey) {
+      if (col > 0) focusTosite(rowIdx, col - 1);
+      else if (rowIdx > 0) focusTosite(rowIdx - 1, maxCol);
+    } else {
+      if (col < maxCol) focusTosite(rowIdx, col + 1);
+      else {
+        lisaaTosite();
+        setTimeout(() => focusTosite(tositeRivit.length - 1, 0), 50);
+      }
+    }
+  }
+  if (e.key === 'ArrowDown' && col !== 2) {
+    e.preventDefault();
+    if (rowIdx < tositeRivit.length - 1) focusTosite(rowIdx + 1, col);
+  }
+  if (e.key === 'ArrowUp' && col !== 2) {
+    e.preventDefault();
+    if (rowIdx > 0) focusTosite(rowIdx - 1, col);
+  }
+  if (e.key === 'Delete' && col === maxCol) {
+    e.preventDefault();
+    poistaTosite(rowIdx);
+  }
+}
+
+function focusTosite(rowIdx, col) {
+  const el = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + col + '"]');
+  if (el) { el.focus(); if (el.tagName === 'INPUT') el.select(); }
 }
 
 function tositeUpd(i, f, v) {
