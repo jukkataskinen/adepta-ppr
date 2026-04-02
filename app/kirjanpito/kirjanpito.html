@@ -3411,7 +3411,19 @@ function focusTosite(rowIdx, col) {
 function tositeUpd(i, f, v) {
   tositeRivit[i][f] = v;
   tositeDirty = true;
-  renderTositeRivit();
+  // Päivitä vain brutto-sarake jos netto tai alvp muuttuu
+  if (f === 'netto' || f === 'alvp') {
+    const brutto = (tositeRivit[i].netto * (1 + tositeRivit[i].alvp / 100));
+    const bruttoEl = document.querySelector('[data-row="' + i + '"][data-brutto]');
+    if (bruttoEl) bruttoEl.textContent = brutto.toLocaleString('fi-FI', {minimumFractionDigits:2});
+  }
+  // Päivitä tallenna-nappi
+  const btn = document.getElementById('tosite-save-btn');
+  if (btn) {
+    btn.disabled = !tositeDirty || tositeRivit.length === 0;
+    btn.style.opacity = (tositeDirty && tositeRivit.length > 0) ? '1' : '0.4';
+  }
+  // EI re-renderöintiä tekstikenttiin
 }
 
 function poistaTosite(i) {
