@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Adepta PPR — Käyttäjät</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fd:#1c2b1e;--fm:#2d4a31;--fl:#3d6b43;
+  --fg:#5DCAA5;--fg2:#1D9E75;--fg3:#0F6E56;
+  --fmist:#e8efe9;--fpale:#f2f6f2;
+  --amber:#a05c1a;--ambl:#fdf3e8;
+  --blue:#185FA5;--bluel:#e8f0fb;
+  --ink:#1a1c18;--inm:#3d4039;--inu:#7a7d72;--inf:#b8bab2;
+  --pp:#fafaf7;--ppw:#f5f3ee;--bd:#dddbd4;--bd2:#c4c2b8;
+  --red:#A32D2D;--redl:#FCEBEB;
+  --ffd:'Fraunces',Georgia,serif;--ffb:'DM Sans',sans-serif;--ffm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14px;min-height:100vh;overflow:hidden}
+
+.topbar{background:var(--fd);height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{font-family:var(--ffd);font-size:22px;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.logo em{color:var(--fg);font-style:italic}
+.tb-sep{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.bc .a{color:rgba(255,255,255,.75)}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-ghost{padding:5px 14px;font-family:var(--ffb);font-size:12px;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .12s}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn-primary{padding:6px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer;transition:all .12s}
+.btn-primary:hover{opacity:.88}
+.av{width:30px;height:30px;border-radius:50%;background:var(--fl);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;cursor:pointer}
+
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+
+.sb{width:228px;background:var(--fd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sb-sec{padding:12px 12px 6px;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
+.nav-item .ic{font-size:15px;opacity:.8}
+.sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
+.sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--pp)}
+.content{flex:1;overflow-y:auto;padding:28px 32px}
+
+.page-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.page-hdr h1{font-family:var(--ffd);font-size:26px;font-weight:300;color:var(--fd)}
+.page-hdr-sub{font-size:12px;color:var(--inu);margin-top:2px}
+.page-hdr-acts{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* STATS */
+.stats{display:flex;gap:12px;margin-bottom:24px}
+.stat-card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 20px;min-width:120px}
+.stat-card .sc-val{font-family:var(--ffd);font-size:28px;font-weight:300;color:var(--fd);line-height:1}
+.stat-card .sc-lbl{font-size:11px;color:var(--inu);margin-top:4px}
+
+/* TABLE */
+.tbl-wrap{background:#fff;border-radius:8px;border:1px solid var(--bd);overflow:hidden}
+table.kt{width:100%;border-collapse:collapse;font-size:13px}
+table.kt thead th{background:var(--ppw);border-bottom:1px solid var(--bd2);padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--inu);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+table.kt tbody tr{border-bottom:1px solid var(--bd);transition:background .06s}
+table.kt tbody tr:last-child{border-bottom:none}
+table.kt tbody tr:hover{background:var(--fpale)}
+table.kt td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:middle}
+.badge{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-green{background:#e6f5ee;color:#1a6b3a}
+.badge-gray{background:#f0f0ec;color:#6b6b60}
+.badge-blue{background:var(--bluel);color:var(--blue)}
+.badge-amber{background:var(--ambl);color:var(--amber)}
+.act-btns{display:flex;gap:6px}
+.act-btn{padding:4px 10px;font-family:var(--ffb);font-size:11px;border-radius:4px;cursor:pointer;transition:all .1s;border:1px solid var(--bd)}
+.act-btn-edit{background:#fff;color:var(--inm)}
+.act-btn-edit:hover{border-color:var(--fg2);color:var(--fg2)}
+.act-btn-deact{background:#fff;color:var(--inu)}
+.act-btn-deact:hover{border-color:var(--red);color:var(--red)}
+.act-btn-act{background:#fff;color:var(--inu)}
+.act-btn-act:hover{border-color:var(--fg2);color:var(--fg2)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--inu)}
+.empty-state .em-ic{font-size:36px;margin-bottom:12px;opacity:.4}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:10px;width:420px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.15);overflow:hidden}
+.modal-hdr{padding:20px 24px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h2{font-family:var(--ffd);font-size:20px;font-weight:300;color:var(--fd)}
+.modal-close{background:none;border:none;font-size:20px;color:var(--inf);cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;transition:color .1s}
+.modal-close:hover{color:var(--ink)}
+.modal-body{padding:20px 24px}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:11px;font-weight:500;color:var(--inu);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+.form-row input,.form-row select{width:100%;padding:8px 12px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;outline:none;background:#fff;transition:border-color .12s}
+.form-row input:focus,.form-row select:focus{border-color:var(--fg2)}
+.modal-ftr{padding:14px 24px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{padding:7px 16px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--inm);cursor:pointer;transition:all .1s}
+.btn-cancel:hover{border-color:var(--bd2)}
+.btn-save{padding:7px 20px;font-family:var(--ffb);font-size:13px;font-weight:500;border:none;border-radius:6px;background:var(--fg2);color:#fff;cursor:pointer;transition:opacity .1s}
+.btn-save:hover{opacity:.88}
+.info-box{background:var(--fmist);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--fm);margin-bottom:14px;line-height:1.5}
+
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:7px;font-size:13px;font-weight:500;color:#fff;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.ok{background:var(--fg3)}
+.toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Adepta <em>PPR</em></div>
+  <div class="tb-sep"></div>
+  <div class="bc"><span class="a">Käyttäjät</span></div>
+  <div class="tr">
+    <div class="av" id="av-initials" title="">?</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sb">
+    <div class="sb-sec">Kirjanpito</div>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">✏️</span>Tositteen syöttö</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📒</span>Päiväkirja</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">🏦</span>Pankkituonti</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📎</span>Tositteet</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📊</span>Raportit</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📋</span>Tilikartta</a>
+    <div class="sb-div"></div>
+    <div class="sb-sec">Hallinta</div>
+    <a class="nav-item" href="/asiakkaat"><span class="ic">🏢</span>Asiakkaat</a>
+    <a class="nav-item act" href="/kayttajat"><span class="ic">👤</span>Käyttäjät</a>
+    <div class="sb-foot" id="sb-foot">Kirjautunut:<br><strong id="sb-user">—</strong></div>
+  </div>
+
+  <div class="main">
+    <div class="content">
+      <div class="page-hdr">
+        <div>
+          <h1>Käyttäjät</h1>
+          <div class="page-hdr-sub">Hallitse organisaation käyttäjätilejä</div>
+        </div>
+        <div class="page-hdr-acts" id="kutsu-wrap">
+          <button class="btn-primary" onclick="avaaKutsuModal()">+ Kutsu käyttäjä</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card"><div class="sc-val" id="stat-yht">—</div><div class="sc-lbl">Käyttäjiä yhteensä</div></div>
+        <div class="stat-card"><div class="sc-val" id="stat-akt">—</div><div class="sc-lbl">Aktiivisia</div></div>
+        <div class="stat-card"><div class="sc-val" id="stat-ei">—</div><div class="sc-lbl">Ei aktiivisia</div></div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="kt">
+          <thead>
+            <tr>
+              <th>Sähköposti</th>
+              <th>Rooli</th>
+              <th>Tila</th>
+              <th>Toiminnot</th>
+            </tr>
+          </thead>
+          <tbody id="kayttaja-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--inu)">Ladataan...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KUTSU MODAL -->
+<div class="modal-bg" id="kutsu-modal-bg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2>Kutsu käyttäjä</h2>
+      <button class="modal-close" onclick="suljeKutsuModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">Käyttäjälle lähetetään sähköpostiviesti, jossa on linkki salasanan asettamiseen.</div>
+      <div class="form-row">
+        <label>Sähköposti *</label>
+        <input type="email" id="kutsu-email" placeholder="kayttaja@yritys.fi">
+      </div>
+      <div class="form-row">
+        <label>Rooli</label>
+        <select id="kutsu-rooli">
+          <option value="kirjanpitaja">Kirjanpitäjä</option>
+          <option value="paakayttaja">Pääkäyttäjä</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="suljeKutsuModal()">Peruuta</button>
+      <button class="btn-save" id="kutsu-save-btn" onclick="lahetaKutsu()">Lähetä kutsu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROOLI MODAL -->
+<div class="modal-bg" id="rooli-modal-bg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2>Muuta roolia</h2>
+      <button class="modal-close" onclick="suljeRooliModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rooli-id">
+      <div class="form-row">
+        <label>Käyttäjä</label>
+        <input type="text" id="rooli-email" disabled style="background:var(--ppw);color:var(--inu)">
+      </div>
+      <div class="form-row">
+        <label>Rooli</label>
+        <select id="rooli-val">
+          <option value="kirjanpitaja">Kirjanpitäjä</option>
+          <option value="paakayttaja">Pääkäyttäjä</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="suljeRooliModal()">Peruuta</button>
+      <button class="btn-save" onclick="tallennaRooli()">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let kayttajat = [];
+let omaRooli = '';
+let omaId = '';
+
+async function init() {
+  const cfg = window._PPR || {};
+  omaRooli = cfg.rooli || '';
+  omaId = cfg.kayttajaId || '';
+
+  if (cfg.email) {
+    const initials = (cfg.email || '').substring(0, 2).toUpperCase();
+    const av = document.getElementById('av-initials');
+    if (av) { av.textContent = initials; av.title = cfg.email; }
+    const sbUser = document.getElementById('sb-user');
+    if (sbUser) sbUser.textContent = cfg.email;
+  }
+
+  // Piilota kutsu-nappi kirjanpitäjiltä
+  if (omaRooli !== 'paakayttaja') {
+    const wrap = document.getElementById('kutsu-wrap');
+    if (wrap) wrap.style.display = 'none';
+  }
+
+  await lataaKayttajat();
+}
+
+async function lataaKayttajat() {
+  const res = await fetch('/api/ppr/kayttajat/kaikki');
+  if (!res.ok) { toast('Virhe ladatessa käyttäjiä', 'err'); return; }
+  kayttajat = await res.json();
+  renderKayttajat();
+  paivitaStats();
+}
+
+function paivitaStats() {
+  const akt = kayttajat.filter(k => k.aktiivinen).length;
+  document.getElementById('stat-yht').textContent = kayttajat.length;
+  document.getElementById('stat-akt').textContent = akt;
+  document.getElementById('stat-ei').textContent = kayttajat.length - akt;
+}
+
+function renderKayttajat() {
+  const tbody = document.getElementById('kayttaja-tbody');
+  if (!kayttajat.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="em-ic">👤</div><p>Ei käyttäjiä.</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = kayttajat.map(k => {
+    const onPaakayttaja = omaRooli === 'paakayttaja';
+    const onItsensa = k.id === omaId;
+    return '<tr>' +
+      '<td style="font-weight:500">' + esc(k.sahkoposti) + (onItsensa ? ' <span style="font-size:10px;color:var(--inu)">(sinä)</span>' : '') + '</td>' +
+      '<td>' + rooliLabel(k.rooli) + '</td>' +
+      '<td>' + (k.aktiivinen
+        ? '<span class="badge badge-green">Aktiivinen</span>'
+        : '<span class="badge badge-gray">Ei aktiivinen</span>') + '</td>' +
+      '<td><div class="act-btns">' +
+        (onPaakayttaja && !onItsensa ? '<button class="act-btn act-btn-edit" onclick="avaaRooliModal(\'' + k.id + '\',\'' + esc(k.sahkoposti) + '\',\'' + k.rooli + '\')">Muuta rooli</button>' : '') +
+        (onPaakayttaja && !onItsensa
+          ? (k.aktiivinen
+              ? '<button class="act-btn act-btn-deact" onclick="vaihdaTila(\'' + k.id + '\',false)">Deaktivoi</button>'
+              : '<button class="act-btn act-btn-act" onclick="vaihdaTila(\'' + k.id + '\',true)">Aktivoi</button>')
+          : '') +
+      '</div></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function rooliLabel(r) {
+  if (r === 'paakayttaja') return '<span class="badge badge-blue">Pääkäyttäjä</span>';
+  if (r === 'kirjanpitaja') return '<span class="badge badge-amber">Kirjanpitäjä</span>';
+  return '<span class="badge badge-gray">' + esc(r) + '</span>';
+}
+
+// ── KUTSU MODAL ──
+function avaaKutsuModal() {
+  document.getElementById('kutsu-email').value = '';
+  document.getElementById('kutsu-rooli').value = 'kirjanpitaja';
+  document.getElementById('kutsu-modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('kutsu-email').focus(), 50);
+}
+
+function suljeKutsuModal() {
+  document.getElementById('kutsu-modal-bg').classList.remove('open');
+}
+
+async function lahetaKutsu() {
+  const email = document.getElementById('kutsu-email').value.trim();
+  const rooli = document.getElementById('kutsu-rooli').value;
+  if (!email) { document.getElementById('kutsu-email').focus(); return; }
+
+  const btn = document.getElementById('kutsu-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Lähetetään...';
+
+  const res = await fetch('/api/ppr/kutsu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, rooli }),
+  });
+  const json = await res.json();
+
+  btn.disabled = false;
+  btn.textContent = 'Lähetä kutsu';
+
+  if (!res.ok) { toast(json.error || 'Virhe kutsun lähetyksessä', 'err'); return; }
+  suljeKutsuModal();
+  toast('Kutsu lähetetty osoitteeseen ' + email + ' ✓', 'ok');
+  await lataaKayttajat();
+}
+
+// ── ROOLI MODAL ──
+function avaaRooliModal(id, email, rooli) {
+  document.getElementById('rooli-id').value = id;
+  document.getElementById('rooli-email').value = email;
+  document.getElementById('rooli-val').value = rooli;
+  document.getElementById('rooli-modal-bg').classList.add('open');
+}
+
+function suljeRooliModal() {
+  document.getElementById('rooli-modal-bg').classList.remove('open');
+}
+
+async function tallennaRooli() {
+  const id = document.getElementById('rooli-id').value;
+  const rooli = document.getElementById('rooli-val').value;
+  const res = await fetch('/api/ppr/kayttajat/' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rooli }),
+  });
+  if (!res.ok) { const j = await res.json(); toast(j.error || 'Virhe', 'err'); return; }
+  suljeRooliModal();
+  toast('Rooli päivitetty ✓', 'ok');
+  await lataaKayttajat();
+}
+
+// ── TILA ──
+async function vaihdaTila(id, aktiivinen) {
+  const res = await fetch('/api/ppr/kayttajat/' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ aktiivinen }),
+  });
+  if (!res.ok) { const j = await res.json(); toast(j.error || 'Virhe', 'err'); return; }
+  toast(aktiivinen ? 'Käyttäjä aktivoitu ✓' : 'Käyttäjä deaktivoitu ✓', 'ok');
+  await lataaKayttajat();
+}
+
+// ── UTILS ──
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (type || 'ok') + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { suljeKutsuModal(); suljeRooliModal(); }
+});
+document.getElementById('kutsu-modal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('kutsu-modal-bg')) suljeKutsuModal();
+});
+document.getElementById('rooli-modal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('rooli-modal-bg')) suljeRooliModal();
+});
+
+init();
+</script>
+</body>
+</html>
