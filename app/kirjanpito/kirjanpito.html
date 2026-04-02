@@ -55,7 +55,7 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .co-name{font-size:13px;color:rgba(255,255,255,.82)}
 .co-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
 .sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
-.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55)}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:none}
 .nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
 .nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
 .nav-item .ic{font-size:15px;opacity:.8}
@@ -290,6 +290,10 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="nav-item" id="nav-tositteet" onclick="showPanel('tositteet')"><span class="ic">📎</span>Tositteet</div>
     <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')"><span class="ic">📊</span>Raportit</div>
     <div class="nav-item" id="nav-tk" onclick="showPanel('tilikartta')"><span class="ic">📋</span>Tilikartta</div>
+    <div class="sb-div"></div>
+    <div class="sb-sec">Hallinta</div>
+    <a class="nav-item" href="/asiakkaat" style="text-decoration:none"><span class="ic">🏢</span>Asiakkaat</a>
+    <a class="nav-item" href="/kayttajat" style="text-decoration:none"><span class="ic">👤</span>Käyttäjät</a>
     <div class="sb-div"></div>
     <div class="sb-foot">Kirjautunut:<br><strong>Merja Korhonen</strong> · Pääkäyttäjä</div>
   </div>

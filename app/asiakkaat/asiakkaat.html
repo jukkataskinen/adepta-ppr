@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Adepta PPR — Asiakkaat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fd:#1c2b1e;--fm:#2d4a31;--fl:#3d6b43;
+  --fg:#5DCAA5;--fg2:#1D9E75;--fg3:#0F6E56;
+  --fmist:#e8efe9;--fpale:#f2f6f2;
+  --amber:#a05c1a;--ambl:#fdf3e8;
+  --blue:#185FA5;--bluel:#e8f0fb;
+  --ink:#1a1c18;--inm:#3d4039;--inu:#7a7d72;--inf:#b8bab2;
+  --pp:#fafaf7;--ppw:#f5f3ee;--bd:#dddbd4;--bd2:#c4c2b8;
+  --red:#A32D2D;--redl:#FCEBEB;
+  --ffd:'Fraunces',Georgia,serif;--ffb:'DM Sans',sans-serif;--ffm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14px;min-height:100vh;overflow:hidden}
+
+/* TOPBAR */
+.topbar{background:var(--fd);height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{font-family:var(--ffd);font-size:22px;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.logo em{color:var(--fg);font-style:italic}
+.tb-sep{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.bc .a{color:rgba(255,255,255,.75)}
+.bc-s{color:rgba(255,255,255,.2)}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-ghost{padding:5px 14px;font-family:var(--ffb);font-size:12px;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .12s;white-space:nowrap}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn-primary{padding:6px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer;transition:all .12s}
+.btn-primary:hover{opacity:.88}
+.av{width:30px;height:30px;border-radius:50%;background:var(--fl);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;cursor:pointer}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:228px;background:var(--fd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sb-sec{padding:12px 12px 6px;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
+.nav-item .ic{font-size:15px;opacity:.8}
+.sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
+.sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--pp)}
+.content{flex:1;overflow-y:auto;padding:28px 32px}
+
+/* PAGE HEADER */
+.page-hdr{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.page-hdr h1{font-family:var(--ffd);font-size:26px;font-weight:300;color:var(--fd)}
+.page-hdr-sub{font-size:12px;color:var(--inu);margin-top:2px}
+.page-hdr-acts{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* SEARCH */
+.search-bar{display:flex;gap:10px;margin-bottom:18px;align-items:center}
+.search-input{padding:8px 14px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;background:#fff;outline:none;width:280px;transition:border-color .12s}
+.search-input:focus{border-color:var(--fg2)}
+.search-input::placeholder{color:var(--inf)}
+
+/* TABLE */
+.tbl-wrap{background:#fff;border-radius:8px;border:1px solid var(--bd);overflow:hidden}
+table.at{width:100%;border-collapse:collapse;font-size:13px}
+table.at thead th{background:var(--ppw);border-bottom:1px solid var(--bd2);padding:10px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--inu);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+table.at tbody tr{border-bottom:1px solid var(--bd);transition:background .06s}
+table.at tbody tr:last-child{border-bottom:none}
+table.at tbody tr:hover{background:var(--fpale)}
+table.at td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:middle}
+.badge{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-green{background:#e6f5ee;color:#1a6b3a}
+.badge-gray{background:#f0f0ec;color:#6b6b60}
+.act-btns{display:flex;gap:6px}
+.act-btn{padding:4px 10px;font-family:var(--ffb);font-size:11px;border-radius:4px;cursor:pointer;transition:all .1s;border:1px solid var(--bd)}
+.act-btn-edit{background:#fff;color:var(--inm)}
+.act-btn-edit:hover{border-color:var(--fg2);color:var(--fg2)}
+.act-btn-del{background:#fff;color:var(--inu)}
+.act-btn-del:hover{border-color:var(--red);color:var(--red)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--inu)}
+.empty-state .em-ic{font-size:36px;margin-bottom:12px;opacity:.4}
+.empty-state p{font-size:13px}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:10px;width:480px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.15);overflow:hidden}
+.modal-hdr{padding:20px 24px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h2{font-family:var(--ffd);font-size:20px;font-weight:300;color:var(--fd)}
+.modal-close{background:none;border:none;font-size:20px;color:var(--inf);cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;transition:color .1s}
+.modal-close:hover{color:var(--ink)}
+.modal-body{padding:20px 24px}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:11px;font-weight:500;color:var(--inu);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+.form-row input,.form-row select{width:100%;padding:8px 12px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;outline:none;background:#fff;transition:border-color .12s}
+.form-row input:focus,.form-row select:focus{border-color:var(--fg2)}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.checkbox-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--fg2);cursor:pointer}
+.checkbox-row label{font-size:13px;color:var(--ink);cursor:pointer}
+.modal-ftr{padding:14px 24px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{padding:7px 16px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--inm);cursor:pointer;transition:all .1s}
+.btn-cancel:hover{border-color:var(--bd2)}
+.btn-save{padding:7px 20px;font-family:var(--ffb);font-size:13px;font-weight:500;border:none;border-radius:6px;background:var(--fg2);color:#fff;cursor:pointer;transition:opacity .1s}
+.btn-save:hover{opacity:.88}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:7px;font-size:13px;font-weight:500;color:#fff;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.ok{background:var(--fg3)}
+.toast.err{background:var(--red)}
+
+/* CONFIRM DIALOG */
+.confirm-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;align-items:center;justify-content:center}
+.confirm-bg.open{display:flex}
+.confirm-box{background:#fff;border-radius:10px;width:340px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.confirm-box h3{font-family:var(--ffd);font-size:18px;font-weight:300;margin-bottom:8px;color:var(--fd)}
+.confirm-box p{font-size:13px;color:var(--inu);margin-bottom:20px}
+.confirm-acts{display:flex;gap:8px;justify-content:flex-end}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Adepta <em>PPR</em></div>
+  <div class="tb-sep"></div>
+  <div class="bc">
+    <span class="a">Asiakkaat</span>
+  </div>
+  <div class="tr">
+    <div class="av" id="av-initials" title="">?</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <div class="sb-sec">Kirjanpito</div>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">✏️</span>Tositteen syöttö</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📒</span>Päiväkirja</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">🏦</span>Pankkituonti</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📎</span>Tositteet</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📊</span>Raportit</a>
+    <a class="nav-item" href="/kirjanpito"><span class="ic">📋</span>Tilikartta</a>
+    <div class="sb-div"></div>
+    <div class="sb-sec">Hallinta</div>
+    <a class="nav-item act" href="/asiakkaat"><span class="ic">🏢</span>Asiakkaat</a>
+    <a class="nav-item" href="/kayttajat"><span class="ic">👤</span>Käyttäjät</a>
+    <div class="sb-foot" id="sb-foot">Kirjautunut:<br><strong id="sb-user">—</strong></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="content">
+      <div class="page-hdr">
+        <div>
+          <h1>Asiakkaat</h1>
+          <div class="page-hdr-sub" id="asiakas-count">Ladataan...</div>
+        </div>
+        <div class="page-hdr-acts">
+          <button class="btn-primary" onclick="avaaModal()">+ Lisää asiakas</button>
+        </div>
+      </div>
+
+      <div class="search-bar">
+        <input class="search-input" type="text" placeholder="Hae nimellä tai y-tunnuksella…" oninput="haeAsiakkaat(this.value)" id="haku-input">
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="at">
+          <thead>
+            <tr>
+              <th>Nimi</th>
+              <th>Y-tunnus</th>
+              <th>Yhtiömuoto</th>
+              <th>ALV</th>
+              <th>Vastuukirjanpitäjä</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="asiakas-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--inu)">Ladataan...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LISÄYS/MUOKKAUS MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2 id="modal-title">Lisää asiakas</h2>
+      <button class="modal-close" onclick="suljeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modal-id">
+      <div class="form-row">
+        <label>Nimi *</label>
+        <input type="text" id="f-nimi" placeholder="Yrityksen nimi" required>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Y-tunnus</label>
+          <input type="text" id="f-ytunnus" placeholder="1234567-8">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Yhtiömuoto</label>
+          <select id="f-yhtiomuoto">
+            <option value="">— Valitse —</option>
+            <option value="oy">Osakeyhtiö (Oy)</option>
+            <option value="tmi">Toiminimi (Tmi)</option>
+            <option value="ay">Avoin yhtiö (Ay)</option>
+            <option value="ky">Kommandiittiyhtiö (Ky)</option>
+            <option value="osuuskunta">Osuuskunta</option>
+            <option value="muu">Muu</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px"></div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Sähköposti</label>
+          <input type="email" id="f-sahkoposti" placeholder="info@yritys.fi">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Puhelin</label>
+          <input type="tel" id="f-puhelin" placeholder="+358 40 123 4567">
+        </div>
+      </div>
+      <div style="margin-bottom:14px"></div>
+      <div class="form-row">
+        <label>Vastuukirjanpitäjä</label>
+        <select id="f-kirjanpitaja">
+          <option value="">— Ei valittu —</option>
+        </select>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="f-alv" checked>
+        <label for="f-alv">ALV-velvollinen</label>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="suljeModal()">Peruuta</button>
+      <button class="btn-save" onclick="tallennaAsiakas()">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<!-- VAHVISTUS POISTOON -->
+<div class="confirm-bg" id="confirm-bg">
+  <div class="confirm-box">
+    <h3>Poista asiakas</h3>
+    <p id="confirm-teksti">Haluatko varmasti poistaa tämän asiakkaan?</p>
+    <div class="confirm-acts">
+      <button class="btn-cancel" onclick="suljeConfirm()">Peruuta</button>
+      <button style="padding:7px 20px;font-family:var(--ffb);font-size:13px;font-weight:500;border:none;border-radius:6px;background:var(--red);color:#fff;cursor:pointer" onclick="vahvistaPoisto()">Poista</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let kaikki = [];
+let kayttajat = [];
+let poistoId = null;
+
+// ── INIT ──
+async function init() {
+  const cfg = window._PPR || {};
+  // Päivitä avatar ja footer
+  if (cfg.email) {
+    const initials = (cfg.email || '').substring(0, 2).toUpperCase();
+    const av = document.getElementById('av-initials');
+    if (av) { av.textContent = initials; av.title = cfg.email; }
+    const sbUser = document.getElementById('sb-user');
+    if (sbUser) sbUser.textContent = cfg.email;
+  }
+  await Promise.all([lataaAsiakkaat(), lataaKayttajat()]);
+}
+
+async function lataaAsiakkaat() {
+  const res = await fetch('/api/ppr/asiakkaat');
+  if (!res.ok) { toast('Virhe ladatessa asiakkaita', 'err'); return; }
+  kaikki = await res.json();
+  renderAsiakkaat(kaikki);
+  document.getElementById('asiakas-count').textContent = kaikki.length + ' asiakasta';
+}
+
+async function lataaKayttajat() {
+  const res = await fetch('/api/ppr/kayttajat');
+  if (!res.ok) return;
+  kayttajat = await res.json();
+  const sel = document.getElementById('f-kirjanpitaja');
+  sel.innerHTML = '<option value="">— Ei valittu —</option>' +
+    kayttajat.map(k => '<option value="' + k.id + '">' + (k.nimi || k.sahkoposti) + '</option>').join('');
+}
+
+function renderAsiakkaat(lista) {
+  const tbody = document.getElementById('asiakas-tbody');
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="em-ic">🏢</div><p>Ei asiakkaita vielä. Lisää ensimmäinen asiakas.</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = lista.map(a => {
+    const kb = kayttajat.find(k => k.id === a.vastuukirjanpitaja_id);
+    return '<tr>' +
+      '<td style="font-weight:500">' + esc(a.nimi) + '</td>' +
+      '<td style="font-family:var(--ffm);font-size:12px;color:var(--inu)">' + esc(a.y_tunnus || '—') + '</td>' +
+      '<td>' + yhtiomuotoLabel(a.yhtiomuoto) + '</td>' +
+      '<td>' + (a.alv_velvollinen
+        ? '<span class="badge badge-green">ALV</span>'
+        : '<span class="badge badge-gray">Ei ALV</span>') + '</td>' +
+      '<td style="color:var(--inu)">' + esc(kb ? (kb.nimi || kb.sahkoposti) : '—') + '</td>' +
+      '<td><div class="act-btns">' +
+        '<button class="act-btn act-btn-edit" onclick="muokkaaAsiakas(' + JSON.stringify(a).replace(/"/g,'&quot;') + ')">Muokkaa</button>' +
+        '<button class="act-btn act-btn-del" onclick="pyydaPoisto(\'' + a.id + '\',\'' + esc(a.nimi) + '\')">Poista</button>' +
+      '</div></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function haeAsiakkaat(q) {
+  const h = q.toLowerCase().trim();
+  const suodatettu = h ? kaikki.filter(a =>
+    a.nimi.toLowerCase().includes(h) || (a.y_tunnus || '').includes(h)
+  ) : kaikki;
+  renderAsiakkaat(suodatettu);
+}
+
+function yhtiomuotoLabel(v) {
+  const map = { oy:'Oy', tmi:'Tmi', ay:'Ay', ky:'Ky', osuuskunta:'Osuuskunta', muu:'Muu' };
+  return v ? (map[v] || v) : '—';
+}
+
+// ── MODAL ──
+function avaaModal(asiakas) {
+  document.getElementById('modal-id').value = asiakas?.id || '';
+  document.getElementById('modal-title').textContent = asiakas ? 'Muokkaa asiakasta' : 'Lisää asiakas';
+  document.getElementById('f-nimi').value = asiakas?.nimi || '';
+  document.getElementById('f-ytunnus').value = asiakas?.y_tunnus || '';
+  document.getElementById('f-yhtiomuoto').value = asiakas?.yhtiomuoto || '';
+  document.getElementById('f-sahkoposti').value = asiakas?.sahkoposti || '';
+  document.getElementById('f-puhelin').value = asiakas?.puhelin || '';
+  document.getElementById('f-alv').checked = asiakas ? !!asiakas.alv_velvollinen : true;
+  document.getElementById('f-kirjanpitaja').value = asiakas?.vastuukirjanpitaja_id || '';
+  document.getElementById('modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('f-nimi').focus(), 50);
+}
+
+function muokkaaAsiakas(a) { avaaModal(a); }
+
+function suljeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+}
+
+async function tallennaAsiakas() {
+  const id = document.getElementById('modal-id').value;
+  const nimi = document.getElementById('f-nimi').value.trim();
+  if (!nimi) { document.getElementById('f-nimi').focus(); return; }
+
+  const body = {
+    nimi,
+    y_tunnus: document.getElementById('f-ytunnus').value.trim() || null,
+    yhtiomuoto: document.getElementById('f-yhtiomuoto').value || null,
+    sahkoposti: document.getElementById('f-sahkoposti').value.trim() || null,
+    puhelin: document.getElementById('f-puhelin').value.trim() || null,
+    alv_velvollinen: document.getElementById('f-alv').checked,
+    vastuukirjanpitaja_id: document.getElementById('f-kirjanpitaja').value || null,
+  };
+
+  const url = id ? '/api/ppr/asiakkaat/' + id : '/api/ppr/asiakkaat';
+  const method = id ? 'PATCH' : 'POST';
+
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const j = await res.json();
+    toast(j.error || 'Virhe tallennuksessa', 'err');
+    return;
+  }
+  suljeModal();
+  toast(id ? 'Asiakas päivitetty ✓' : 'Asiakas lisätty ✓', 'ok');
+  await lataaAsiakkaat();
+}
+
+// ── POISTO ──
+function pyydaPoisto(id, nimi) {
+  poistoId = id;
+  document.getElementById('confirm-teksti').textContent = 'Haluatko varmasti poistaa asiakkaan "' + nimi + '"?';
+  document.getElementById('confirm-bg').classList.add('open');
+}
+
+function suljeConfirm() {
+  poistoId = null;
+  document.getElementById('confirm-bg').classList.remove('open');
+}
+
+async function vahvistaPoisto() {
+  if (!poistoId) return;
+  const res = await fetch('/api/ppr/asiakkaat/' + poistoId, { method: 'DELETE' });
+  suljeConfirm();
+  if (!res.ok) { toast('Virhe poistossa', 'err'); return; }
+  toast('Asiakas poistettu', 'ok');
+  await lataaAsiakkaat();
+}
+
+// ── UTILS ──
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (type || 'ok') + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { suljeModal(); suljeConfirm(); }
+});
+document.getElementById('modal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-bg')) suljeModal();
+});
+document.getElementById('confirm-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('confirm-bg')) suljeConfirm();
+});
+
+init();
+</script>
+</body>
+</html>
