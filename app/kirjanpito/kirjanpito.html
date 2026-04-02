@@ -1,0 +1,3310 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Adepta TILI — Päiväkirja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fd:#1c2b1e;--fm:#2d4a31;--fl:#3d6b43;
+  --fg:#5DCAA5;--fg2:#1D9E75;--fg3:#0F6E56;
+  --fmist:#e8efe9;--fpale:#f2f6f2;
+  --amber:#a05c1a;--ambl:#fdf3e8;
+  --blue:#185FA5;--bluel:#e8f0fb;
+  --ink:#1a1c18;--inm:#3d4039;--inu:#7a7d72;--inf:#b8bab2;
+  --pp:#fafaf7;--ppw:#f5f3ee;--bd:#dddbd4;--bd2:#c4c2b8;
+  --red:#A32D2D;--redl:#FCEBEB;
+  --ffd:'Fraunces',Georgia,serif;--ffb:'DM Sans',sans-serif;--ffm:'DM Mono',monospace;
+  --rh:42px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14px;min-height:100vh;overflow:hidden}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--fd);height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{font-family:var(--ffd);font-size:22px;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.logo em{color:var(--fg);font-style:italic}
+.tb-sep{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.bc .a{color:rgba(255,255,255,.75)}
+.bc-s{color:rgba(255,255,255,.2)}
+.period-sel{padding:4px 10px;font-family:var(--ffb);font-size:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:5px;color:rgba(255,255,255,.75);cursor:pointer;outline:none;appearance:none;margin-left:4px}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-ghost{padding:5px 14px;font-family:var(--ffb);font-size:12px;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .12s;white-space:nowrap}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn-primary{padding:6px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer;transition:all .12s}
+.btn-primary:hover{opacity:.88}
+.btn-primary:disabled{opacity:.3;cursor:not-allowed}
+.av{width:30px;height:30px;border-radius:50%;background:var(--fl);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;cursor:pointer}
+
+/* ── LAYOUT ── */
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sb{width:228px;background:var(--fd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sb-sec{padding:12px 12px 6px;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.sb-search{margin:0 10px 8px;padding:6px 10px;font-family:var(--ffb);font-size:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#fff;outline:none;width:calc(100% - 20px)}
+.sb-search::placeholder{color:rgba(255,255,255,.28)}
+.sb-search:focus{background:rgba(255,255,255,.11);border-color:var(--fg)}
+.co-list{overflow-y:auto;max-height:180px;margin-bottom:4px}
+.co-item{padding:8px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s}
+.co-item:hover{background:rgba(255,255,255,.05)}
+.co-item.act{background:rgba(93,202,165,.1);border-left-color:var(--fg)}
+.co-name{font-size:13px;color:rgba(255,255,255,.82)}
+.co-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55)}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
+.nav-item .ic{font-size:15px;opacity:.8}
+.sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
+.sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--pp)}
+
+/* ── KEYBOARD BAR ── */
+.kb{background:var(--ppw);border-bottom:1px solid var(--bd);padding:6px 18px;display:flex;gap:16px;align-items:center;font-size:11px;color:var(--inu);flex-wrap:wrap;flex-shrink:0}
+.kb-i{display:flex;align-items:center;gap:4px}
+kbd{font-family:var(--ffm);font-size:10px;background:var(--pp);border:1px solid var(--bd2);border-bottom-width:2px;border-radius:3px;padding:1px 5px;color:var(--inm)}
+.kb-sp{margin-left:auto}
+
+/* ── BALANCE ALERT ── */
+.bal-alert{padding:5px 18px;font-size:11px;display:none;align-items:center;gap:6px;flex-shrink:0}
+.bal-alert.err{display:flex;background:#FFF3F3;border-bottom:1px solid #f5c0c0;color:var(--red)}
+.bal-alert.ok{display:flex;background:#f0faf5;border-bottom:1px solid #b8e8d4;color:var(--fg3)}
+
+/* ── TABLE WRAPPER ── */
+.tw{flex:1;overflow-y:auto;overflow-x:auto}
+
+/* ── JOURNAL TABLE ── */
+table.jt{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;min-width:980px}
+col.cn{width:36px}col.cd{width:100px}col.ct{width:72px}
+col.csel{width:auto}col.cdt{width:155px}col.ckt{width:155px}
+col.cne{width:88px}col.calvp{width:52px}col.calve{width:80px}col.cbr{width:92px}
+col.cdel{width:36px}
+
+thead.jh th{background:var(--ppw);border-bottom:1px solid var(--bd2);padding:0 8px;height:30px;text-align:left;font-size:9px;font-weight:500;color:var(--inu);letter-spacing:.08em;text-transform:uppercase;position:sticky;top:0;z-index:10;white-space:nowrap}
+thead.jh th.r{text-align:right}
+thead.jh th.c{text-align:center}
+
+tbody tr.jr{border-bottom:1px solid var(--bd);transition:background .06s;position:relative}
+tbody tr.jr:hover{background:#f4f9f5}
+tbody tr.jr.sug-row td{background:#fffdf5}
+
+td.rn{width:36px;text-align:center;font-size:10px;color:var(--inf);padding:0;vertical-align:middle;user-select:none}
+td.c0{padding:0;vertical-align:middle}
+
+input.ji,select.js{width:100%;height:var(--rh);padding:0 8px;font-family:var(--ffb);font-size:13px;color:var(--ink);background:transparent;border:none;outline:none;transition:background .08s}
+input.ji::placeholder{color:var(--inf)}
+input.ji:focus,select.js:focus{background:#f0f9f5;box-shadow:inset 0 0 0 2px var(--fm);z-index:2;position:relative}
+input.ji.num{text-align:right;font-family:var(--ffm);font-size:12px}
+input.ji.mono{font-family:var(--ffm);font-size:12px}
+input.ji.calc{text-align:right;font-family:var(--ffm);font-size:12px;color:var(--inu);background:var(--ppw)}
+.del-btn{width:36px;height:var(--rh);border:none;background:transparent;cursor:pointer;color:var(--bd2);font-size:16px;transition:color .1s;outline:none;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.del-btn:hover{color:var(--red)}
+
+/* Suggestion badge in selite cell */
+.sel-wrap{position:relative;width:100%;display:flex;align-items:center}
+.sel-input{flex:1;height:var(--rh);padding:0 8px;font-family:var(--ffb);font-size:13px;color:var(--ink);background:transparent;border:none;outline:none;transition:background .08s}
+.sel-input:focus{background:#f0f9f5;box-shadow:inset 0 0 0 2px var(--fm);z-index:2;position:relative}
+.sel-input::placeholder{color:var(--inf)}
+.sug-badge{display:none;align-items:center;gap:4px;padding:2px 7px;font-size:10px;font-weight:600;background:var(--ambl);color:var(--amber);border-radius:10px;white-space:nowrap;cursor:pointer;margin-right:6px;flex-shrink:0;transition:all .1s;border:1px solid rgba(160,92,26,.2)}
+.sug-badge:hover{background:#fce8d4}
+.sug-badge.vis{display:flex}
+
+/* Account dropdown */
+.acct-wrap{position:relative;width:100%;height:var(--rh);display:flex;align-items:center}
+.acct-btn{width:100%;height:var(--rh);padding:0 22px 0 8px;font-family:var(--ffm);font-size:11px;color:var(--ink);background:transparent;border:none;outline:none;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .08s}
+.acct-btn:focus,.acct-btn.open{background:#f0f9f5;box-shadow:inset 0 0 0 2px var(--fm);z-index:2;position:relative}
+.acct-btn.empty{color:var(--inf)}
+.acct-arrow{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--inf);pointer-events:none}
+.acct-list{position:absolute;top:calc(100% + 1px);left:0;min-width:260px;background:var(--pp);border:1px solid var(--bd2);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:500;display:none;flex-direction:column;max-height:280px}
+.acct-list.vis{display:flex}
+.acct-list.up{top:auto;bottom:calc(100% + 1px)}
+.acct-search{padding:7px 10px;font-family:var(--ffb);font-size:12px;background:transparent;border:none;border-bottom:1px solid var(--bd);outline:none;color:var(--ink);width:100%;flex-shrink:0}
+.acct-search::placeholder{color:var(--inf)}
+.acct-items{overflow-y:auto;flex:1;padding:3px 0}
+.acct-grp{padding:4px 10px 2px;font-size:9px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-top:3px}
+.acct-item{padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.acct-item:hover,.acct-item.hi{background:var(--fmist)}
+.acct-nro{font-family:var(--ffm);font-size:10px;font-weight:600;color:var(--moss,var(--fl));width:32px;flex-shrink:0}
+.acct-lbl{color:var(--ink);flex:1}
+.acct-type{font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;flex-shrink:0}
+.at-v{background:#e4f4ec;color:var(--fg3)}
+.at-k{background:var(--bluel);color:var(--blue)}
+
+/* Add row */
+tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
+.add-row-btn{width:100%;height:34px;background:transparent;border:none;cursor:pointer;font-family:var(--ffb);font-size:12px;color:var(--inu);text-align:left;padding:0 12px;display:flex;align-items:center;gap:7px;transition:all .08s}
+.add-row-btn:hover{background:var(--fmist);color:var(--fm)}
+
+/* ── BOTTOM BAR ── */
+.bb{border-top:1px solid rgba(255,255,255,.12);background:var(--fd);padding:10px 20px;display:flex;align-items:center;gap:20px;flex-shrink:0;flex-wrap:wrap}
+.bb-item{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bb-lbl{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.bb-val{font-family:var(--ffm);font-size:14px;color:rgba(255,255,255,.75)}
+.bb-val.pos{color:#7ec488}
+.bb-val.neg{color:#e8706a}
+.bb-val.ok{color:var(--fg)}
+.bb-div{width:1px;height:28px;background:rgba(255,255,255,.1)}
+.bb-bal{display:flex;align-items:center;gap:6px;font-size:12px;margin-left:auto}
+.bal-ok{color:#7ec488}
+.bal-err{color:#e8706a}
+
+/* ── PANEL VIEWS (pankkituonti, raportit, tilikartta) ── */
+.panel{display:none;flex:1;overflow-y:auto;padding:28px 32px 48px}
+.panel.vis{display:block}
+.panel h2{font-family:var(--ffd);font-weight:300;font-size:24px;margin-bottom:4px}
+.panel-sub{font-size:12px;color:var(--inu);margin-bottom:24px}
+
+/* Drop zone */
+.drop-zone{border:2px dashed var(--bd2);border-radius:12px;padding:48px 32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--pp);margin-bottom:24px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--fg2);background:var(--fmist)}
+.drop-zone .dz-ic{font-size:36px;margin-bottom:12px}
+.drop-zone .dz-t{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px}
+.drop-zone .dz-s{font-size:12px;color:var(--inu)}
+
+/* Import preview */
+.import-table{width:100%;border-collapse:collapse;border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:13px;margin-bottom:16px}
+.import-table th{background:var(--fd);color:rgba(255,255,255,.55);font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;padding:9px 14px;text-align:left}
+.import-table td{padding:10px 14px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.import-table tr:last-child td{border-bottom:none}
+.import-table tr:nth-child(even) td{background:var(--ppw)}
+.imp-sug{font-size:11px;font-weight:500;color:var(--amber);background:var(--ambl);padding:2px 7px;border-radius:8px;display:inline-block}
+.imp-btn{padding:3px 10px;font-size:11px;font-weight:500;border:none;border-radius:4px;cursor:pointer;transition:all .1s}
+.imp-btn-ok{background:#e4f4ec;color:var(--fg3)}
+.imp-btn-ok:hover{background:#c8eada}
+.imp-btn-ed{background:var(--ppw);color:var(--inu);border:1px solid var(--bd)}
+.imp-btn-ed:hover{background:var(--bd)}
+
+/* Reports */
+.rpt-tabs{display:flex;gap:0;border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:20px;width:fit-content}
+.rpt-tab{padding:7px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;background:var(--pp);color:var(--inu);cursor:pointer;border-right:1px solid var(--bd);transition:all .1s}
+.rpt-tab:last-child{border-right:none}
+.rpt-tab.act{background:var(--fd);color:#fff}
+
+.rpt-section{background:var(--pp);border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.rpt-hdr{background:var(--fd);padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+.rpt-hdr-t{font-family:var(--ffd);font-size:15px;color:#fff;font-weight:300}
+.rpt-hdr-s{font-size:11px;color:rgba(255,255,255,.4)}
+.rpt-row{padding:10px 18px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.rpt-row:last-child{border-bottom:none}
+.rpt-row.total{background:var(--fmist);font-weight:600}
+.rpt-row.total .rpt-row-v{color:var(--fm);font-family:var(--ffm)}
+.rpt-row-l{color:var(--inm)}
+.rpt-row-s{font-size:11px;color:var(--inf);margin-top:1px}
+.rpt-row-v{font-family:var(--ffm);font-size:13px;color:var(--ink);text-align:right}
+.rpt-row-v.pos{color:var(--fg3)}
+.rpt-row-v.neg{color:var(--red)}
+.rpt-row.indent .rpt-row-l{padding-left:16px;font-size:12px;color:var(--inu)}
+
+/* Tilikartta */
+.tk-table{width:100%;border-collapse:collapse;border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:12px}
+.tk-table th{background:var(--fd);color:rgba(255,255,255,.55);font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;text-align:left}
+.tk-table td{padding:8px 14px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.tk-table tr:last-child td{border-bottom:none}
+.tk-table tr.grp-hdr td{background:var(--ppw);font-weight:500;font-size:11px;color:var(--fm);padding-top:12px}
+.tk-nro{font-family:var(--ffm);font-weight:500;color:var(--fl)}
+.tk-type{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px}
+
+/* Modal */
+.mo{position:fixed;inset:0;background:rgba(28,43,30,.6);display:flex;align-items:center;justify-content:center;z-index:800;opacity:0;pointer-events:none;transition:opacity .15s}
+.mo.op{opacity:1;pointer-events:all}
+.md{background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:26px;width:420px;max-width:95vw;transform:translateY(8px);transition:transform .15s;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.mo.op .md{transform:translateY(0)}
+.md h3{font-family:var(--ffd);font-weight:300;font-size:20px;margin-bottom:6px}
+.md p{font-size:13px;color:var(--inu);margin-bottom:20px;line-height:1.6}
+.md-btns{display:flex;justify-content:flex-end;gap:8px}
+.md-btn{padding:7px 20px;font-family:var(--ffb);font-size:13px;border-radius:6px;cursor:pointer;border:1px solid var(--bd);background:var(--pp);color:var(--inm);transition:all .1s}
+.md-btn:hover{background:var(--ppw)}
+.md-btn.ok{background:var(--fl);color:#fff;border-color:var(--fl)}
+.md-btn.ok:hover{opacity:.88}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--fd);color:var(--fg);padding:8px 20px;border-radius:24px;font-size:12px;font-weight:500;border:1px solid rgba(93,202,165,.2);opacity:0;transition:all .2s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.sh{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ALV chip */
+.alv-chip{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;background:rgba(29,158,117,.1);color:var(--fg3);font-family:var(--ffm);letter-spacing:.02em}
+
+/* Tiliote / lasku kortit */
+.tap-card{background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:all .1s;position:relative}
+.tap-card:hover{border-color:var(--bd2);box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.tap-card.matched{border-color:rgba(29,158,117,.35);background:#f8fef9}
+.tap-card.tuotu{opacity:.4;pointer-events:none}
+.tap-card.lasku-linked{border-left:3px solid var(--fg2)}
+.lasku-card{background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:8px;transition:all .1s;position:relative}
+.lasku-card.matched{border-color:rgba(29,158,117,.35);background:#f8fef9}
+.lasku-card.unmatched{border-color:rgba(160,92,26,.25);background:#fffdf8}
+.match-badge{position:absolute;top:8px;right:8px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;text-transform:uppercase;letter-spacing:.05em}
+.match-auto{background:#e4f4ec;color:var(--fg3)}
+.match-none{background:var(--ambl);color:var(--amber)}
+.match-manual{background:var(--bluel);color:var(--blue)}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Adepta <em>TILI</em></div>
+  <div class="tb-sep"></div>
+  <div class="bc">
+    <span>Yritykset</span><span class="bc-s">›</span>
+    <span class="a" id="top-co">Virtanen Ky</span>
+    <span class="bc-s">›</span>
+    <span class="a">Kirjanpito</span>
+  </div>
+  <select class="period-sel" id="period-sel" onchange="changePeriod()">
+    <option>2025</option>
+    <option>2024</option>
+    <option>2023</option>
+  </select>
+  <div class="tr">
+    <button class="btn-ghost" onclick="showPanel('raportit')">📊 Raportit</button>
+    <button class="btn-ghost" onclick="showPanel('pankki')">🏦 Tuo pankki</button>
+    <button class="btn-ghost" onclick="tulostaRaportti()">🖨 Tulosta</button>
+    <button class="btn-primary" id="save-btn" disabled onclick="tallenna()">Tallenna</button>
+    <div class="av" title="Merja Korhonen — Pääkäyttäjä">MK</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <div class="sb-sec">Yritykset</div>
+    <input class="sb-search" type="text" placeholder="Hae yritystä…" oninput="filterCo(this.value)">
+    <div class="co-list" id="co-list"></div>
+    <div class="sb-div"></div>
+    <div class="sb-sec">Näkymä</div>
+    <div class="nav-item act" id="nav-pk" onclick="showPanel('paivak')"><span class="ic">📒</span>Päiväkirja</div>
+    <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')"><span class="ic">🏦</span>Pankkituonti</div>
+    <div class="nav-item" id="nav-tositteet" onclick="showPanel('tositteet')"><span class="ic">📎</span>Tositteet</div>
+    <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')"><span class="ic">📊</span>Raportit</div>
+    <div class="nav-item" id="nav-tk" onclick="showPanel('tilikartta')"><span class="ic">📋</span>Tilikartta</div>
+    <div class="sb-div"></div>
+    <div class="sb-foot">Kirjautunut:<br><strong>Merja Korhonen</strong> · Pääkäyttäjä</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+
+    <!-- ─── PÄIVÄKIRJA PANEL ─── -->
+    <div id="panel-paivak" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <!-- Keyboard hints -->
+      <div class="kb">
+        <div class="kb-i"><kbd>Tab</kbd> seuraava kenttä</div>
+        <div class="kb-i"><kbd>Shift+Tab</kbd> edellinen</div>
+        <div class="kb-i"><kbd>Enter</kbd> seuraava kenttä / uusi rivi</div>
+        <div class="kb-i"><kbd>↑</kbd><kbd>↓</kbd> rivit</div>
+        <div class="kb-i"><kbd>↓</kbd> avaa tililuettelo</div>
+        <div class="kb-i"><kbd>Del</kbd> poista rivi</div>
+        <div class="kb-i"><kbd>Ctrl S</kbd> tallenna</div>
+        <div class="kb-i"><kbd>Ctrl Z</kbd> kumoa</div>
+        <span class="kb-sp"></span>
+        <div style="font-size:11px;color:var(--inu)">Tilikausi: <strong>1.1.2025 – 31.12.2025</strong></div>
+      </div>
+
+      <!-- Import notification bar — näkyy kun jonossa on tapahtumia -->
+      <div id="import-notify-bar" style="display:none;background:#fffbf0;border-bottom:1px solid #f0e0a0;padding:7px 18px;flex-shrink:0;align-items:center;gap:10px">
+        <span style="font-size:15px">🏦</span>
+        <span style="font-size:12px;font-weight:500;color:var(--amber)"><span id="notify-count">0</span> pankkitapahtumaa odottaa kirjausta</span>
+        <button onclick="naytaJono()" style="margin-left:4px;padding:3px 12px;font-size:11px;font-weight:600;border:1px solid rgba(160,92,26,.3);border-radius:5px;background:var(--ambl);color:var(--amber);cursor:pointer">Avaa aineisto →</button>
+        <button onclick="siirryPankki()" style="padding:3px 10px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--inu);cursor:pointer">Pankkituonti</button>
+        <button onclick="LS.clearQueue();checkImportQueue();toast('Jono tyhjennetty')" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:var(--inf)" title="Hylkää jono">×</button>
+      </div>
+
+      <!-- Balance alert -->
+      <div class="bal-alert" id="bal-alert"></div>
+      <!-- Table -->
+      <div class="tw" id="tw">
+        <table class="jt" id="jt">
+          <colgroup>
+            <col class="cn"><col class="cd"><col class="ct">
+            <col class="csel"><col class="cdt"><col class="ckt">
+            <col class="cne"><col class="calvp"><col class="calve"><col class="cbr">
+            <col class="cdel">
+          </colgroup>
+          <thead class="jh">
+            <tr>
+              <th class="c">#</th>
+              <th>Päivä</th>
+              <th>Tosite</th>
+              <th>Selite / Vakiokirjaus</th>
+              <th>Debet-tili</th>
+              <th>Kredit-tili</th>
+              <th class="r">Netto €</th>
+              <th class="c">ALV%</th>
+              <th class="r">ALV €</th>
+              <th class="r">Brutto €</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <!-- Bottom bar -->
+      <div class="bb" id="bb">
+        <div class="bb-item"><div class="bb-lbl">Debet yht.</div><div class="bb-val" id="bb-d">0,00 €</div></div>
+        <div class="bb-div"></div>
+        <div class="bb-item"><div class="bb-lbl">Kredit yht.</div><div class="bb-val" id="bb-k">0,00 €</div></div>
+        <div class="bb-div"></div>
+        <div class="bb-item"><div class="bb-lbl">ALV yht.</div><div class="bb-val" id="bb-alv">0,00 €</div></div>
+        <div class="bb-div"></div>
+        <div class="bb-item"><div class="bb-lbl">Brutto yht.</div><div class="bb-val" id="bb-br">0,00 €</div></div>
+        <div class="bb-bal" id="bb-bal">
+          <span class="bal-ok">✓ Kirjanpito tasapainossa</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PANKKITUONTI PANEL ─── -->
+    <div id="panel-pankki" class="panel">
+      <h2>Pankkituonti &amp; laskuaineisto</h2>
+      <div class="panel-sub">Lataa tiliote CSV:nä ja laskut erikseen PDF:nä — tai käytä yhdistettyä PDF-latausta.</div>
+
+      <!-- ── TYÖVIRTAOHJE ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
+          <div style="font-size:22px;flex-shrink:0">1️⃣</div>
+          <div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px">Tiliote CSV</div><div style="font-size:11px;color:var(--inu);line-height:1.4">Lataa tiliotteen CSV-vienti pankista. Ei AI:ta, toimii aina.</div></div>
+        </div>
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
+          <div style="font-size:22px;flex-shrink:0">2️⃣</div>
+          <div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px">Laskut PDF</div><div style="font-size:11px;color:var(--inu);line-height:1.4">Skannaa tai lataa laskut PDF:nä. Claude tunnistaa jokaisen laskun erikseen.</div></div>
+        </div>
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
+          <div style="font-size:22px;flex-shrink:0">3️⃣</div>
+          <div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px">Täsmäytys</div><div style="font-size:11px;color:var(--inu);line-height:1.4">Laskut kohdistetaan tiliotteen tapahtumiin — automaattisesti tai manuaalisesti.</div></div>
+        </div>
+      </div>
+
+      <!-- Upload tabs -->
+      <div style="display:flex;gap:0;border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:20px;width:fit-content">
+        <button id="tab-csv" onclick="switchUploadTab('csv')" style="padding:8px 18px;font-size:12px;font-weight:600;border:none;background:var(--fd);color:#fff;cursor:pointer">📊 1. Tiliote CSV</button>
+        <button id="tab-laskut" onclick="switchUploadTab('laskut')" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-left:1px solid var(--bd);background:var(--pp);color:var(--inu);cursor:pointer">🧾 2. Laskut PDF</button>
+        <button id="tab-pdf" onclick="switchUploadTab('pdf')" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-left:1px solid var(--bd);background:var(--pp);color:var(--inu);cursor:pointer">📄 Yhdistetty PDF</button>
+      </div>
+
+      <!-- ── TAB 1: CSV-tiliote ── -->
+      <div id="upload-csv">
+        <div class="drop-zone" id="dz-csv" onclick="document.getElementById('file-csv').click()"
+             ondragover="dzOver(event,'dz-csv')" ondragleave="dzLeave(event,'dz-csv')" ondrop="dzDropCsv(event)">
+          <input type="file" id="file-csv" accept=".csv,.txt" style="display:none" onchange="handleCsvFile(event)">
+          <div class="dz-ic">📊</div>
+          <div class="dz-t">Vedä CSV-tiliote tähän tai klikkaa valitaksesi</div>
+          <div class="dz-s">OP · Nordea · Handelsbanken · S-Pankki · Formaatti: piste-erottelu tai puolipiste</div>
+        </div>
+        <button onclick="lataaDemoTiliote()" style="width:100%;padding:9px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd);border-radius:8px;background:var(--pp);color:var(--fm);cursor:pointer;margin-bottom:16px" onmouseover="this.style.background='#f0f7f1'" onmouseout="this.style.background='var(--pp)'">
+          📄 Demo: OP-tiliote (Kuhnontien Vesiosuuskunta 5–6/2025)
+        </button>
+        <!-- Tiliote-tilastot kun ladattu -->
+        <div id="tiliote-info" style="display:none;background:var(--fd);border-radius:10px;padding:12px 16px;margin-bottom:14px;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="font-size:12px;color:rgba(255,255,255,.5)">Tili</div>
+          <div style="font-size:13px;font-weight:500;color:#fff" id="ti-iban"></div>
+          <div style="width:1px;height:16px;background:rgba(255,255,255,.12)"></div>
+          <div id="ti-stats" style="font-size:12px;color:rgba(255,255,255,.5)"></div>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button onclick="tuoKaikki()" style="padding:4px 12px;font-size:11px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer">Tuo automaattiset</button>
+            <button onclick="kaySeptapahtumat()" style="padding:4px 12px;font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:transparent;color:#fff;cursor:pointer">Käy läpi →</button>
+          </div>
+        </div>
+        <!-- Tässä näkyy kirjausvalmis taulukko CSV-latauksesta -->
+        <div id="import-preview-csv" style="display:none">
+          <table class="import-table">
+            <thead><tr>
+              <th style="width:80px">Arvopäivä</th><th style="width:52px">Tosite</th>
+              <th>Selite / Maksaja</th><th style="width:95px;text-align:right">Summa</th>
+              <th style="width:150px">Vastatili</th><th style="width:48px;text-align:center">ALV%</th>
+              <th style="width:90px">Lasku</th><th style="width:90px"></th>
+            </tr></thead>
+            <tbody id="imp-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TAB 2: Laskut PDF ── -->
+      <div id="upload-laskut" style="display:none">
+        <!-- API-avain -->
+        <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:10px;padding:11px 14px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap">🔑 Anthropic API-avain</span>
+            <input id="api-key-input" type="password" placeholder="sk-ant-api03-…"
+              style="flex:1;min-width:180px;padding:6px 10px;font-family:var(--ffm);font-size:12px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--ink);outline:none"
+              oninput="apiKeyChanged(this.value)"
+              onfocus="this.style.borderColor='var(--fl)'" onblur="this.style.borderColor='var(--bd)'">
+            <span id="api-key-status" style="font-size:11px;padding:3px 8px;border-radius:10px;background:var(--ppw);color:var(--inf);border:1px solid var(--bd);white-space:nowrap">Ei asetettu</span>
+          </div>
+          <div style="font-size:11px;color:var(--inu);margin-top:5px">
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--fl)">console.anthropic.com → API Keys</a>
+            &nbsp;·&nbsp; Tallennetaan vain selaimen sessioniin.
+          </div>
+        </div>
+
+        <!-- Laskujen latauslaatikko -->
+        <div class="drop-zone" id="dz-laskut" onclick="document.getElementById('file-laskut').click()"
+             ondragover="dzOver(event,'dz-laskut')" ondragleave="dzLeave(event,'dz-laskut')" ondrop="dzDropLaskut(event)">
+          <input type="file" id="file-laskut" accept=".pdf" style="display:none" onchange="handleLaskutFile(event)">
+          <div class="dz-ic">🧾</div>
+          <div class="dz-t">Vedä laskut-PDF tähän tai klikkaa valitaksesi</div>
+          <div class="dz-s">Skannattu laskupötkö · Claude tunnistaa jokaisen laskun erikseen · Max 100 sivua</div>
+        </div>
+
+        <!-- Analysointitila (sama elementti, uudelleenkäytetty) -->
+        <div id="ai-analysing" style="display:none;text-align:center;padding:32px;background:var(--pp);border:1px solid var(--bd);border-radius:12px;margin-bottom:16px">
+          <div style="font-size:28px;margin-bottom:10px;animation:spin 2s linear infinite;display:inline-block">⚙️</div>
+          <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px" id="ai-status">Claude analysoi laskuja…</div>
+          <div style="font-size:12px;color:var(--inu)" id="ai-substatus">Tunnistetaan laskuja</div>
+          <div style="width:200px;height:3px;background:var(--bd);border-radius:2px;margin:14px auto 0;overflow:hidden">
+            <div id="ai-progress-bar" style="height:100%;background:var(--fg2);border-radius:2px;width:0%;transition:width .3s"></div>
+          </div>
+        </div>
+
+        <!-- Laskutaulukko -->
+        <div id="laskut-tulos" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div style="font-size:12px;font-weight:500;color:var(--ink)" id="laskut-otsikko">Tunnistetut laskut</div>
+            <div style="display:flex;gap:6px">
+              <button onclick="tasmaytatLaskut()" style="padding:5px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer">⚡ Täsmäytä tiliotteeseen</button>
+              <button onclick="switchUploadTab('csv')" style="padding:5px 12px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inu);cursor:pointer">← Takaisin tiliotteeseen</button>
+            </div>
+          </div>
+          <div id="laskut-kortit" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px"></div>
+        </div>
+
+        <!-- Jos tiliote ei vielä ladattu -->
+        <div id="laskut-ei-tiliote" style="display:none;background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--amber);margin-top:10px">
+          ⚠ Lataa ensin tiliote CSV-välilehdeltä, jotta laskut voidaan täsmäyttää tiliotteen tapahtumiin.
+        </div>
+      </div>
+
+      <!-- ── TAB 3: Yhdistetty PDF ── -->
+      <div id="upload-pdf" style="display:none">
+        <div style="background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
+          ⚠ Yhdistetty PDF on epätarkempi kuin erillinen CSV + laskut. Käytä vain jos pankilta ei saa CSV-vientiä.
+        </div>
+        <div class="drop-zone" id="dz" onclick="document.getElementById('file-in').click()"
+             ondragover="dzOver(event,'dz')" ondragleave="dzLeave(event,'dz')" ondrop="dzDrop(event)">
+          <input type="file" id="file-in" accept=".pdf,.csv,.txt" style="display:none" onchange="handleFile(event)">
+          <div class="dz-ic">📄</div>
+          <div class="dz-t">Tiliote + laskut samassa PDF:ssä</div>
+          <div class="dz-s">Claude erottelee automaattisesti · Max 100 sivua · Vaatii API-avaimen</div>
+        </div>
+
+        <!-- Tulokset: split view (yhdistetty) -->
+        <div id="ai-results" style="display:none">
+          <div id="ai-summary" style="background:var(--fd);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="font-size:12px;font-weight:500;color:#fff" id="ai-src-info"></div>
+            <div style="width:1px;height:16px;background:rgba(255,255,255,.12)"></div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6)" id="ai-match-stats"></div>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button onclick="tuoKaikki()" style="padding:5px 12px;font-size:11px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer">Tuo täsmäytyneet →</button>
+              <button onclick="kaySeptapahtumat()" style="padding:5px 12px;font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:transparent;color:#fff;cursor:pointer">Käy läpi →</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px;display:flex;justify-content:space-between">
+                <span>🏦 Tiliotetapahtumat</span><span id="tiliote-cnt" style="color:var(--fg3)"></span>
+              </div>
+              <div id="tiliote-cards"></div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px;display:flex;justify-content:space-between">
+                <span>🧾 Laskut</span><span id="lasku-cnt" style="color:var(--amber)"></span>
+              </div>
+              <div id="lasku-cards"></div>
+            </div>
+          </div>
+          <div id="import-preview" style="display:none">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px">Kirjausvalmis aineisto</div>
+            <table class="import-table" id="imp-table">
+              <thead><tr>
+                <th style="width:80px">Arvopäivä</th><th style="width:52px">Tosite</th>
+                <th>Selite / Maksaja</th><th style="width:95px;text-align:right">Summa</th>
+                <th style="width:150px">Vastatili</th><th style="width:48px;text-align:center">ALV%</th>
+                <th style="width:90px">Lasku</th><th style="width:90px"></th>
+              </tr></thead>
+              <tbody id="imp-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vakiokirjaukset -->
+      <div id="vakio-info" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;margin-top:14px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--inu);margin-bottom:8px">⚡ Vakiokirjaukset (Liikekirjuri 2025)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:var(--inm)">
+          <div>Telia/Elisa/DNA → <span style="font-family:var(--ffm);color:var(--fl)">7950</span> 25,5%</div>
+          <div>Vuokra → <span style="font-family:var(--ffm);color:var(--fl)">7210</span> 25,5%</div>
+          <div>Sähkö/Fortum → <span style="font-family:var(--ffm);color:var(--fl)">7390</span> 25,5%</div>
+          <div>Google/Meta → <span style="font-family:var(--ffm);color:var(--fl)">7910</span> 25,5%</div>
+          <div>Palkka → <span style="font-family:var(--ffm);color:var(--fl)">5000</span> 0%</div>
+          <div>Pankkipalvelut → <span style="font-family:var(--ffm);color:var(--fl)">8100</span> 0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── LASKU-MODAL (täsmäytys / linkitys) ─── -->
+    <div class="mo" id="lasku-modal">
+      <div class="md" style="width:620px;max-height:90vh;overflow-y:auto">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:12px">Liitä lasku tiliotteen tapahtumaan</div>
+
+        <!-- Pankkitapahtuma -->
+        <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:10px;color:var(--inu);margin-bottom:4px">PANKKITAPAHTUMA</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--ink)" id="lm-tap-sel"></div>
+              <div style="font-size:11px;color:var(--inu);margin-top:2px" id="lm-tap-pv"></div>
+            </div>
+            <div style="font-family:var(--ffm);font-size:16px;font-weight:700" id="lm-tap-summa"></div>
+          </div>
+        </div>
+
+        <!-- Täsmäytetty lasku (jos löytyi) -->
+        <div id="lm-match-box" style="display:none;background:#f0faf5;border:1px solid rgba(29,158,117,.25);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:600;color:var(--fg3);letter-spacing:.07em;text-transform:uppercase">✓ Automaattinen täsmäytys</div>
+            <button onclick="lmIrrotaLasku()" style="font-size:11px;color:var(--inu);background:none;border:none;cursor:pointer">Poista linkitys ×</button>
+          </div>
+          <div id="lm-match-content"></div>
+        </div>
+
+        <!-- Laskuhaku -->
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px">Hae lasku manuaalisesti</div>
+        <input id="lm-search" type="text" placeholder="Hae laskun numerolla, toimittajalla tai summalla…"
+          style="width:100%;padding:8px 12px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--ppw);color:var(--ink);outline:none;margin-bottom:8px"
+          oninput="lmSearch(this.value)">
+        <div id="lm-lasku-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--bd);border-radius:8px;display:none;margin-bottom:14px"></div>
+
+        <!-- Tiliöinti laskun perusteella -->
+        <div id="lm-tilioi-box" style="display:none;background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:8px">Laskun perusteella ehdotettu tiliöinti</div>
+          <div id="lm-tilioi-content"></div>
+        </div>
+
+        <div class="md-btns">
+          <button class="md-btn" onclick="lmSulje()">Peruuta</button>
+          <button class="md-btn ok" onclick="lmHyvaksy()" id="lm-ok-btn">Vahvista &amp; kirjaa →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── VASTATILI MODAL ─── -->
+    <div class="mo" id="vt-modal">
+      <div class="md" style="width:500px">
+        <!-- Tapahtuman tiedot -->
+        <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:18px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px">Pankkitapahtuma</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--ink)" id="vt-sel"></div>
+              <div style="font-size:11px;color:var(--inu);margin-top:2px" id="vt-pv"></div>
+            </div>
+            <div style="font-family:var(--ffm);font-size:16px;font-weight:600;flex-shrink:0" id="vt-summa"></div>
+          </div>
+        </div>
+
+        <!-- Kirjauslogiikka -->
+        <div style="font-size:11px;color:var(--inu);margin-bottom:12px;display:flex;gap:8px;align-items:center" id="vt-logic"></div>
+
+        <!-- Vastatili haku -->
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px">Vastatili</div>
+        <input id="vt-search" type="text" placeholder="Hae tilinumerolla tai nimellä… esim. 5000 tai Palkat"
+          style="width:100%;padding:9px 12px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:7px;background:var(--ppw);color:var(--ink);outline:none;margin-bottom:6px;transition:border .1s"
+          oninput="vtSearch(this.value)" onkeydown="vtKey(event)">
+        <div id="vt-results" style="border:1px solid var(--bd);border-radius:7px;overflow:hidden;max-height:200px;overflow-y:auto;margin-bottom:14px;display:none"></div>
+
+        <!-- Valittu tili -->
+        <div id="vt-selected" style="display:none;background:var(--fmist);border:1px solid rgba(29,158,117,.2);border-radius:7px;padding:10px 12px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between">
+          <div>
+            <span style="font-family:var(--ffm);font-size:11px;font-weight:600;color:var(--fl)" id="vt-sel-nro"></span>
+            <span style="font-size:13px;color:var(--ink);margin-left:8px" id="vt-sel-lbl"></span>
+          </div>
+          <button onclick="vtClearSel()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--inu)" title="Vaihda tili">×</button>
+        </div>
+
+        <!-- ALV -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">ALV-kanta</div>
+          <div style="display:flex;gap:0;border:1px solid var(--bd);border-radius:6px;overflow:hidden" id="vt-alv-btns">
+            ${[0,10,14,24,25.5].map(v=>`<button onclick="vtSetAlv(${v})" data-alv="${v}" style="padding:5px 10px;font-family:var(--ffm);font-size:11px;border:none;border-right:1px solid var(--bd);cursor:pointer;background:var(--pp);color:var(--inu);transition:all .1s">${v===25.5?'25½':v}%</button>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--inu)" id="vt-alv-info"></div>
+        </div>
+
+        <!-- Merkitse vakioksi -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+          <input type="checkbox" id="vt-save-vakio" style="width:14px;height:14px;cursor:pointer">
+          <label for="vt-save-vakio" style="font-size:12px;color:var(--inm);cursor:pointer">Tallenna vakiokirjaukseksi — tunnista jatkossa automaattisesti</label>
+        </div>
+
+        <div class="md-btns">
+          <button class="md-btn" onclick="vtOhita()">Ohita tämä tapahtuma</button>
+          <button class="md-btn" onclick="vtEdellinen()" id="vt-back-btn" style="display:none">← Edellinen</button>
+          <button class="md-btn ok" onclick="vtHyvaksy()" id="vt-ok-btn" disabled>Kirjaa →</button>
+        </div>
+
+        <!-- Progress -->
+        <div style="margin-top:14px;font-size:11px;color:var(--inf);text-align:center" id="vt-progress"></div>
+      </div>
+    </div>
+
+    <!-- ─── TOSITTEET PANEL ─── -->
+    <div id="panel-tositteet" class="panel">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <h2>Tositteet</h2>
+          <div class="panel-sub">Kirjanpidon tapahtumat ja niihin kohdistuneet tositteet · <span id="tos-cnt"></span></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="tos-search" placeholder="Hae selitteellä tai tositteella…"
+            oninput="renderTositteet()"
+            style="padding:7px 12px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--ink);outline:none;width:220px">
+          <select id="tos-filter" onchange="renderTositteet()"
+            style="padding:7px 10px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--ink);outline:none">
+            <option value="kaikki">Kaikki rivit</option>
+            <option value="tosite">Tosite liitetty ✓</option>
+            <option value="ei-tosite">Ei tositetta ⚠</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Yhteenveto-palkki -->
+      <div id="tos-summary" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap"></div>
+
+      <!-- Tositetaulukko -->
+      <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--fd)">
+              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:90px">Päivä</th>
+              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:72px">Tosite</th>
+              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5)">Selite</th>
+              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:80px">D-tili</th>
+              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:80px">K-tili</th>
+              <th style="padding:9px 14px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:90px">Brutto €</th>
+              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:200px">Liitetty tosite</th>
+              <th style="padding:9px 14px;width:70px"></th>
+            </tr>
+          </thead>
+          <tbody id="tos-tbody"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px;padding:12px 16px;background:var(--pp);border:1px solid var(--bd);border-radius:8px;font-size:11px;color:var(--inu);line-height:1.7">
+        <strong style="color:var(--ink)">Tositteen liittäminen:</strong>
+        Siirry Pankkituonti-välilehdelle ja lataa PDF-aineisto. Claude tunnistaa laskut automaattisesti ja täsmäyttää ne tiliotteen tapahtumiin summan ja viitteen perusteella.
+        Voit myös liittää tositteen manuaalisesti klikkaamalla "+ Liitä"-nappia taulukossa.
+      </div>
+    </div>
+
+    <!-- ─── RAPORTIT PANEL ─── -->
+    <div id="panel-raportit" class="panel">
+      <h2>Raportit</h2>
+      <div class="panel-sub" id="rpt-sub">Virtanen Ky · Tilikausi 2025</div>
+      <div class="rpt-tabs">
+        <button class="rpt-tab act" onclick="showRpt('tulos',this)">Tuloslaskelma</button>
+        <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
+        <button class="rpt-tab" onclick="showRpt('alv',this)">ALV-laskelma</button>
+      </div>
+      <div id="rpt-content"></div>
+    </div>
+
+    <!-- ─── TILIKARTTA PANEL ─── -->
+    <div id="panel-tilikartta" class="panel">
+      <h2>Tilikartta</h2>
+      <div class="panel-sub">Suomalainen yleinen tilikartta (lyhennetty) · Klikkaa tilin numeroa kopioidaksesi</div>
+      <table class="tk-table">
+        <thead><tr><th>Nro</th><th>Tili</th><th>Tyyppi</th><th>ALV</th></tr></thead>
+        <tbody id="tk-tbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Save modal -->
+<div class="mo" id="save-modal">
+  <div class="md">
+    <div style="font-family:var(--ffd);font-size:12px;color:var(--inu);margin-bottom:8px;font-style:italic">Adepta <em style="color:var(--fg2)">TILI</em></div>
+    <h3>Tallennettu</h3>
+    <p id="save-p"></p>
+    <div class="md-btns"><button class="md-btn ok" onclick="closeModal()">Sulje</button></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+let YRITYKSET = [];
+let curTilikausiVuosi = new Date().getFullYear();
+
+const _sb = supabase.createClient(window._PPR.supabaseUrl, window._PPR.supabaseKey);
+
+async function lataaYritykset() {
+  const res = await fetch('/api/ppr/asiakkaat');
+  const data = await res.json();
+  YRITYKSET = (data || []).map(a => ({
+    id: a.id,
+    nimi: a.nimi,
+    ytunnus: a.y_tunnus || '',
+  }));
+  if (YRITYKSET.length > 0) {
+    curYritys = YRITYKSET[0];
+    renderYritykset();
+    lataaRivit(curYritys.id);
+  } else {
+    renderYritykset();
+  }
+}
+
+// ── LIIKEKIRJURI 2025 ─────────────────────────────────────────
+// ALV-kannat 2025: 25,5% (yleinen) · 14% (ruoka, ravintola) · 10% (lehdet)
+const TILIT = [
+  // ── TASE / PYSYVÄT VASTAAVAT ──
+  {nro:'1021',lbl:'Atk-ohjelmat',             grp:'Pysyvät vastaavat / Aineettomat', tyyppi:'V'},
+  {nro:'1049',lbl:'Muut aineettomat oikeudet', grp:'Pysyvät vastaavat / Aineettomat', tyyppi:'V'},
+  {nro:'1051',lbl:'Liikearvo',                 grp:'Pysyvät vastaavat / Aineettomat', tyyppi:'V'},
+  {nro:'1161',lbl:'Koneet ja laitteet',        grp:'Pysyvät vastaavat / Aineelliset', tyyppi:'V'},
+  {nro:'1171',lbl:'Koneet ja kalusto',         grp:'Pysyvät vastaavat / Aineelliset', tyyppi:'V'},
+  {nro:'1440',lbl:'Osakkeet ja osuudet',       grp:'Pysyvät vastaavat / Sijoitukset', tyyppi:'V'},
+  // ── TASE / VAIHTUVAT VASTAAVAT ──
+  {nro:'1501',lbl:'Aineet ja tarvikkeet',      grp:'Vaihtuvat vastaavat / Vaihto-om.', tyyppi:'V'},
+  {nro:'1521',lbl:'Valmiit tuotteet',          grp:'Vaihtuvat vastaavat / Vaihto-om.', tyyppi:'V'},
+  {nro:'1701',lbl:'Myyntisaamiset',            grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1711',lbl:'Luotto- ja pankkikorttisaamiset', grp:'Vaihtuvat vastaavat / Saamiset', tyyppi:'V'},
+  {nro:'1759',lbl:'Muut lainasaamiset',        grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1762',lbl:'Verotilisaamiset',          grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1763',lbl:'ALV-saamiset (ostoista)',   grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1779',lbl:'Muut saamiset',             grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1800',lbl:'Siirtosaamiset',            grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1849',lbl:'Muut siirtosaamiset',       grp:'Vaihtuvat vastaavat / Saamiset',   tyyppi:'V'},
+  {nro:'1900',lbl:'Kassa',                     grp:'Vaihtuvat vastaavat / Rahat',      tyyppi:'V'},
+  {nro:'1910',lbl:'Pankkitili (pääpankki)',    grp:'Vaihtuvat vastaavat / Rahat',      tyyppi:'V'},
+  {nro:'1920',lbl:'Pankkitili 2',              grp:'Vaihtuvat vastaavat / Rahat',      tyyppi:'V'},
+  {nro:'1950',lbl:'Osuuspankki',               grp:'Vaihtuvat vastaavat / Rahat',      tyyppi:'V'},
+  {nro:'1970',lbl:'Muu pankkitili',            grp:'Vaihtuvat vastaavat / Rahat',      tyyppi:'V'},
+  // ── TASE / OMA PÄÄOMA ──
+  {nro:'2001',lbl:'Osakepääoma',               grp:'Oma pääoma',  tyyppi:'K'},
+  {nro:'2061',lbl:'SVOP-rahasto',              grp:'Oma pääoma',  tyyppi:'K'},
+  {nro:'2171',lbl:'Vastuunal. yhtiömiehen panos', grp:'Oma pääoma', tyyppi:'K'},
+  {nro:'2181',lbl:'Äänettömän yhtiömiehen panos', grp:'Oma pääoma', tyyppi:'K'},
+  {nro:'2201',lbl:'Peruspääoma (Tmi)',         grp:'Oma pääoma',  tyyppi:'K'},
+  {nro:'2251',lbl:'Ed. tilikausien voitto/tappio', grp:'Oma pääoma', tyyppi:'K'},
+  {nro:'2350',lbl:'Yksityistili',              grp:'Oma pääoma',  tyyppi:'K'},
+  {nro:'2381',lbl:'Pääomalaina',               grp:'Oma pääoma',  tyyppi:'K'},
+  // ── TASE / VIERAS PÄÄOMA ──
+  {nro:'2481',lbl:'Toimintavaraus',            grp:'Tilinpäätössiirrot', tyyppi:'K'},
+  {nro:'2621',lbl:'Lainat rahoituslaitoksilta (pitk.)', grp:'Vieras pääoma / Pitkäaik.', tyyppi:'K'},
+  {nro:'2631',lbl:'Osamaksuvelat (pitkäaik.)', grp:'Vieras pääoma / Pitkäaik.', tyyppi:'K'},
+  {nro:'2749',lbl:'Muut pitkäaikaiset velat',  grp:'Vieras pääoma / Pitkäaik.', tyyppi:'K'},
+  {nro:'2821',lbl:'Lainat rahoituslaitoksilta (ly.)', grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2864',lbl:'Saadut ennakot',            grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2871',lbl:'Ostovelat',                 grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2925',lbl:'Jäsenmaksuvelat',           grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2939',lbl:'Verovelka',                 grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'29390',lbl:'Myynnin ALV-velka 25,5%',  grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'29391',lbl:'Myynnin ALV-velka 14%',    grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'29392',lbl:'Myynnin ALV-velka 10%',    grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2947',lbl:'Selvittelytili',            grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2949',lbl:'Muut lyhytaikaiset velat',  grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2963',lbl:'TyEL-velka',               grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  {nro:'2979',lbl:'Siirtovelat',              grp:'Vieras pääoma / Lyhytaik.', tyyppi:'K'},
+  // ── TULOSLASKELMA / LIIKEVAIHTO ──
+  {nro:'3000',lbl:'Myynti 25,5%',             grp:'Liikevaihto', tyyppi:'K', alv:25.5},
+  {nro:'3001',lbl:'Myynti 14%',               grp:'Liikevaihto', tyyppi:'K', alv:14},
+  {nro:'3002',lbl:'Myynti 10%',               grp:'Liikevaihto', tyyppi:'K', alv:10},
+  {nro:'3003',lbl:'Myynti 0%',                grp:'Liikevaihto', tyyppi:'K', alv:0},
+  {nro:'3004',lbl:'Myynti (ei ALV-velv.)',    grp:'Liikevaihto', tyyppi:'K', alv:0},
+  {nro:'3344',lbl:'Yhteisöpalvelumyynti',     grp:'Liikevaihto', tyyppi:'K', alv:0},
+  {nro:'3355',lbl:'Yhteisötavaramyynti',      grp:'Liikevaihto', tyyppi:'K', alv:0},
+  {nro:'3450',lbl:'Vuokratuotot 25,5%',       grp:'Liikevaihto', tyyppi:'K', alv:25.5},
+  {nro:'3454',lbl:'Vuokratuotot 0%',          grp:'Liikevaihto', tyyppi:'K', alv:0},
+  {nro:'3500',lbl:'Myynnin alennukset 25,5%', grp:'Liikevaihto', tyyppi:'V', alv:25.5},
+  // ── TULOSLASKELMA / MUUT TUOTOT ──
+  {nro:'3750',lbl:'Vuokratuotot (liiket.)',   grp:'Liiketoiminnan muut tuotot', tyyppi:'K', alv:25.5},
+  {nro:'3844',lbl:'Korvaukset palkoista',     grp:'Liiketoiminnan muut tuotot', tyyppi:'K', alv:0},
+  {nro:'3990',lbl:'Muut liiketoiminnan tuotot 25,5%', grp:'Liiketoiminnan muut tuotot', tyyppi:'K', alv:25.5},
+  {nro:'3994',lbl:'Muut liiketoiminnan tuotot 0%', grp:'Liiketoiminnan muut tuotot', tyyppi:'K', alv:0},
+  // ── TULOSLASKELMA / AINEET JA TARVIKKEET ──
+  {nro:'4000',lbl:'Ostot 25,5%',              grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:25.5},
+  {nro:'4001',lbl:'Ostot 14%',                grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:14},
+  {nro:'4002',lbl:'Ostot 10%',                grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:10},
+  {nro:'4004',lbl:'Ostot 0%',                 grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:0},
+  {nro:'4110',lbl:'Yhteisöhankinta 25,5%',    grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:25.5},
+  {nro:'4230',lbl:'Ostojen alennukset 25,5%', grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:25.5},
+  {nro:'4290',lbl:'Ostorahdit 25,5%',         grp:'Aineet, tarvikkeet ja tavarat', tyyppi:'V', alv:25.5},
+  // ── TULOSLASKELMA / ULKOPUOLISET PALVELUT ──
+  {nro:'4450',lbl:'Ulkopuoliset palvelut 25,5%', grp:'Ulkopuoliset palvelut',   tyyppi:'V', alv:25.5},
+  {nro:'4454',lbl:'Ulkopuoliset palvelut 0%', grp:'Ulkopuoliset palvelut',      tyyppi:'V', alv:0},
+  {nro:'4490',lbl:'Muut ulk. palvelut 25,5%', grp:'Ulkopuoliset palvelut',      tyyppi:'V', alv:25.5},
+  // ── TULOSLASKELMA / HENKILÖSTÖKULUT ──
+  {nro:'5000',lbl:'Palkat ja palkkiot',        grp:'Henkilöstökulut / Palkat',   tyyppi:'V', alv:0},
+  {nro:'6100',lbl:'YEL-maksut',                grp:'Henkilöstökulut / Eläke',    tyyppi:'V', alv:0},
+  {nro:'6130',lbl:'TyEL-maksut',              grp:'Henkilöstökulut / Eläke',    tyyppi:'V', alv:0},
+  {nro:'6140',lbl:'Työntekijän TyEL-maksut',  grp:'Henkilöstökulut / Eläke',    tyyppi:'V', alv:0},
+  {nro:'6240',lbl:'Vapaaehtoinen eläkevakuutus', grp:'Henkilöstökulut / Eläke', tyyppi:'V', alv:0},
+  {nro:'6300',lbl:'Sosiaaliturvamaksut',       grp:'Henkilöstökulut / Sivukulut',tyyppi:'V', alv:0},
+  {nro:'6400',lbl:'Tapaturma- ja tyött.vak.',  grp:'Henkilöstökulut / Sivukulut',tyyppi:'V', alv:0},
+  // ── TULOSLASKELMA / POISTOT ──
+  {nro:'6820',lbl:'Poisto kehittämismenoista', grp:'Poistot',                    tyyppi:'V', alv:0},
+  {nro:'6830',lbl:'Poisto aineettomista oikeuksista', grp:'Poistot',             tyyppi:'V', alv:0},
+  {nro:'6870',lbl:'Poisto koneista ja kalustosta', grp:'Poistot',                tyyppi:'V', alv:0},
+  {nro:'6890',lbl:'Poisto muista aineell. hyödykkeistä', grp:'Poistot',          tyyppi:'V', alv:0},
+  // ── TULOSLASKELMA / LIIKETOIMINNAN MUUT KULUT ──
+  {nro:'7000',lbl:'Henkilökunnan koulutus 25,5%', grp:'Liiketoiminnan muut kulut / Henkilöstö', tyyppi:'V', alv:25.5},
+  {nro:'7050',lbl:'Työterveyshuolto 25,5%',    grp:'Liiketoiminnan muut kulut / Henkilöstö', tyyppi:'V', alv:25.5},
+  {nro:'7120',lbl:'Työvaatteet 25,5%',          grp:'Liiketoiminnan muut kulut / Henkilöstö', tyyppi:'V', alv:25.5},
+  {nro:'7160',lbl:'Henkilök. virkistys 25,5%', grp:'Liiketoiminnan muut kulut / Henkilöstö', tyyppi:'V', alv:25.5},
+  {nro:'7204',lbl:'Maa-aluevuokrat 0%',         grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:0},
+  {nro:'7210',lbl:'Vuokrat 25,5%',              grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:25.5},
+  {nro:'7214',lbl:'Vuokrat 0%',                 grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:0},
+  {nro:'7360',lbl:'Siivous ja puhtaanapito 25,5%', grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:25.5},
+  {nro:'7370',lbl:'Lämmitys 25,5%',             grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:25.5},
+  {nro:'7380',lbl:'Vesi 25,5%',                 grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:25.5},
+  {nro:'7390',lbl:'Sähkö 25,5%',                grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:25.5},
+  {nro:'7414',lbl:'Vahinkovakuutukset 0%',       grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:0},
+  {nro:'7430',lbl:'Kaluston korjaukset 25,5%',  grp:'Liiketoiminnan muut kulut / Toimitilat', tyyppi:'V', alv:25.5},
+  {nro:'7530',lbl:'Ajoneuvojen polttoaine 25,5%', grp:'Liiketoiminnan muut kulut / Ajoneuvot', tyyppi:'V', alv:25.5},
+  {nro:'7540',lbl:'Ajoneuvojen huolto 25,5%',  grp:'Liiketoiminnan muut kulut / Ajoneuvot',  tyyppi:'V', alv:25.5},
+  {nro:'7574',lbl:'Ajoneuvovakuutukset 0%',     grp:'Liiketoiminnan muut kulut / Ajoneuvot',  tyyppi:'V', alv:0},
+  {nro:'7650',lbl:'Ohjelmistokulut 25,5%',      grp:'Liiketoiminnan muut kulut / IT',         tyyppi:'V', alv:25.5},
+  {nro:'7730',lbl:'Kalustohankinnat (alle poistorajan) 25,5%', grp:'Liiketoiminnan muut kulut / IT', tyyppi:'V', alv:25.5},
+  {nro:'7800',lbl:'Matkakulut 14%',             grp:'Liiketoiminnan muut kulut / Matkat',     tyyppi:'V', alv:14},
+  {nro:'7810',lbl:'Taksikulut 14%',             grp:'Liiketoiminnan muut kulut / Matkat',     tyyppi:'V', alv:14},
+  {nro:'7820',lbl:'Hotellit ym. majoitus 14%',  grp:'Liiketoiminnan muut kulut / Matkat',     tyyppi:'V', alv:14},
+  {nro:'7910',lbl:'Mainonta ja markkinointi 25,5%', grp:'Liiketoiminnan muut kulut / Myynti', tyyppi:'V', alv:25.5},
+  {nro:'7920',lbl:'Edustuskulut 0%',            grp:'Liiketoiminnan muut kulut / Myynti',     tyyppi:'V', alv:0},
+  {nro:'7930',lbl:'Messukulut 25,5%',           grp:'Liiketoiminnan muut kulut / Myynti',     tyyppi:'V', alv:25.5},
+  {nro:'7950',lbl:'Puhelin 25,5%',              grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:25.5},
+  {nro:'7960',lbl:'Tietoliikennekulut 25,5%',   grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:25.5},
+  {nro:'7970',lbl:'Postituskulut 25,5%',        grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:25.5},
+  {nro:'8010',lbl:'Toimistotarvikkeet 25,5%',   grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:25.5},
+  {nro:'8060',lbl:'Kirjanpito ja tilintarkastus 25,5%', grp:'Liiketoiminnan muut kulut / Hallinto', tyyppi:'V', alv:25.5},
+  {nro:'8100',lbl:'Pankkipalvelumaksut 0%',     grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:0},
+  {nro:'8200',lbl:'Leasingvuokrat 25,5%',       grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:25.5},
+  {nro:'8450',lbl:'Kirjat 14%',                 grp:'Liiketoiminnan muut kulut / Hallinto',   tyyppi:'V', alv:14},
+  {nro:'8500',lbl:'Muut liiket. kulut 25,5%',  grp:'Liiketoiminnan muut kulut / Muut',       tyyppi:'V', alv:25.5},
+  {nro:'8540',lbl:'Muut liiket. kulut 0%',     grp:'Liiketoiminnan muut kulut / Muut',       tyyppi:'V', alv:0},
+  // ── TULOSLASKELMA / RAHOITUS ──
+  {nro:'8650',lbl:'Korkotuotot',               grp:'Rahoitustuotot ja -kulut',               tyyppi:'K', alv:0},
+  {nro:'8710',lbl:'Korkokulut',                grp:'Rahoitustuotot ja -kulut',               tyyppi:'V', alv:0},
+  {nro:'8790',lbl:'Muut rahoituskulut',        grp:'Rahoitustuotot ja -kulut',               tyyppi:'V', alv:0},
+  // ── TULOSLASKELMA / VEROT ──
+  {nro:'9000',lbl:'Tuloverot',                 grp:'Verot',                                  tyyppi:'V', alv:0},
+  {nro:'9009',lbl:'Laskennalliset verot',      grp:'Verot',                                  tyyppi:'V', alv:0},
+];
+
+// ── VAKIOKIRJAUKSET (Liikekirjuri 2025 tilinumerot) ───────────
+const VAKIO = [
+  {p:/telia|elisa\b|dna\b|tele2|moi\s/i,       lbl:'Puhelin',          d:'7950',  k:'2871', alv:25.5},
+  {p:/vuokra/i,                                  lbl:'Vuokrat',          d:'7210',  k:'2871', alv:25.5},
+  {p:/sähkö|fortum|helen\b|vattenfall|caruna/i,  lbl:'Sähkö',            d:'7390',  k:'2871', alv:25.5},
+  {p:/lämmitys|kaukolämpö/i,                     lbl:'Lämmitys',         d:'7370',  k:'2871', alv:25.5},
+  {p:/kirjanpito|tilitoimisto/i,                 lbl:'Kirjanpito',        d:'8060',  k:'2871', alv:25.5},
+  {p:/palkka/i,                                  lbl:'Palkat',            d:'5000',  k:'1910', alv:0},
+  {p:/tyel|eläkevak/i,                           lbl:'TyEL',              d:'6130',  k:'1910', alv:0},
+  {p:/vakuutus|if\b|lähitapiola|pohjola/i,       lbl:'Vakuutuskulut',     d:'7414',  k:'2871', alv:0},
+  {p:/myyntilasku|myynti\s|asiakaslasku/i,        lbl:'Myyntisuoritus',   d:'1701',  k:'3000', alv:25.5},
+  {p:/google|meta\b|facebook|linkedin|markkinointi/i, lbl:'Markkinointi', d:'7910',  k:'2871', alv:25.5},
+  {p:/matka|km-korvaus/i,                        lbl:'Matkakulut',        d:'7800',  k:'1910', alv:14},
+  {p:/bensiini|polttoaine/i,                     lbl:'Polttoaine',        d:'7530',  k:'1910', alv:25.5},
+  {p:/palvelumaksu|osuuspankki|nordea|handels|pankki.*maksu/i, lbl:'Pankkipalvelut', d:'8100', k:'1910', alv:0},
+  {p:/osinko|jako/i,                             lbl:'Osingonjako',       d:'2251',  k:'1910', alv:0},
+  {p:/siivous/i,                                 lbl:'Siivous',           d:'7360',  k:'2871', alv:25.5},
+  {p:/toimistotarv|toimistotarvike/i,            lbl:'Toimistotarvikkeet',d:'8010',  k:'2871', alv:25.5},
+];
+
+function matchVakio(sel) {
+  if (!sel || sel.length < 3) return null;
+  return VAKIO.find(v => v.p.test(sel)) || null;
+}
+
+// Rows state
+let rows = [];
+let nextId = 1;
+let dirty = false;
+let curYritys = null;
+let undoStack = [];
+
+// Demo data — Liikekirjuri 2025 tilinumeroilla
+const DEMO = [
+  {pv:'2025-01-01',ts:'AV-001',sel:'Tilinavaus — pankkitili',              d:'1910', k:'2001', netto:10000, alvp:0},
+  {pv:'2025-01-15',ts:'ML-001',sel:'Myyntilasku #1 / Asiakas A Oy',        d:'1701', k:'3000', netto:2000,  alvp:25.5},
+  {pv:'2025-01-22',ts:'SM-001',sel:'Asiakas A Oy — suoritus',              d:'1910', k:'1701', netto:2510,  alvp:0},
+  {pv:'2025-02-02',ts:'TO-001',sel:'Telia Oyj — puhelinlasku 01/2025',     d:'7950', k:'2871', netto:45,    alvp:25.5},
+  {pv:'2025-02-05',ts:'TO-002',sel:'Toimitilavuokra 02/2025',              d:'7210', k:'1910', netto:800,   alvp:25.5},
+  {pv:'2025-02-28',ts:'PA-001',sel:'Palkat 02/2025',                       d:'5000', k:'1910', netto:3200,  alvp:0},
+  {pv:'2025-03-01',ts:'ML-002',sel:'Myyntilasku #2 / Asiakas B Ky',        d:'1701', k:'3000', netto:5000,  alvp:25.5},
+  {pv:'2025-03-15',ts:'TO-003',sel:'Google Ads — markkinointi 03/2025',    d:'7910', k:'2871', netto:320,   alvp:25.5},
+  {pv:'2025-03-28',ts:'PA-002',sel:'Palkat 03/2025',                       d:'5000', k:'1910', netto:3200,  alvp:0},
+  {pv:'2025-04-10',ts:'SM-002',sel:'Asiakas B Ky — suoritus',              d:'1910', k:'1701', netto:6275,  alvp:0},
+  {pv:'2025-04-30',ts:'TO-004',sel:'Kirjanpitopalvelut Q1/2025',           d:'8060', k:'2871', netto:240,   alvp:25.5},
+];
+
+// ── LOCALSTORAGE VÄYLÄ ───────────────────────────────────────
+const LS = {
+  rowsKey:   () => `adepta_rows_${curYritys.id}`,
+  saveRows:  () => { try { localStorage.setItem(LS.rowsKey(), JSON.stringify(rows)); } catch(e){} },
+  loadRows:  () => { try { const d=localStorage.getItem(LS.rowsKey()); return d?JSON.parse(d):null; } catch(e){ return null; } },
+  // Import-jono: pankkituonti / muut sivut kirjoittavat, kirjanpito lukee
+  queueKey:  () => `adepta_import_queue_${curYritys.id}`,
+  saveQueue: (q) => { try { localStorage.setItem(LS.queueKey(), JSON.stringify(q)); } catch(e){} },
+  loadQueue: () => { try { const d=localStorage.getItem(LS.queueKey()); return d?JSON.parse(d):[]; } catch(e){ return []; } },
+  clearQueue:() => { try { localStorage.removeItem(LS.queueKey()); } catch(e){} },
+  // Laskut
+  laskutKey: () => `adepta_laskut_${curYritys.id}`,
+  saveLaskut:(l) => { try { localStorage.setItem(LS.laskutKey(), JSON.stringify(l)); } catch(e){} },
+  loadLaskut:() => { try { const d=localStorage.getItem(LS.laskutKey()); return d?JSON.parse(d):[]; } catch(e){ return []; } },
+};
+
+// ── INIT ─────────────────────────────────────────────────────
+function init() {
+  // Tarkista tuliko parametri URL:ssa (esim. ?co=2)
+  const params = new URLSearchParams(window.location.search);
+  const coParam = parseInt(params.get('co'));
+  if (coParam) {
+    const found = YRITYKSET.find(y => y.id === coParam);
+    if (found) curYritys = found;
+  }
+  // Tarkista tuliko pankkituonti-parametri
+  const panel = params.get('panel');
+
+  lataaNakyma();
+  renderTK();
+  renderRpt('tulos');
+  showPanel(panel === 'pankki' ? 'pankki' : 'paivak');
+
+  // Palauta mahdollinen tallennettu API-avain
+  const savedKey = sessionStorage.getItem('adepta_api_key');
+  if (savedKey) {
+    const inp = document.getElementById('api-key-input');
+    if (inp) { inp.value = savedKey; apiKeyChanged(savedKey); }
+  }
+
+  // Tarkista import-jono heti alussa
+  checkImportQueue();
+  // Kuuntele muiden välilehtien kirjoituksia (storage event)
+  window.addEventListener('storage', e => {
+    if (e.key && e.key.startsWith('adepta_import_queue_')) checkImportQueue();
+  });
+}
+
+// Lataa yrityksen rivit (localStorage tai demo)
+function lataaNakyma() {
+  document.getElementById('top-co').textContent = curYritys.nimi;
+  renderCo();
+  const saved = LS.loadRows();
+  if (saved && saved.length > 0) {
+    rows = saved;
+    // Varmista että nextId on riittävän suuri
+    nextId = Math.max(...rows.map(r => r.id), 0) + 1;
+  } else {
+    // Ensikäynnistys: demo-data
+    rows = DEMO.map(d => ({ id: nextId++, pv: d.pv, ts: d.ts, sel: d.sel, d: d.d, k: d.k, netto: d.netto, alvp: d.alvp }));
+    LS.saveRows();
+  }
+  // Lataa laskut myös
+  laskut = LS.loadLaskut();
+  impTapahtumat = [];
+  setDirty(false);
+  render();
+}
+
+// ── ILMOITUSPALKKI ────────────────────────────────────────────
+function checkImportQueue() {
+  const queue = LS.loadQueue();
+  const bar = document.getElementById('import-notify-bar');
+  if (!bar) return;
+  if (queue.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('notify-count').textContent = queue.length;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function naytaJono() {
+  const queue = LS.loadQueue();
+  if (!queue.length) { toast('Jono on tyhjä'); return; }
+
+  // Varmista että PDF-tabi on aktiivinen (import-preview on sen sisällä)
+  switchUploadTab('pdf');
+
+  // Siirrä jono impTapahtumat-taulukkoon
+  impTapahtumat = queue.map((t, i) => ({...t, idx:i, tila: t.vak ? 'auto' : 'odottaa'}));
+  laskut = LS.loadLaskut();
+
+  // Varmista että upload-pdf-divi on näkyvissä
+  const uploadPdf = document.getElementById('upload-pdf');
+  if (uploadPdf) uploadPdf.style.display = 'block';
+
+  // Piilota drop zone, näytä tulokset
+  const dz = document.getElementById('dz');
+  if (dz) dz.style.display = 'none';
+  const aiBox = document.getElementById('ai-analysing');
+  if (aiBox) aiBox.style.display = 'none';
+  const aiResults = document.getElementById('ai-results');
+  if (aiResults) aiResults.style.display = 'block';
+
+  renderImpTable();
+
+  const impPrev = document.getElementById('import-preview');
+  if (impPrev) impPrev.style.display = 'block';
+  const vakioInfo = document.getElementById('vakio-info');
+  if (vakioInfo) vakioInfo.style.display = 'none';
+
+  // Info-palkki
+  const infoBar = document.getElementById('tiliote-info');
+  if (infoBar) {
+    infoBar.style.display = 'flex';
+    const tiIban = document.getElementById('ti-iban');
+    const tiPeriod = document.getElementById('ti-period');
+    const tiStats = document.getElementById('ti-stats');
+    if (tiIban) tiIban.textContent = queue[0]?.iban || 'Tuotu aineisto';
+    if (tiPeriod) tiPeriod.textContent = '';
+    const auto = impTapahtumat.filter(t=>t.vak).length;
+    if (tiStats) tiStats.innerHTML =
+      `<span style="color:#7ec488">${auto} vakiokirjauksella</span>
+       &nbsp;·&nbsp; <span style="color:#e8a86a">${impTapahtumat.length - auto} vaatii vastatilin</span>`;
+  }
+
+  showPanel('pankki');
+  document.getElementById('import-notify-bar').style.display = 'none';
+  toast(`${queue.length} tapahtumaa ladattu — käy läpi tai tuo kaikki automaattisesti`);
+}
+
+// ── COMPANY LIST ─────────────────────────────────────────────
+function renderCo(filter='') {
+  const list = document.getElementById('co-list');
+  list.innerHTML = '';
+  YRITYKSET.filter(y => y.nimi.toLowerCase().includes(filter.toLowerCase())).forEach(y => {
+    const div = document.createElement('div');
+    div.className = 'co-item' + (y.id === curYritys.id ? ' act' : '');
+    div.innerHTML = `<div class="co-name">${y.nimi}</div><div class="co-sub">${y.ytunnus} · ${y.tilikausi}</div>`;
+    div.onclick = () => {
+      if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
+      curYritys = y;
+      document.getElementById('top-co').textContent = y.nimi;
+      lataaNakyma();
+      checkImportQueue();
+      toast(`${y.nimi} ladattu`);
+    };
+    list.appendChild(div);
+  });
+}
+function filterCo(v) { renderCo(v); }
+
+// ── PANEL SWITCH ─────────────────────────────────────────────
+function showPanel(name) {
+  ['paivak','pankki','tositteet','raportit','tilikartta'].forEach(n => {
+    const el = document.getElementById('panel-'+n);
+    if (el) el.style.display = 'none';
+    const navId = {paivak:'pk',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'}[n];
+    const nav = document.getElementById('nav-'+navId);
+    if (nav) nav.classList.remove('act');
+  });
+  const el = document.getElementById('panel-'+name);
+  if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
+  const navMap = {paivak:'pk',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'};
+  const nav = document.getElementById('nav-'+navMap[name]);
+  if (nav) nav.classList.add('act');
+  if (name === 'tositteet') renderTositteet();
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function tiliLabel(nro) {
+  if (!nro) return '';
+  const t = TILIT.find(t => t.nro === nro);
+  return t ? `${nro} ${t.lbl}` : nro;
+}
+function tiliShort(nro) {
+  if (!nro) return '';
+  const t = TILIT.find(t => t.nro === nro);
+  return t ? `${nro} ${t.lbl}` : nro;
+}
+function alvE(netto, alvp) {
+  return alvp > 0 ? +(netto * alvp / 100).toFixed(2) : 0;
+}
+function brutto(netto, alvp) {
+  return +(netto + alvE(netto, alvp)).toFixed(2);
+}
+function fmtE(n) {
+  return n.toLocaleString('fi-FI', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+}
+function parseFi(s) {
+  if (!s) return 0;
+  const clean = s.replace(/\s/g,'').replace(',','.');
+  const n = parseFloat(clean);
+  return isNaN(n) ? 0 : n;
+}
+
+// col indices: 0=pv 1=ts 2=sel 3=d 4=k 5=netto 6=alvp
+const NC = 7;
+
+// ── RENDER TABLE ─────────────────────────────────────────────
+function render() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'jr';
+    tr.dataset.id = r.id;
+    tr.dataset.i = i;
+    const alve = alvE(r.netto, r.alvp);
+    const br = brutto(r.netto, r.alvp);
+    const vak = matchVakio(r.sel);
+    if (vak) tr.classList.add('sug-row');
+    tr.innerHTML = `
+      <td class="rn">${i+1}</td>
+      <td class="c0"><input class="ji mono" type="date" value="${r.pv}" data-col="0" data-id="${r.id}" onchange="fieldChange(${r.id},'pv',this.value)" onkeydown="ck(event,${i},0)"></td>
+      <td class="c0"><input class="ji mono" type="text" value="${r.ts}" placeholder="AV-001" data-col="1" data-id="${r.id}" oninput="fieldChange(${r.id},'ts',this.value)" onkeydown="ck(event,${i},1)"></td>
+      <td class="c0">
+        <div class="sel-wrap">
+          <input class="sel-input" type="text" value="${r.sel}" placeholder="Selite / tapahtuma…" data-col="2" data-id="${r.id}" oninput="selChange(${r.id},this)" onkeydown="ck(event,${i},2)">
+          <div class="sug-badge ${vak?'vis':''}" id="sug-${r.id}" onclick="applySug(${r.id})">${vak?'⚡ '+vak.lbl:''}</div>
+          ${r.tosite_tmttja||r.tosite_nro ? `<span title="Tosite: ${r.tosite_nro||r.tosite_tmttja}" onclick="showPanel('tositteet')" style="cursor:pointer;font-size:13px;margin-right:4px;flex-shrink:0" tabindex="-1">📎</span>` : ''}
+        </div>
+      </td>
+      <td class="c0"><div class="acct-wrap" id="aw-d-${r.id}">
+        <button class="acct-btn${r.d?'':' empty'}" onclick="openAcct('d',${r.id},${i})" onkeydown="ck(event,${i},3)" id="ab-d-${r.id}">${r.d?tiliShort(r.d):'Valitse tili…'}</button>
+        <span class="acct-arrow">▾</span>
+      </div></td>
+      <td class="c0"><div class="acct-wrap" id="aw-k-${r.id}">
+        <button class="acct-btn${r.k?'':' empty'}" onclick="openAcct('k',${r.id},${i})" onkeydown="ck(event,${i},4)" id="ab-k-${r.id}">${r.k?tiliShort(r.k):'Valitse tili…'}</button>
+        <span class="acct-arrow">▾</span>
+      </div></td>
+      <td class="c0"><input class="ji num" type="text" value="${r.netto?r.netto.toLocaleString('fi-FI',{minimumFractionDigits:2}):''}" placeholder="0,00" data-col="5" data-id="${r.id}" onfocus="this.select()" onblur="numBlur(this,${r.id})" onkeydown="ck(event,${i},5)"></td>
+      <td class="c0">
+        <select class="ji" style="text-align:center;font-size:12px" data-col="6" data-id="${r.id}" onchange="fieldChange(${r.id},'alvp',parseFloat(this.value))" onkeydown="ck(event,${i},6)">
+          ${[0,10,14,24,25.5].map(v=>`<option value="${v}"${r.alvp===v?' selected':''}>${v===0?'0 %':v+' %'}</option>`).join('')}
+        </select>
+      </td>
+      <td class="c0"><input class="ji calc" type="text" value="${alve>0?alve.toLocaleString('fi-FI',{minimumFractionDigits:2}):''}" placeholder="—" readonly tabindex="-1"></td>
+      <td class="c0"><input class="ji calc" type="text" value="${br>0?br.toLocaleString('fi-FI',{minimumFractionDigits:2}):''}" placeholder="—" readonly tabindex="-1" style="font-weight:500;color:var(--ink)"></td>
+      <td class="c0"><button class="del-btn" onclick="delRow(${i})" title="Poista rivi (Del)">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  // Add row button — same as SKOG's arb
+  const addTr = document.createElement('tr');
+  addTr.className = 'add-row';
+  addTr.innerHTML = `<td colspan="11"><button class="add-row-btn" id="arb" onclick="addRow(rows.length-1)" onkeydown="arbK(event)">＋ Lisää tapahtuma &nbsp;<kbd>Enter</kbd></button></td>`;
+  tbody.appendChild(addTr);
+  updateTotals();
+}
+
+// ── FIELD CHANGES ─────────────────────────────────────────────
+function fieldChange(id, field, val) {
+  push();
+  const r = rows.find(r => r.id === id);
+  if (!r) return;
+  r[field] = val;
+  setDirty(true);
+  if (field === 'alvp') render(); // re-render to update calculated fields
+  else updateTotals();
+}
+function selChange(id, inp) {
+  push();
+  const r = rows.find(r => r.id === id);
+  if (!r) return;
+  r.sel = inp.value;
+  setDirty(true);
+  // Update suggestion badge
+  const vak = matchVakio(inp.value);
+  const badge = document.getElementById('sug-'+id);
+  const tr = inp.closest('tr');
+  if (badge) {
+    if (vak) {
+      badge.textContent = '⚡ ' + vak.lbl;
+      badge.classList.add('vis');
+      tr.classList.add('sug-row');
+    } else {
+      badge.classList.remove('vis');
+      tr.classList.remove('sug-row');
+    }
+  }
+  updateTotals();
+}
+
+function applySug(id) {
+  const r = rows.find(r => r.id === id);
+  if (!r) return;
+  const vak = matchVakio(r.sel);
+  if (!vak) return;
+  push();
+  r.d = vak.d; r.k = vak.k; r.alvp = vak.alv;
+  setDirty(true);
+  render();
+  toast(`⚡ Vakiokirjaus käytetty: ${vak.lbl}`);
+}
+
+// ── ACCOUNT DROPDOWN ─────────────────────────────────────────
+let openAcctEl = null;
+let openAcctSide = null, openAcctId = null, openAcctRowIdx = null;
+
+function openAcct(side, id, rowIdx) {
+  closeAllDropdowns();
+  openAcctSide = side; openAcctId = id; openAcctRowIdx = rowIdx;
+  const wrap = document.getElementById(`aw-${side}-${id}`);
+  const r = rows.find(r => r.id === id);
+  const curNro = r ? r[side] : '';
+  const list = document.createElement('div');
+  list.className = 'acct-list vis';
+  const rect = wrap.getBoundingClientRect();
+  if (rect.bottom + 290 > window.innerHeight) list.classList.add('up');
+  const srch = document.createElement('input');
+  srch.className = 'acct-search';
+  srch.placeholder = 'Hae tilinumerolla tai nimellä…';
+  list.appendChild(srch);
+  const items = document.createElement('div');
+  items.className = 'acct-items';
+  list.appendChild(items);
+  let hiIdx = 0;
+  function getFiltered(filter) {
+    return TILIT.filter(t => !filter || t.nro.startsWith(filter) || t.lbl.toLowerCase().includes(filter.toLowerCase()));
+  }
+  function renderItems(filter='') {
+    items.innerHTML = '';
+    let curGrp = '';
+    getFiltered(filter).forEach((t, fi) => {
+      if (t.grp !== curGrp) {
+        const g = document.createElement('div');
+        g.className = 'acct-grp';
+        g.textContent = t.grp;
+        items.appendChild(g);
+        curGrp = t.grp;
+      }
+      const it = document.createElement('div');
+      it.className = 'acct-item' + (t.nro === curNro || fi === hiIdx ? ' hi' : '');
+      it.dataset.fi = fi;
+      it.innerHTML = `<span class="acct-nro">${t.nro}</span><span class="acct-lbl">${t.lbl}</span><span class="acct-type ${t.tyyppi==='V'?'at-v':'at-k'}">${t.tyyppi==='V'?'D':'K'}</span>`;
+      it.onmousedown = (e) => { e.preventDefault(); selectAcct(getFiltered(filter)[fi]); };
+      items.appendChild(it);
+    });
+  }
+  function selectAcct(t) {
+    if (!t) return;
+    push();
+    const row = rows.find(r => r.id === id);
+    if (row) { row[side] = t.nro; if (t.alv !== undefined) row.alvp = t.alv; setDirty(true); }
+    const btnEl = document.getElementById(`ab-${side}-${id}`);
+    if (btnEl) { btnEl.textContent = tiliShort(t.nro); btnEl.classList.remove('empty'); }
+    closeAllDropdowns();
+    // Move to next column after selection
+    const nextCol = side === 'd' ? 4 : 5;
+    setTimeout(() => { render(); focusC(rowIdx, nextCol); }, 20);
+  }
+  srch.oninput = () => { hiIdx = 0; renderItems(srch.value); };
+  srch.onkeydown = (e) => {
+    const filtered = getFiltered(srch.value);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      hiIdx = Math.min(hiIdx + 1, filtered.length - 1);
+      renderItems(srch.value);
+      items.querySelector('.hi')?.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      hiIdx = Math.max(hiIdx - 1, 0);
+      renderItems(srch.value);
+      items.querySelector('.hi')?.scrollIntoView({block:'nearest'});
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filtered[hiIdx]) selectAcct(filtered[hiIdx]);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (filtered[hiIdx]) selectAcct(filtered[hiIdx]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeAllDropdowns();
+      focusC(rowIdx, side === 'd' ? 3 : 4);
+    }
+  };
+  renderItems();
+  wrap.appendChild(list);
+  openAcctEl = list;
+  srch.focus();
+  setTimeout(() => document.addEventListener('click', outsideClick, {once:true}), 10);
+}
+function outsideClick(e) {
+  if (openAcctEl && !openAcctEl.contains(e.target)) closeAllDropdowns();
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.acct-list.vis').forEach(el => el.remove());
+  openAcctEl = null;
+}
+
+// ── ROW MANAGEMENT ───────────────────────────────────────────
+function addRow(afterIdx) {
+  push();
+  const today = new Date().toISOString().slice(0,10);
+  // Copy date from previous row if available
+  const prevPv = (afterIdx >= 0 && afterIdx < rows.length) ? rows[afterIdx].pv : today;
+  const newRow = {id:nextId++, pv:prevPv||today, ts:'', sel:'', d:'', k:'', netto:0, alvp:25.5};
+  if (afterIdx !== undefined && afterIdx >= 0 && afterIdx < rows.length)
+    rows.splice(afterIdx + 1, 0, newRow);
+  else
+    rows.push(newRow);
+  setDirty(true);
+  render();
+  const newIdx = afterIdx !== undefined ? Math.min(afterIdx+1, rows.length-1) : rows.length-1;
+  setTimeout(() => focusC(newIdx, 0), 30);
+}
+function delRow(i) {
+  push();
+  rows.splice(i, 1);
+  setDirty(true);
+  render();
+  const ni = Math.min(i, rows.length-1);
+  if (ni >= 0) setTimeout(() => focusC(ni, 0), 30);
+  else document.getElementById('arb')?.focus();
+}
+
+// ── KEYBOARD NAVIGATION (identtinen SKOG:n kanssa) ────────────
+// col: 0=pv 1=ts 2=sel 3=d(debet) 4=k(kredit) 5=netto 6=alvp
+function ck(e, i, col) {
+  const k = e.key;
+
+  // Tilidropdown-sarakkeet (3=debet, 4=kredit): avaa ArrowDown/Enter
+  if (col === 3 || col === 4) {
+    if (k === 'ArrowDown' || k === 'Enter') {
+      e.preventDefault();
+      const side = col === 3 ? 'd' : 'k';
+      openAcct(side, rows[i].id, i);
+      return;
+    }
+    if (k === 'Tab') {
+      e.preventDefault();
+      closeAllDropdowns();
+      if (!e.shiftKey) { col < NC-1 ? focusC(i, col+1) : (i < rows.length-1 ? focusC(i+1, 0) : addRow(i)); }
+      else { col > 0 ? focusC(i, col-1) : (i > 0 ? focusC(i-1, NC-1) : void 0); }
+      return;
+    }
+    if (k === 'ArrowUp') { e.preventDefault(); if (i > 0) focusC(i-1, col); return; }
+    if (k === 'ArrowDown') { e.preventDefault(); i < rows.length-1 ? focusC(i+1, col) : document.getElementById('arb')?.focus(); return; }
+    if (k === 'Delete') { e.preventDefault(); delRow(i); return; }
+    return;
+  }
+
+  if (k === 'Enter') {
+    e.preventDefault();
+    if (col === NC-1) { i < rows.length-1 ? focusC(i+1, 0) : addRow(i); return; }
+    col < NC-1 ? focusC(i, col+1) : (i < rows.length-1 ? focusC(i+1, 0) : addRow(i));
+    return;
+  }
+  if (k === 'Tab') {
+    e.preventDefault();
+    if (!e.shiftKey) {
+      col < NC-1 ? focusC(i, col+1) : (i < rows.length-1 ? focusC(i+1, 0) : addRow(i));
+    } else {
+      col > 0 ? focusC(i, col-1) : (i > 0 ? focusC(i-1, NC-1) : void 0);
+    }
+    return;
+  }
+  // ArrowDown/Up: siirry rivien välillä (paitsi tekstikentässä col=2)
+  if (k === 'ArrowDown' && col !== 2) {
+    e.preventDefault();
+    i < rows.length-1 ? focusC(i+1, col) : document.getElementById('arb')?.focus();
+    return;
+  }
+  if (k === 'ArrowUp' && col !== 2) {
+    e.preventDefault();
+    if (i > 0) focusC(i-1, col);
+    return;
+  }
+  // Delete viimeisessä sarakkeessa poistaa rivin
+  if (k === 'Delete' && col === NC-1) { e.preventDefault(); delRow(i); return; }
+}
+
+// Lisää-rivi-napin näppäimet (sama kuin SKOG:n arbK)
+function arbK(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addRow(rows.length-1); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); if (rows.length > 0) focusC(rows.length-1, 0); }
+  if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); if (rows.length > 0) focusC(rows.length-1, NC-1); }
+}
+
+// Fokusoi solu: rivindeksi + sarakeindeksi
+function focusC(i, col) {
+  if (i < 0 || i >= rows.length) return;
+  const r = rows[i];
+  const tr = document.querySelector(`tr.jr[data-id="${r.id}"]`);
+  if (!tr) return;
+  let el;
+  if (col === 3) el = document.getElementById(`ab-d-${r.id}`);
+  else if (col === 4) el = document.getElementById(`ab-k-${r.id}`);
+  else el = tr.querySelector(`[data-col="${col}"]`);
+  if (el) { el.focus(); if (el.select) el.select(); }
+  tr.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+
+// netto-kentän blur: formatoi arvo
+function numBlur(inp, id) {
+  const r = rows.find(r => r.id === id);
+  if (!r) return;
+  const n = parseFi(inp.value);
+  r.netto = n;
+  inp.value = n > 0 ? n.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '';
+  setDirty(true);
+  // Päivitä lasketut kentät
+  const tr = inp.closest('tr');
+  if (tr) {
+    const alve = alvE(r.netto, r.alvp);
+    const br = brutto(r.netto, r.alvp);
+    const calcs = tr.querySelectorAll('.ji.calc');
+    if (calcs[0]) calcs[0].value = alve > 0 ? alve.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '';
+    if (calcs[1]) calcs[1].value = br > 0 ? br.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '';
+  }
+  updateTotals();
+}
+
+// ── TOTALS ───────────────────────────────────────────────────
+function updateTotals() {
+  let totalD = 0, totalK = 0, totalAlv = 0, totalBr = 0;
+  rows.forEach(r => {
+    const br = brutto(r.netto, r.alvp);
+    const alve = alvE(r.netto, r.alvp);
+    totalD += br; // debet gets brutto amount
+    totalK += br; // kredit gets brutto amount (balanced)
+    totalAlv += alve;
+    totalBr += br;
+  });
+  document.getElementById('bb-d').textContent = fmtE(totalD);
+  document.getElementById('bb-k').textContent = fmtE(totalK);
+  document.getElementById('bb-alv').textContent = fmtE(totalAlv);
+  document.getElementById('bb-br').textContent = fmtE(totalBr);
+  document.getElementById('bb-bal').innerHTML = '<span class="bal-ok">✓ Kirjanpito tasapainossa</span>';
+  const alert = document.getElementById('bal-alert');
+  alert.className = 'bal-alert ok';
+  alert.innerHTML = '✓ Debet = Kredit — kirjanpito tasapainossa';
+}
+
+// ── UNDO ─────────────────────────────────────────────────────
+function push() {
+  undoStack.push(JSON.parse(JSON.stringify(rows)));
+  if (undoStack.length > 50) undoStack.shift();
+}
+function undoL() {
+  if (!undoStack.length) return;
+  rows = undoStack.pop();
+  render();
+  toast('Kumottu ↩');
+}
+
+// ── SAVE ─────────────────────────────────────────────────────
+function setDirty(v) {
+  dirty = v;
+  document.getElementById('save-btn').disabled = !v;
+}
+async function tallenna() {
+  if (!curYritys || !dirty) return;
+  const saveBtn = document.getElementById('save-btn');
+  if (saveBtn) saveBtn.disabled = true;
+
+  const rivitData = rows.map(r => ({
+    paivamaara: r.pv,
+    tositenro: r.ts,
+    selite: r.sel,
+    debet_tili: r.d,
+    kredit_tili: r.k,
+    netto: r.netto,
+    alv_prosentti: r.alvp,
+  }));
+
+  try {
+    const res = await fetch('/api/ppr/paivakirja', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        asiakas_id: curYritys.id,
+        tilikausi_vuosi: curTilikausiVuosi || new Date().getFullYear(),
+        rivit: rivitData,
+      })
+    });
+    const json = await res.json();
+    if (res.ok) {
+      setDirty(false);
+      toast('Tallennettu ✓ — ' + rows.length + ' vientiä');
+    } else {
+      toast('Virhe: ' + json.error);
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  } catch(e) {
+    toast('Verkkovirhe');
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+async function lataaRivit(asiakas_id) {
+  const vuosi = curTilikausiVuosi || new Date().getFullYear();
+  const res = await fetch('/api/ppr/paivakirja?asiakas_id=' + asiakas_id + '&vuosi=' + vuosi);
+  const data = await res.json();
+  if (data && data.length > 0) {
+    rows = data.map(d => ({
+      id: nextId++,
+      pv: d.paivamaara?.slice(0,10) ?? '',
+      ts: d.tositenro || '',
+      sel: d.selite || '',
+      d: d.debet_tili || '',
+      k: d.kredit_tili || '',
+      netto: Number(d.netto),
+      alvp: Number(d.alv_prosentti),
+    }));
+  } else {
+    rows = [];
+  }
+  dirty = false;
+  render();
+}
+function closeModal() {
+  document.getElementById('save-modal').classList.remove('op');
+  toast('Tallennettu ✓');
+}
+function changePeriod() { toast('Tilikausi vaihdettu'); }
+function tulostaRaportti() { toast('PDF-raportti avataan…'); }
+
+// ── TILIKARTTA ───────────────────────────────────────────────
+function renderTK() {
+  const tbody = document.getElementById('tk-tbody');
+  let curGrp = '';
+  TILIT.forEach(t => {
+    if (t.grp !== curGrp) {
+      const tr = document.createElement('tr');
+      tr.className = 'grp-hdr';
+      tr.innerHTML = `<td colspan="4">${t.grp}</td>`;
+      tbody.appendChild(tr);
+      curGrp = t.grp;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="tk-nro" onclick="copyTxt('${t.nro}')" title="Kopioi" style="cursor:pointer">${t.nro}</span></td>
+      <td>${t.lbl}</td>
+      <td><span class="tk-type ${t.tyyppi==='V'?'at-v':'at-k'}">${t.tyyppi==='V'?'Debet':'Kredit'}</span></td>
+      <td>${t.alv!==undefined?`<span class="alv-chip">${t.alv} %</span>`:'—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function copyTxt(t) { navigator.clipboard.writeText(t).catch(()=>{}); toast(`${t} kopioitu`); }
+
+// ── TOSITTEET ─────────────────────────────────────────────────
+function renderTositteet() {
+  const q     = (document.getElementById('tos-search')?.value||'').trim().toLowerCase();
+  const filt  = document.getElementById('tos-filter')?.value || 'kaikki';
+  const tbody = document.getElementById('tos-tbody');
+  if (!tbody) return;
+
+  let list = [...rows];
+  if (q) list = list.filter(r =>
+    r.sel.toLowerCase().includes(q) ||
+    (r.ts||'').toLowerCase().includes(q) ||
+    (r.tosite_nro||'').toLowerCase().includes(q) ||
+    (r.tosite_tmttja||'').toLowerCase().includes(q)
+  );
+  if (filt === 'tosite')    list = list.filter(r => r.tosite_nro || r.tosite_tmttja);
+  if (filt === 'ei-tosite') list = list.filter(r => !r.tosite_nro && !r.tosite_tmttja);
+
+  // Yhteenveto
+  const total     = rows.length;
+  const withDoc   = rows.filter(r => r.tosite_nro || r.tosite_tmttja).length;
+  const fromBank  = rows.filter(r => r.pankkisumma !== undefined).length;
+  const noDoc     = fromBank - withDoc;
+  const summaryEl = document.getElementById('tos-summary');
+  if (summaryEl) summaryEl.innerHTML = `
+    <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;min-width:110px">
+      <div style="font-size:20px;font-weight:300;font-family:var(--ffd)">${total}</div>
+      <div style="font-size:10px;color:var(--inu);margin-top:2px">Kirjanpitorivejä</div>
+    </div>
+    <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;min-width:110px">
+      <div style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--fg3)">${fromBank}</div>
+      <div style="font-size:10px;color:var(--inu);margin-top:2px">Pankkituonnista</div>
+    </div>
+    <div style="background:#e4f4ec;border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:10px 14px;min-width:110px">
+      <div style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--fg3)">${withDoc}</div>
+      <div style="font-size:10px;color:var(--fg3);margin-top:2px">📎 Tosite liitetty</div>
+    </div>
+    ${noDoc > 0 ? `<div style="background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:10px 14px;min-width:110px">
+      <div style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--amber)">${noDoc}</div>
+      <div style="font-size:10px;color:var(--amber);margin-top:2px">⚠ Tosite puuttuu</div>
+    </div>` : ''}
+  `;
+  const cntEl = document.getElementById('tos-cnt');
+  if (cntEl) cntEl.textContent = `${list.length} riviä näkyvissä`;
+
+  tbody.innerHTML = '';
+  list.forEach((r, i) => {
+    const harTosite = r.tosite_nro || r.tosite_tmttja;
+    const br = brutto(r.netto, r.alvp);
+    const pos = r.pankkisumma !== undefined ? r.pankkisumma > 0 : true;
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.style.transition = 'background .06s';
+    tr.onmouseover = () => tr.style.background = 'var(--fpale)';
+    tr.onmouseout  = () => tr.style.background = '';
+    tr.innerHTML = `
+      <td style="padding:10px 14px;font-family:var(--ffm);font-size:11px;color:var(--inu);white-space:nowrap">${r.pv}</td>
+      <td style="padding:10px 14px;font-family:var(--ffm);font-size:11px;font-weight:600;color:var(--fl);white-space:nowrap">${r.ts||'—'}</td>
+      <td style="padding:10px 14px;font-size:12px;color:var(--ink);max-width:200px">
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.sel}</div>
+      </td>
+      <td style="padding:10px 14px;font-family:var(--ffm);font-size:10px;color:var(--fl)">${r.d||'—'}</td>
+      <td style="padding:10px 14px;font-family:var(--ffm);font-size:10px;color:var(--inu)">${r.k||'—'}</td>
+      <td style="padding:10px 14px;text-align:right;font-family:var(--ffm);font-size:12px;font-weight:600;color:${pos?'var(--fg3)':'var(--red)'}">
+        ${(pos?'+':'-')}${br.toLocaleString('fi-FI',{minimumFractionDigits:2})} €
+      </td>
+      <td style="padding:10px 14px">
+        ${harTosite ? `
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="font-size:12px">📎</span>
+              <span style="font-size:11px;font-weight:600;color:var(--ink)">${r.tosite_nro||r.tosite_tmttja||'—'}</span>
+            </div>
+            ${r.tosite_tmttja&&r.tosite_nro?`<div style="font-size:10px;color:var(--inu)">${r.tosite_tmttja}</div>`:''}
+            ${r.tosite_summa?`<div style="font-size:10px;color:var(--inu);font-family:var(--ffm)">${r.tosite_summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} € · ${r.tosite_pvm||''}</div>`:''}
+            ${r.tosite_viite?`<div style="font-size:10px;color:var(--inf)">Viite: ${r.tosite_viite}</div>`:''}
+            ${r.tosite_kuvaus?`<div style="font-size:10px;color:var(--inu);font-style:italic;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.tosite_kuvaus}</div>`:''}
+          </div>
+        ` : `<span style="font-size:11px;color:var(--inf)">—</span>`}
+      </td>
+      <td style="padding:10px 14px;text-align:right">
+        ${harTosite
+          ? `<button onclick="poistaTositeViite(${r.id})"
+               style="padding:2px 7px;font-size:10px;border:1px solid var(--bd);border-radius:4px;background:transparent;color:var(--inf);cursor:pointer"
+               title="Poista tositteen linkitys">×</button>`
+          : `<button onclick="lisaaTositeManual(${r.id})"
+               style="padding:2px 8px;font-size:10px;font-weight:500;border:1px solid rgba(160,92,26,.25);border-radius:4px;background:var(--ambl);color:var(--amber);cursor:pointer">
+               + Liitä</button>`
+        }
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (!list.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="8" style="padding:32px;text-align:center;font-size:13px;color:var(--inf)">
+      ${filt==='tosite' ? 'Ei liitettyjä tositteita' : filt==='ei-tosite' ? 'Kaikilla riveillä on tosite — hienoa!' : 'Ei kirjanpitorivejä'}
+    </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function poistaTositeViite(rowId) {
+  const r = rows.find(r => r.id === rowId);
+  if (!r) return;
+  r.tosite_nro = null; r.tosite_tmttja = null;
+  r.tosite_pvm = null; r.tosite_summa = null;
+  r.tosite_viite = null; r.tosite_kuvaus = null;
+  setDirty(true); LS.saveRows();
+  renderTositteet();
+  toast('Tositteen linkitys poistettu');
+}
+
+function lisaaTositeManual(rowId) {
+  const r = rows.find(r => r.id === rowId);
+  if (!r) return;
+  const nro = prompt(`Lisää tositteen numero tai toimittajan nimi riville:\n"${r.sel}"\n\nSyötä tositenumero tai toimittajan nimi:`);
+  if (!nro) return;
+  r.tosite_nro = nro;
+  r.tosite_tmttja = nro;
+  setDirty(true); LS.saveRows();
+  renderTositteet();
+  toast('Tosite liitetty');
+}
+
+// ── REPORTS ──────────────────────────────────────────────────
+function showRpt(name, btn) {
+  document.querySelectorAll('.rpt-tab').forEach(b => b.classList.remove('act'));
+  if (btn) btn.classList.add('act');
+  renderRpt(name);
+}
+function renderRpt(name) {
+  const el = document.getElementById('rpt-content');
+  if (name === 'tulos') el.innerHTML = rptTulos();
+  else if (name === 'tase') el.innerHTML = rptTase();
+  else if (name === 'alv') el.innerHTML = rptAlv();
+}
+function rptRow(l, v, cls='', indent=false, sub='') {
+  return `<div class="rpt-row${cls?' '+cls:''}${indent?' indent':''}">
+    <div><div class="rpt-row-l">${l}</div>${sub?`<div class="rpt-row-s">${sub}</div>`:''}</div>
+    <div class="rpt-row-v${v<0?' neg':v>0?' pos':''}">${fmtE(Math.abs(v))}${v<0?' (negatiivinen)':''}</div>
+  </div>`;
+}
+function rptTulos() {
+  const lv = (nrot) => rows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
+  const ku = (nrot) => rows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
+  const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
+  const muuttuotot  = lv(['3750','3844','3990','3994']);
+  const aineet      = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490']);
+  const palkat      = ku(['5000']);
+  const elake       = ku(['6100','6130','6140','6240']);
+  const sivukulut   = ku(['6300','6400']);
+  const poistot     = ku(['6820','6830','6870','6890']);
+  const toimitila   = ku(['7204','7210','7214','7360','7370','7380','7390','7414','7430']);
+  const ajoneuvot   = ku(['7530','7540','7574']);
+  const it          = ku(['7650','7730']);
+  const matkat      = ku(['7800','7810','7820']);
+  const myyntimark  = ku(['7910','7920','7930']);
+  const hallinto    = ku(['7950','7960','7970','8010','8060','8100','8200','8450']);
+  const muutkulut   = ku(['8500','8540']);
+  const henk        = palkat + elake + sivukulut;
+  const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
+  const liikkulos   = liikevaihto + muuttuotot - liiketkulut;
+  const korot_t     = lv(['8650']);
+  const korot_k     = ku(['8710','8790']);
+  const tulos       = liikkulos + korot_t - korot_k;
+  return `<div class="rpt-section">
+    <div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma</div><div class="rpt-hdr-s">1.1.–30.4.2025</div></div>
+    ${rptRow('Myynti 25,5%', lv(['3000','3001','3002','3003','3004']),   '', true)}
+    ${rptRow('Vuokratuotot',  lv(['3450','3454','3750']),                '', true)}
+    ${rptRow('Muut liiketoiminnan tuotot', lv(['3844','3990','3994']),   '', true)}
+    ${rptRow('LIIKEVAIHTO JA MUUT TUOTOT', liikevaihto+muuttuotot,      'total')}
+    ${rptRow('Aineet, tarvikkeet ja ulkopuoliset palvelut', -aineet,     '', true)}
+    ${rptRow('Palkat ja palkkiot',   -palkat,   '', true)}
+    ${rptRow('Eläkekulut',           -elake,    '', true)}
+    ${rptRow('Muut henkilösivukulut',-sivukulut,'', true)}
+    ${rptRow('Toimitilakulut',       -toimitila,'', true)}
+    ${rptRow('Ajoneuvokulut',        -ajoneuvot,'', true)}
+    ${rptRow('IT-kulut',             -it,       '', true)}
+    ${rptRow('Matkakulut',           -matkat,   '', true)}
+    ${rptRow('Myynti ja markkinointi',-myyntimark,'',true)}
+    ${rptRow('Hallintokulut',        -hallinto,  '', true)}
+    ${rptRow('Muut liiketoiminnan kulut', -muutkulut, '', true)}
+    ${rptRow('Poistot',              -poistot,   '', true)}
+    ${rptRow('LIIKETOIMINNAN KULUT YHT.', -liiketkulut, 'total')}
+    ${rptRow('LIIKEVOITTO (-TAPPIO)', liikkulos, 'total')}
+    ${korot_t>0 ? rptRow('Korkotuotot',    korot_t, '', true) : ''}
+    ${korot_k>0 ? rptRow('Korkokulut',    -korot_k, '', true) : ''}
+    ${rptRow('TILIKAUDEN TULOS', tulos, 'total')}
+  </div>`;
+}
+function rptTase() {
+  const db = (nro) => rows.filter(r=>r.d===nro).reduce((s,r)=>s+brutto(r.netto,r.alvp),0);
+  const kb = (nro) => rows.filter(r=>r.k===nro).reduce((s,r)=>s+brutto(r.netto,r.alvp),0);
+  const saldo = (nro, normaali) => normaali==='D' ? db(nro)-kb(nro) : kb(nro)-db(nro);
+  const pankki    = saldo('1910','D');
+  const saamiset  = saldo('1701','D');
+  const alvSaam   = saldo('1763','D');
+  const muutSaam  = saldo('1779','D');
+  const vastaavaa = pankki + saamiset + alvSaam + muutSaam;
+  const opaaoma   = saldo('2001','K') + saldo('2061','K') + saldo('2201','K');
+  const edVoitto  = saldo('2251','K');
+  const ostovelat = saldo('2871','K');
+  const verovelka = saldo('2939','K');
+  const siirtov   = saldo('2979','K');
+  const vastattavaa = opaaoma + edVoitto + ostovelat + verovelka + siirtov;
+  const erotus = Math.abs(vastaavaa - vastattavaa);
+  return `<div class="rpt-section">
+    <div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa</div><div class="rpt-hdr-s">30.4.2025</div></div>
+    ${rptRow('1701 Myyntisaamiset', saamiset, '', true)}
+    ${rptRow('1763 ALV-saamiset', alvSaam, '', true)}
+    ${rptRow('1779 Muut saamiset', muutSaam, '', true)}
+    ${rptRow('1910 Pankkitili', pankki, '', true)}
+    ${rptRow('VASTAAVAA YHTEENSÄ', vastaavaa, 'total')}
+  </div>
+  <div class="rpt-section">
+    <div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa</div><div class="rpt-hdr-s">30.4.2025</div></div>
+    ${rptRow('2001/2201 Oma pääoma', opaaoma, '', true)}
+    ${rptRow('2251 Ed. tilikausien voitto', edVoitto, '', true)}
+    ${rptRow('2871 Ostovelat', ostovelat, '', true)}
+    ${rptRow('2939 Verovelka', verovelka, '', true)}
+    ${rptRow('2979 Siirtovelat', siirtov, '', true)}
+    ${rptRow('VASTATTAVAA YHTEENSÄ', vastattavaa, 'total')}
+    <div class="rpt-row total">
+      <div class="rpt-row-l" style="font-weight:600">${erotus<1?'✓ Tase tasapainossa':'⚠ Tase ei tasapainossa'}</div>
+      <div class="rpt-row-v">${fmtE(erotus)}</div>
+    </div>
+  </div>`;
+}
+function rptAlv() {
+  // Myynnin ALV = kredit-tilit 3000-3999 joilla alv > 0
+  const myyAlv = rows.filter(r => r.k.startsWith('3') && r.alvp > 0)
+                     .reduce((s,r) => s + alvE(r.netto, r.alvp), 0);
+  // Ostojen ALV = debet-tilit 4000-8999 joilla alv > 0
+  const ostAlv = rows.filter(r => {
+    const n = parseInt(r.d); return n >= 4000 && n <= 8999 && r.alvp > 0;
+  }).reduce((s,r) => s + alvE(r.netto, r.alvp), 0);
+  const netto = myyAlv - ostAlv;
+  return `<div class="rpt-section">
+    <div class="rpt-hdr"><div class="rpt-hdr-t">ALV-laskelma</div><div class="rpt-hdr-s">1.1.–30.4.2025 · Kvartaali Q1–Q2</div></div>
+    ${rptRow('ALV myynnistä (suoritettava, tilit 3xxx)', myyAlv, '')}
+    ${rptRow('ALV ostoista (vähennettävä, tilit 4–8xxx)', -ostAlv, '')}
+    ${rptRow(netto >= 0 ? 'TILITETTÄVÄ ALV' : 'ALV-PALAUTUS', netto, 'total')}
+  </div>
+  <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--inu)">
+    ALV tilitetään Verohallinnolle OmaVero-palvelussa. Ilmoitusjakso: neljännesvuosi.<br>
+    Eräpäivä: <strong>12. päivä 2 kuukauden kuluttua ilmoitusjakson päättymisestä.</strong><br>
+    <span style="color:var(--fl);font-weight:500">ALV-tilit: 29390 Myynnin ALV-velka · 1763 ALV-saamiset ostoista</span>
+  </div>`;
+}
+
+// ── BANK IMPORT ──────────────────────────────────────────────
+
+// Laajemmat vakiokirjaukset tiliotetta varten
+// Pankkitili (1910) on aina toinen puoli:
+//   Tulo (+): D=1910, K=vastatili
+//   Meno (-): D=vastatili, K=1910
+const VAKIO_PANKKI = [
+  {p:/telia|elisa\b|dna\b|tele2|moi\s/i,       lbl:'Puhelin',           vt:'7950', alv:25.5},
+  {p:/vuokra/i,                                  lbl:'Vuokrat',           vt:'7210', alv:25.5},
+  {p:/sähkö|fortum|helen\b|vattenfall|caruna/i,  lbl:'Sähkö',             vt:'7390', alv:25.5},
+  {p:/lämmitys|kaukolämpö/i,                     lbl:'Lämmitys',          vt:'7370', alv:25.5},
+  {p:/google|meta\b|facebook|linkedin/i,         lbl:'Markkinointi',      vt:'7910', alv:25.5},
+  {p:/palkka/i,                                  lbl:'Palkat',            vt:'5000', alv:0},
+  {p:/tyel|eläkevak/i,                           lbl:'TyEL',              vt:'6130', alv:0},
+  {p:/vakuutus|if\b|lähitapiola|pohjola/i,       lbl:'Vakuutuskulut',     vt:'7414', alv:0},
+  {p:/kirjanpito|tilitoimisto/i,                 lbl:'Kirjanpito',        vt:'8060', alv:25.5},
+  {p:/matka|km-korvaus/i,                        lbl:'Matkakulut',        vt:'7800', alv:14},
+  {p:/bensiini|polttoaine/i,                     lbl:'Polttoaine',        vt:'7530', alv:25.5},
+  {p:/viitesiirto|tilisiirto/i,                  lbl:'Myyntisuoritus',    vt:'1701', alv:0},
+  {p:/palvelumaksu|osuuspankki|nordea bank|handels/i, lbl:'Pankkipalvelut', vt:'8100', alv:0},
+  {p:/siivous/i,                                 lbl:'Siivous',           vt:'7360', alv:25.5},
+];
+
+// Käyttäjän tallentamat omat vakiokirjaukset (session)
+let omavakiot = [];
+
+function matchVakioPankki(sel) {
+  // Ensin omat vakiot
+  const oma = omavakiot.find(v => v.p.test(sel));
+  if (oma) return {...oma, custom:true};
+  return VAKIO_PANKKI.find(v => v.p.test(sel)) || null;
+}
+
+// OP-tiliotteen demo-tapahtumat (perustuu lähetettyyn PDF-tiliotteeseen)
+// Kentät: kirjpv = kirjauspäivä, arvopv = arvopäivä (= tositepäivä),
+//         tiliotenro = tiliotteen juokseva nro sivun yläreunasta (Tiliote X/2025),
+//         tapnro = Tap. nro -sarakkeen arvo
+const OP_DEMO_TAPAHTUMAT = [
+  // Tiliote 5/2025 (toukokuu, sivu 2)
+  { kirjpv:'2025-05-07', arvopv:'2025-05-07', tiliotenro:5, tapnro:6,
+    sel:'VIITESIIRTO',  maksu:'KOVANEN PASI MARKKU PETTERI', summa:+366.30, viite:'7993' },
+  { kirjpv:'2025-05-19', arvopv:'2025-05-17', tiliotenro:5, tapnro:7,
+    sel:'TILISIIRTO',   maksu:'HAATAJA JAAKKO KRISTIAN',    summa:+72.00,  viite:'' },
+  // Tiliote 6/2025 (kesäkuu, sivu 1)
+  { kirjpv:'2025-06-02', arvopv:'2025-06-02', tiliotenro:6, tapnro:1,
+    sel:'VIITESIIRTO',  maksu:'NIKO HYPPÖNEN',              summa:+511.25, viite:'7702' },
+  { kirjpv:'2025-06-05', arvopv:'2025-06-05', tiliotenro:6, tapnro:2,
+    sel:'PALVELUMAKSU', maksu:'OSUUSPANKKI',                summa:-11.50,  viite:'3 46379 98687' },
+];
+
+// Tiliotedata
+let impTapahtumat = [];   // kaikki parsitut tapahtumat
+let impTuomatta = [];     // vielä tuomatta (indeksit impTapahtumat)
+let vtIdx = null;         // modal: käsiteltävä tapahtuma-indeksi
+let vtSelvitys = [];      // väliaikaiset ratkaisut käy-läpi-moodissa
+let vtSelNro = null;      // valittu vastatili-nro modalissa
+let vtAlvVal = 0;         // valittu ALV modalissa
+
+function dzOver(e) { e.preventDefault(); document.getElementById('dz').classList.add('drag'); }
+function dzLeave(e) { document.getElementById('dz').classList.remove('drag'); }
+function dzDrop(e) {
+  e.preventDefault();
+  document.getElementById('dz').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) parseFile(f);
+}
+function handleFile(e) { if (e.target.files[0]) parseFile(e.target.files[0]); }
+
+function parseFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => parseCSVText(ev.target.result);
+  reader.readAsText(file, 'windows-1252');
+}
+
+// OP CSV formaatti (10 saraketta):
+// 0: Kirjauspäivä  1: Arvopäivä  2: Määrä  3: Saldo
+// 4: Nimi  5: Viitemerkintä  6: Maksajan viite  7: Viesti
+// 8: Kortinnumero  9: Tapahtumanumero
+function parseCSVText(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const tapahtumat = [];
+  lines.forEach(line => {
+    if (line.startsWith('Kirjauspäivä') || line.startsWith('"Kirjauspäivä')) return;
+    const cols = line.split(';').map(c => c.replace(/^"|"$/g,'').trim());
+    if (cols.length < 3) return;
+    const kirjpvRaw = cols[0].trim();
+    const arvopvRaw = cols[1].trim() || kirjpvRaw;   // arvopäivä, fallback kirjauspäivään
+    const summaStr  = cols[2];
+    const summa     = parseFloat(summaStr.replace(/\s/g,'').replace(',','.'));
+    if (isNaN(summa)) return;
+    const nimi   = cols[4] || '';
+    const viite  = cols[5] || '';
+    const viesti = cols[7] || '';
+    const selite = nimi || viesti || '';
+    const kirjpv   = pvToIso(kirjpvRaw);
+    const arvopv   = pvToIso(arvopvRaw);
+    // Tapahtumanumero sarakkeesta 9, tai juokseva
+    const tapnroRaw = cols[9] ? parseInt(cols[9]) : null;
+    // Tiliotenro = kuukausi arvopäivästä (OP:lla tiliote nro = kuukausi)
+    const kk = parseInt(arvopv.slice(5,7));
+    tapahtumat.push({ kirjpv, arvopv, tiliotenro: kk, tapnro: tapnroRaw,
+                      sel: selite, maksu: nimi, summa, viite });
+  });
+  // Jos tapnro puuttuu CSV:stä, numeroi kuukausittain juoksevasti
+  const kkLaskuri = {};
+  tapahtumat.forEach(t => {
+    if (!t.tapnro) {
+      const key = t.tiliotenro;
+      kkLaskuri[key] = (kkLaskuri[key] || 0) + 1;
+      t.tapnro = kkLaskuri[key];
+    }
+  });
+  if (tapahtumat.length > 0) {
+    ladattuTiliote(tapahtumat, 'CSV-tiedosto', '');
+  } else {
+    lataaDemoTiliote();
+  }
+}
+
+function pvToIso(pv) {
+  // DD.MM.YYYY → YYYY-MM-DD
+  const m = pv.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return pv; // already ISO
+}
+
+function lataaDemoTiliote() {
+  ladattuTiliote(OP_DEMO_TAPAHTUMAT, 'FI90 5232 0240 0242 15', '1.5.–30.6.2025');
+}
+
+// Generoi tositenumero: T{tiliotenro}/{tapnro}  esim. T6/1, T5/6
+function genTosite(t) {
+  const nro = t.tiliotenro || parseInt((t.arvopv||t.kirjpv||'').slice(5,7)) || '?';
+  const tap = t.tapnro || '?';
+  return `T${nro}/${tap}`;
+}
+
+function ladattuTiliote(tapahtumat, iban, period) {
+  impTapahtumat = tapahtumat.map((t, i) => ({
+    ...t,
+    idx: i,
+    tila: 'odottaa',
+    arvopv: t.arvopv || t.kirjpv || t.pv || '',
+    kirjpv: t.kirjpv || t.pv || '',
+    iban,   // tallenna IBAN jokaiseen riviin jonoa varten
+  }));
+  // Esipäättele vakiokirjaukset
+  impTapahtumat.forEach(t => {
+    const koko = (t.sel + ' ' + (t.maksu||'')).trim();
+    const vak = matchVakioPankki(koko);
+    if (vak) { t.vak = vak; t.tila = 'auto'; }
+  });
+
+  // ── Tallenna jono localStorageen — muut sivut voivat lukea ──
+  LS.saveQueue(impTapahtumat);
+  LS.saveLaskut(laskut);
+  checkImportQueue();
+
+  // Info bar
+  const infoBar = document.getElementById('tiliote-info');
+  infoBar.style.display = 'flex';
+  document.getElementById('ti-iban').textContent = iban || 'Tiedosto';
+  document.getElementById('ti-period').textContent = period || '';
+  const auto = impTapahtumat.filter(t=>t.tila==='auto').length;
+  document.getElementById('ti-stats').innerHTML =
+    `<span style="color:#7ec488">${auto} tunnistettu automaattisesti</span>
+     &nbsp;·&nbsp; <span style="color:#e8a86a">${impTapahtumat.length - auto} vaatii vastatilin</span>`;
+
+  renderImpTable();
+  document.getElementById('import-preview').style.display = 'block';
+  document.getElementById('vakio-info').style.display = 'none';
+  toast(`${tapahtumat.length} tapahtumaa tiliotteelta`);
+}
+
+function renderImpTable() {
+  const tbody = document.getElementById('imp-tbody');
+  tbody.innerHTML = '';
+  impTapahtumat.forEach((t, i) => {
+    const pos = t.summa > 0;
+    const debetTili  = pos ? '1910' : (t.vak ? t.vak.vt : (t.vtNro || '?'));
+    const kreditTili = pos ? (t.vak ? t.vak.vt : (t.vtNro || '?')) : '1910';
+    const tuotu    = t.tila === 'tuotu';
+    const ohitettu = t.tila === 'ohitettu';
+    const tosite   = genTosite(t);
+    // Näytä arvopv pääpäivänä; jos poikkeaa kirjpv:stä, näytä kirjpv harmaana alle
+    const pvPoikkeaa = t.arvopv && t.kirjpv && t.arvopv !== t.kirjpv;
+
+    const tr = document.createElement('tr');
+    tr.style.opacity = (tuotu || ohitettu) ? '0.45' : '1';
+    tr.dataset.i = i;
+
+    let vastatiliCell, toimintaCell;
+    if (t.vak) {
+      vastatiliCell = `<span class="imp-sug" style="cursor:default">⚡ ${t.vak.lbl}</span>`;
+    } else if (t.vtNro) {
+      const vtT = TILIT.find(tl=>tl.nro===t.vtNro);
+      vastatiliCell = `<span style="font-family:var(--ffm);font-size:11px;color:var(--fl)">${t.vtNro}</span> <span style="font-size:11px;color:var(--inm)">${vtT?vtT.lbl:''}</span>`;
+    } else {
+      vastatiliCell = `<span style="font-size:11px;color:var(--amber);font-weight:500">⚠ Vastatili puuttuu</span>`;
+    }
+
+    const alvp = t.vak ? t.vak.alv : (t.alvp||0);
+    const canImport = t.vak || t.vtNro;
+
+    if (tuotu) {
+      toimintaCell = `<span style="font-size:11px;color:var(--fg3);font-weight:500">✓ Tuotu</span>`;
+    } else if (ohitettu) {
+      toimintaCell = `<span style="font-size:11px;color:var(--inu)">Ohitettu</span>`;
+    } else if (canImport) {
+      toimintaCell = `<button class="imp-btn imp-btn-ok" onclick="impTuoRivi(${i})">✓ Tuo</button>
+                      <button class="imp-btn imp-btn-ed" onclick="avaaVtModal(${i})" style="margin-left:4px">✎</button>`;
+    } else {
+      toimintaCell = `<button class="imp-btn" onclick="avaaVtModal(${i})" style="background:var(--ambl);color:var(--amber);border:1px solid rgba(160,92,26,.2);font-weight:600">Aseta tili →</button>`;
+    }
+
+    tr.innerHTML = `
+      <td>
+        <div style="font-family:var(--ffm);font-size:12px;font-weight:500;color:var(--ink)">${t.arvopv}</div>
+        ${pvPoikkeaa ? `<div style="font-family:var(--ffm);font-size:10px;color:var(--inf)" title="Kirjauspäivä">${t.kirjpv}</div>` : ''}
+      </td>
+      <td style="font-family:var(--ffm);font-size:11px;font-weight:600;color:var(--fl);white-space:nowrap">${tosite}</td>
+      <td>
+        <div style="font-size:13px;font-weight:500;color:var(--ink)">${t.sel}</div>
+        ${t.maksu&&t.maksu!==t.sel?`<div style="font-size:11px;color:var(--inu);margin-top:1px">${t.maksu}${t.viite?' · '+t.viite:''}</div>`:''}
+      </td>
+      <td style="text-align:right;font-family:var(--ffm);font-size:12px;font-weight:600;color:${pos?'var(--fg3)':'var(--red)'}">
+        ${pos?'+':''}${t.summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} €
+      </td>
+      <td style="font-family:var(--ffm);font-size:11px">
+        <span style="color:var(--fl)">${debetTili}</span>
+        <span style="color:var(--inf);margin:0 3px">/</span>
+        <span style="color:var(--inu)">${kreditTili!==debetTili?kreditTili:'…'}</span>
+      </td>
+      <td>${vastatiliCell}</td>
+      <td style="text-align:center;font-family:var(--ffm);font-size:11px;color:var(--inu)">${alvp>0?alvp+'%':'0%'}</td>
+      <td style="padding:6px 10px;max-width:180px">
+        ${(t.laskuIdx !== undefined && t.laskuIdx !== null) ? (() => {
+            const l = laskut[t.laskuIdx];
+            return `<div onclick="naytaLaskuPopup(event,${i})" style="cursor:pointer;padding:5px 8px;background:#f0faf5;border:1px solid rgba(29,158,117,.2);border-radius:7px;transition:all .1s" onmouseover="this.style.background='#e0f4ec'" onmouseout="this.style.background='#f0faf5'">
+              <div style="font-size:11px;font-weight:600;color:var(--fg3);margin-bottom:2px">📎 ${l?.toimittaja||l?.nro||'Lasku'}</div>
+              ${l?.summa_brutto?`<div style="font-size:10px;color:var(--ink);font-family:var(--ffm)">${l.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2})} €</div>`:''}
+              ${l?.pvm?`<div style="font-size:9px;color:var(--inu)">${l.pvm}</div>`:''}
+            </div>`;
+          })()
+          : `<button onclick="avaaLaskuModal(${i})"
+               style="padding:4px 10px;font-size:11px;font-weight:500;border:1px solid rgba(160,92,26,.2);border-radius:6px;background:var(--ambl);color:var(--amber);cursor:pointer;white-space:nowrap">
+               + Liitä lasku</button>`
+        }
+      </td>
+      <td style="white-space:nowrap;padding:6px 10px">${toimintaCell}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── LASKU-ESIKATSELU POPUP ───────────────────────────────────
+let _popupEl = null;
+function naytaLaskuPopup(event, tapIdx) {
+  event.stopPropagation();
+  // Poista vanha popup
+  if (_popupEl) { _popupEl.remove(); _popupEl = null; }
+
+  const t = impTapahtumat[tapIdx];
+  if (t.laskuIdx === undefined || t.laskuIdx === null) return;
+  const l = laskut[t.laskuIdx];
+  if (!l) return;
+
+  const pop = document.createElement('div');
+  pop.id = 'lasku-popup';
+  pop.style.cssText = `
+    position:fixed;z-index:900;
+    background:var(--pp);border:1px solid var(--bd2);border-radius:10px;
+    box-shadow:0 8px 32px rgba(0,0,0,.18);padding:16px 18px;width:300px;
+    font-family:var(--ffb);font-size:12px;
+  `;
+
+  // Asemoi kursorin viereen
+  const x = Math.min(event.clientX + 12, window.innerWidth - 320);
+  const y = Math.min(event.clientY + 8,  window.innerHeight - 280);
+  pop.style.left = x + 'px';
+  pop.style.top  = y + 'px';
+
+  pop.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Liitetty lasku</div>
+      <button onclick="document.getElementById('lasku-popup').remove()"
+        style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--inf);line-height:1;margin:-4px -4px 0 0">×</button>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px">${l.toimittaja||'—'}</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">
+      ${l.nro ? `<span style="color:var(--inu)">Laskun nro</span><span style="font-family:var(--ffm);color:var(--ink)">${l.nro}</span>` : ''}
+      ${l.pvm ? `<span style="color:var(--inu)">Päivä</span><span style="color:var(--ink)">${l.pvm}</span>` : ''}
+      ${l.erapv ? `<span style="color:var(--inu)">Eräpäivä</span><span style="color:var(--ink)">${l.erapv}</span>` : ''}
+      ${l.summa_brutto ? `<span style="color:var(--inu)">Summa brutto</span><span style="font-family:var(--ffm);font-weight:600;color:var(--ink)">${l.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2})} €</span>` : ''}
+      ${l.summa_netto ? `<span style="color:var(--inu)">Summa netto</span><span style="font-family:var(--ffm);color:var(--ink)">${l.summa_netto.toLocaleString('fi-FI',{minimumFractionDigits:2})} €</span>` : ''}
+      ${l.alv_prosentti ? `<span style="color:var(--inu)">ALV</span><span style="color:var(--ink)">${l.alv_prosentti} %</span>` : ''}
+      ${l.viite ? `<span style="color:var(--inu)">Viite</span><span style="font-family:var(--ffm);color:var(--ink)">${l.viite}</span>` : ''}
+      ${l.ehdotettu_tili ? `<span style="color:var(--inu)">LK-tili</span><span style="font-family:var(--ffm);color:var(--fl)">${l.ehdotettu_tili}</span>` : ''}
+    </div>
+    ${l.kuvaus ? `<div style="margin-top:10px;padding:8px 10px;background:var(--ppw);border-radius:6px;font-size:11px;color:var(--inm);line-height:1.5">${l.kuvaus}</div>` : ''}
+    <div style="margin-top:12px;display:flex;gap:6px">
+      <button onclick="avaaLaskuModal(${tapIdx});document.getElementById('lasku-popup').remove()"
+        style="flex:1;padding:6px;font-family:var(--ffb);font-size:11px;font-weight:500;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--inm);cursor:pointer">
+        ✎ Muuta liitostä
+      </button>
+      <button onclick="impTuoRivi(${tapIdx});document.getElementById('lasku-popup')?.remove()"
+        style="flex:1;padding:6px;font-family:var(--ffb);font-size:11px;font-weight:500;border:none;border-radius:6px;background:var(--fl);color:#fff;cursor:pointer">
+        ✓ Kirjaa
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(pop);
+  _popupEl = pop;
+
+  // Sulje klikkaamalla muualle
+  setTimeout(() => {
+    document.addEventListener('click', function closePopup(e) {
+      if (!pop.contains(e.target)) { pop.remove(); _popupEl = null; document.removeEventListener('click', closePopup); }
+    });
+  }, 10);
+}
+function impTuoRivi(i) {
+  const t = impTapahtumat[i];
+  const vak = t.vak || (t.vtNro ? {vt: t.vtNro, alv: t.alvp||0} : null);
+  if (!vak) { avaaVtModal(i); return; }
+  const pos  = t.summa > 0;
+  const alvp = vak.alv;
+  const netto = +(Math.abs(t.summa) / (alvp>0 ? 1+alvp/100 : 1)).toFixed(2);
+  const d = pos ? '1910' : vak.vt;
+  const k = pos ? vak.vt  : '1910';
+  const selite = (t.maksu && t.maksu !== t.sel) ? `${t.sel} — ${t.maksu}` : t.sel;
+
+  // Hae liitetty lasku jos on
+  const liitettyLasku = (t.laskuIdx !== null && t.laskuIdx !== undefined)
+    ? laskut[t.laskuIdx] : null;
+
+  push();
+  rows.push({
+    id:    nextId++,
+    pv:    t.arvopv,
+    ts:    genTosite(t),
+    sel:   selite,
+    d, k, netto, alvp,
+    // Tositteen tiedot — säilyvät päiväkirjarivissä
+    tosite_nro:      liitettyLasku?.nro        || null,
+    tosite_tmttja:   liitettyLasku?.toimittaja || (t.maksu||null),
+    tosite_pvm:      liitettyLasku?.pvm        || t.arvopv || null,
+    tosite_summa:    liitettyLasku?.summa_brutto ?? Math.abs(t.summa),
+    tosite_viite:    liitettyLasku?.viite       || t.viite || null,
+    tosite_kuvaus:   liitettyLasku?.kuvaus      || null,
+    pankkisumma:     t.summa,
+    pankkiviite:     t.viite || null,
+  });
+  setDirty(true);
+  t.tila = 'tuotu';
+  LS.saveRows();
+  // Päivitä jono
+  const queue = LS.loadQueue();
+  const qIdx = queue.findIndex(q => q.arvopv===t.arvopv && q.summa===t.summa && q.sel===t.sel);
+  if (qIdx >= 0) { queue.splice(qIdx,1); LS.saveQueue(queue); }
+  if (queue.length === 0) { LS.clearQueue(); checkImportQueue(); }
+  renderImpTable();
+  render();
+  toast(`✓ ${genTosite(t)} kirjattu päiväkirjaan`);
+}
+
+function siirryPankki() { showPanel('pankki'); }
+
+// Tuo kaikki automaattisesti tunnistetut
+function tuoKaikki() {
+  let count = 0;
+  impTapahtumat.forEach((t, i) => {
+    if ((t.tila === 'odottaa' || t.tila === 'auto') && t.vak) { impTuoRivi(i); count++; }
+  });
+  // Tallenna rivit
+  LS.saveRows();
+  renderImpTable();
+  render();
+  toast(`${count} tapahtumaa tuotu automaattisesti`);
+}
+
+// Käy tapahtumat läpi yksi kerrallaan
+function kaySeptapahtumat() {
+  const puuttuu = impTapahtumat.filter(t => t.tila !== 'tuotu' && t.tila !== 'ohitettu');
+  if (!puuttuu.length) { toast('Kaikki tapahtumat käsitelty ✓'); return; }
+  avaaVtModal(puuttuu[0].idx);
+}
+
+// ── VASTATILI MODAL ─────────────────────────────────────────
+let vtHiIdx = 0;
+
+function avaaVtModal(i) {
+  const t = impTapahtumat[i];
+  vtIdx = i;
+  vtSelNro = t.vtNro || (t.vak ? t.vak.vt : null);
+  vtAlvVal = t.vak ? t.vak.alv : (t.alvp || 0);
+
+  const pos = t.summa > 0;
+  document.getElementById('vt-sel').textContent = t.maksu && t.maksu !== t.sel ? t.sel + ' — ' + t.maksu : t.sel;
+  document.getElementById('vt-pv').textContent = t.pv + (t.viite ? ' · Viite: ' + t.viite : '');
+  const sumEl = document.getElementById('vt-summa');
+  sumEl.textContent = (pos?'+':'') + t.summa.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €';
+  sumEl.style.color = pos ? 'var(--fg3)' : 'var(--red)';
+
+  // Kirjauslogiikka-teksti
+  document.getElementById('vt-logic').innerHTML = pos
+    ? `<span style="font-family:var(--ffm);color:var(--fl)">1910</span><span style="color:var(--inf)"> Pankkitili</span> <strong style="color:var(--inu);margin:0 4px">D+</strong> · Vastatili <strong style="color:var(--inu);margin:0 4px">K−</strong> <span style="font-size:10px;color:var(--inf)">(myyntisuoritus / saaminen)</span>`
+    : `Vastatili <strong style="color:var(--inu);margin:0 4px">D+</strong> · <span style="font-family:var(--ffm);color:var(--fl)">1910</span><span style="color:var(--inf)"> Pankkitili</span> <strong style="color:var(--inu);margin:0 4px">K−</strong> <span style="font-size:10px;color:var(--inf)">(osto / kulu)</span>`;
+
+  // Esitäytä hakukenttä vakiolla
+  const search = document.getElementById('vt-search');
+  search.value = '';
+  document.getElementById('vt-results').style.display = 'none';
+  document.getElementById('vt-save-vakio').checked = false;
+
+  vtRenderSelected();
+  vtSetAlv(vtAlvVal);
+
+  // Progress
+  const odottaa = impTapahtumat.filter(t => t.tila !== 'tuotu' && t.tila !== 'ohitettu');
+  const pos2 = odottaa.findIndex(t => t.idx === i);
+  document.getElementById('vt-progress').textContent = odottaa.length > 1
+    ? `Tapahtuma ${pos2+1} / ${odottaa.length} odottaa käsittelyä`
+    : 'Viimeinen odottava tapahtuma';
+
+  // Edellinen-nappi
+  document.getElementById('vt-back-btn').style.display = pos2 > 0 ? 'inline-block' : 'none';
+
+  document.getElementById('vt-modal').classList.add('op');
+  setTimeout(() => search.focus(), 100);
+}
+
+function vtSearch(val) {
+  const res = document.getElementById('vt-results');
+  if (!val.trim()) { res.style.display = 'none'; return; }
+  const filtered = TILIT.filter(t =>
+    t.nro.startsWith(val) || t.lbl.toLowerCase().includes(val.toLowerCase())
+  );
+  vtHiIdx = 0;
+  if (!filtered.length) { res.style.display = 'none'; return; }
+  res.style.display = 'block';
+  res.innerHTML = '';
+  filtered.slice(0, 12).forEach((t, fi) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;border-bottom:1px solid var(--bd)';
+    div.dataset.fi = fi;
+    div.innerHTML = `<span style="font-family:var(--ffm);font-size:11px;font-weight:600;color:var(--fl);width:32px">${t.nro}</span>
+      <span style="color:var(--ink);flex:1">${t.lbl}</span>
+      <span style="font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;${t.tyyppi==='V'?'background:#e4f4ec;color:var(--fg3)':'background:var(--bluel);color:var(--blue)'}">${t.tyyppi==='V'?'D':'K'}</span>
+      ${t.alv!==undefined?`<span style="font-family:var(--ffm);font-size:9px;color:var(--inu)">${t.alv}%</span>`:''}`;
+    div.onmouseover = () => { res.querySelectorAll('div').forEach(d=>d.style.background=''); div.style.background = 'var(--fmist)'; vtHiIdx = fi; };
+    div.onmouseout = () => div.style.background = '';
+    div.onmousedown = (e) => { e.preventDefault(); vtValitseTili(t); };
+    res.appendChild(div);
+  });
+  // Highlight first
+  if (res.firstChild) res.firstChild.style.background = 'var(--fmist)';
+}
+
+function vtKey(e) {
+  const res = document.getElementById('vt-results');
+  const items = res.querySelectorAll('div');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    vtHiIdx = Math.min(vtHiIdx+1, items.length-1);
+    items.forEach((d,i) => d.style.background = i===vtHiIdx ? 'var(--fmist)' : '');
+    items[vtHiIdx]?.scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    vtHiIdx = Math.max(vtHiIdx-1, 0);
+    items.forEach((d,i) => d.style.background = i===vtHiIdx ? 'var(--fmist)' : '');
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = document.getElementById('vt-search').value.trim();
+    // Tarkka numerohaku
+    const exact = TILIT.find(t => t.nro === val);
+    if (exact) { vtValitseTili(exact); return; }
+    const filtered = TILIT.filter(t => t.nro.startsWith(val) || t.lbl.toLowerCase().includes(val.toLowerCase()));
+    if (filtered[vtHiIdx]) vtValitseTili(filtered[vtHiIdx]);
+  } else if (e.key === 'Escape') {
+    e.preventDefault(); vtSulje();
+  }
+}
+
+function vtValitseTili(t) {
+  vtSelNro = t.nro;
+  if (t.alv !== undefined) vtSetAlv(t.alv);
+  document.getElementById('vt-search').value = '';
+  document.getElementById('vt-results').style.display = 'none';
+  vtRenderSelected();
+}
+
+function vtRenderSelected() {
+  const sel = document.getElementById('vt-selected');
+  const okBtn = document.getElementById('vt-ok-btn');
+  if (vtSelNro) {
+    const t = TILIT.find(tl => tl.nro === vtSelNro);
+    document.getElementById('vt-sel-nro').textContent = vtSelNro;
+    document.getElementById('vt-sel-lbl').textContent = t ? t.lbl : '';
+    sel.style.display = 'flex';
+    okBtn.disabled = false;
+  } else {
+    sel.style.display = 'none';
+    okBtn.disabled = true;
+  }
+}
+
+function vtClearSel() { vtSelNro = null; vtRenderSelected(); document.getElementById('vt-search').focus(); }
+
+function vtSetAlv(v) {
+  vtAlvVal = v;
+  document.querySelectorAll('#vt-alv-btns button').forEach(b => {
+    const bv = parseFloat(b.dataset.alv);
+    b.style.background = bv === v ? 'var(--fd)' : 'var(--pp)';
+    b.style.color = bv === v ? '#fff' : 'var(--inu)';
+  });
+  const netto_demo = vtIdx !== null ? Math.abs(impTapahtumat[vtIdx].summa) / (v>0?1+v/100:1) : 0;
+  document.getElementById('vt-alv-info').textContent = vtIdx !== null && v > 0
+    ? `→ netto ${netto_demo.toLocaleString('fi-FI',{minimumFractionDigits:2})} € + ALV ${(Math.abs(impTapahtumat[vtIdx].summa)-netto_demo).toLocaleString('fi-FI',{minimumFractionDigits:2})} €`
+    : '';
+}
+
+function vtHyvaksy() {
+  if (!vtSelNro || vtIdx === null) return;
+  const t = impTapahtumat[vtIdx];
+  // Tallenna vakioksi?
+  if (document.getElementById('vt-save-vakio').checked) {
+    const koko = (t.sel + ' ' + (t.maksu||'')).trim();
+    // Luo regex osuman perusteella
+    const sanat = koko.split(/\s+/).filter(s=>s.length>3).slice(0,2).join('|');
+    omavakiot.push({p: new RegExp(sanat,'i'), lbl: TILIT.find(tl=>tl.nro===vtSelNro)?.lbl||vtSelNro, vt:vtSelNro, alv:vtAlvVal});
+    toast(`⚡ Vakiokirjaus tallennettu: ${sanat}`);
+  }
+  t.vtNro = vtSelNro;
+  t.alvp = vtAlvVal;
+  t.vak = null; // käytä vtNro
+  vtSulje();
+  // Tuo heti
+  impTuoRivi(vtIdx);
+  // Siirry seuraavaan odottavaan
+  const seuraava = impTapahtumat.find(ta => ta.tila === 'odottaa' && ta.idx !== vtIdx);
+  if (seuraava) {
+    setTimeout(() => avaaVtModal(seuraava.idx), 250);
+  }
+}
+
+function vtOhita() {
+  if (vtIdx !== null) {
+    impTapahtumat[vtIdx].tila = 'ohitettu';
+    renderImpTable();
+  }
+  // Seuraava odottava
+  const seuraava = impTapahtumat.find(t => t.tila === 'odottaa');
+  vtSulje();
+  if (seuraava) setTimeout(() => avaaVtModal(seuraava.idx), 200);
+}
+
+function vtEdellinen() {
+  const odottaa = impTapahtumat.filter(t => t.tila !== 'tuotu' && t.tila !== 'ohitettu');
+  const pos = odottaa.findIndex(t => t.idx === vtIdx);
+  if (pos > 0) { vtSulje(); setTimeout(() => avaaVtModal(odottaa[pos-1].idx), 100); }
+}
+
+function vtSulje() {
+  document.getElementById('vt-modal').classList.remove('op');
+  vtIdx = null;
+}
+
+// ── UPLOAD TABS ───────────────────────────────────────────────
+function switchUploadTab(tab) {
+  ['csv','laskut','pdf'].forEach(t => {
+    const el = document.getElementById('upload-'+t);
+    if (el) el.style.display = t===tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-'+t);
+    if (btn) {
+      btn.style.background = t===tab ? 'var(--fd)' : 'var(--pp)';
+      btn.style.color      = t===tab ? '#fff'      : 'var(--inu)';
+      btn.style.fontWeight = t===tab ? '600'       : '400';
+    }
+  });
+  // Tab 2: näytä varoitus jos tiliote puuttuu
+  if (tab === 'laskut') {
+    const eiTiliote = document.getElementById('laskut-ei-tiliote');
+    if (eiTiliote) eiTiliote.style.display = impTapahtumat.length === 0 ? 'block' : 'none';
+  }
+}
+function handleCsvFile(e) { if (e.target.files[0]) parseFile(e.target.files[0]); }
+
+// Drop zone helpers
+function dzOver(e, id)   { e.preventDefault(); const el=document.getElementById(id); if(el) el.classList.add('dz-over'); }
+function dzLeave(e, id)  { const el=document.getElementById(id); if(el) el.classList.remove('dz-over'); }
+function dzDropCsv(e)    { e.preventDefault(); dzLeave(e,'dz-csv'); const f=e.dataTransfer.files[0]; if(f) parseFile(f); }
+function dzDropLaskut(e) { e.preventDefault(); dzLeave(e,'dz-laskut'); const f=e.dataTransfer.files[0]; if(f) analyseLaskutPDF(f); }
+function dzDrop(e)       { e.preventDefault(); dzLeave(e,'dz'); const f=e.dataTransfer.files[0]; if(f){ f.name.toLowerCase().endsWith('.pdf')?analysePDF(f):parseFile(f); } }
+
+// ── TAB 2: LASKUT PDF ────────────────────────────────────────
+async function handleLaskutFile(e) {
+  const f = e.target.files[0];
+  if (f) analyseLaskutPDF(f);
+}
+
+async function analyseLaskutPDF(file) {
+  apiKey = document.getElementById('api-key-input')?.value?.trim()
+        || sessionStorage.getItem('adepta_api_key') || '';
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    alert('Laskujen PDF-analyysi vaatii Anthropic API-avaimen.\nSyötä avain yllä olevaan kenttään.\nHae: console.anthropic.com/settings/keys');
+    document.getElementById('file-laskut').value = '';
+    return;
+  }
+
+  // Piilota drop zone, näytä spinner
+  document.getElementById('dz-laskut').style.display = 'none';
+  const aiBox = document.getElementById('ai-analysing');
+  aiBox.style.display = 'block';
+
+  const setStatus = (msg, sub, pct) => {
+    document.getElementById('ai-status').textContent = msg;
+    document.getElementById('ai-substatus').textContent = sub;
+    document.getElementById('ai-progress-bar').style.width = pct + '%';
+  };
+  const showError = (title, detail) => {
+    document.getElementById('ai-status').textContent = '⚠ ' + title;
+    document.getElementById('ai-substatus').innerHTML = `<span style="color:var(--red)">${detail}</span>`;
+    document.getElementById('ai-progress-bar').style.background = 'var(--red)';
+    setTimeout(() => {
+      aiBox.style.display = 'none';
+      document.getElementById('dz-laskut').style.display = 'block';
+      document.getElementById('ai-progress-bar').style.background = 'var(--fg2)';
+      document.getElementById('file-laskut').value = '';
+    }, 4000);
+  };
+
+  setStatus('Luetaan PDF…', `${file.name} · ${(file.size/1024).toFixed(0)} KB`, 10);
+
+  let base64;
+  try {
+    base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Luku epäonnistui'));
+      r.readAsDataURL(file);
+    });
+  } catch(e) { showError('Tiedoston lukuvirhe', e.message); return; }
+
+  setStatus('Claude tunnistaa laskuja…', `Etsitään laskuja sivuista — voi kestää 15–40 s`, 30);
+
+  // Fokusoidumpi prompti: vain laskut, ei tiliote
+  const prompt = `Tässä PDF:ssä on VAIN ostolaskuja tai myyntilaskuja (ei tiliote).
+Tunnista jokainen lasku erikseen. Palauta VAIN JSON ilman markdown-koodilohkoja:
+
+{
+  "laskut": [
+    {
+      "nro": "laskun numero tai null",
+      "toimittaja": "toimittajan/laskuttajan nimi",
+      "asiakas": "ostajan nimi tai null",
+      "pvm": "YYYY-MM-DD laskun päivä",
+      "erapv": "YYYY-MM-DD eräpäivä tai null",
+      "summa_brutto": 150.00,
+      "summa_netto": 119.62,
+      "alv_prosentti": 25.5,
+      "viite": "viitenumero tai null",
+      "iban": "tilinumero tai null",
+      "kuvaus": "laskun sisältö 1–2 lauseella",
+      "ehdotettu_tili": "suomalainen Liikekirjuri 2025 -tilinumero esim. 7950 tai null"
+    }
+  ]
+}
+
+Ehdota tili näin: puhelin/internet → 7950, vuokra → 7210, sähkö → 7390,
+markkinointi → 7910, palkka → 5000, vakuutus → 7414, kirjanpito → 8060,
+ajoneuvo → 7530, it-palvelut → 7650, siivous → 7360, toimistotarvikkeet → 8010.
+Jos et tiedä tiliä, jätä null. Tunnista kaikki laskut — älä jätä yhtään väliin.`;
+
+  try {
+    setStatus('Claude lukee laskuja…', 'Tunnistetaan toimittajat, summat, viitteet', 55);
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 8000,
+        messages: [{
+          role: 'user',
+          content: [
+            {type:'document', source:{type:'base64', media_type:'application/pdf', data: base64}},
+            {type:'text', text: prompt}
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({}));
+      if (resp.status===401) { showError('Virheellinen API-avain','401 — tarkista avain'); return; }
+      showError(`API-virhe ${resp.status}`, err.error?.message||''); return;
+    }
+
+    setStatus('Käsitellään vastaus…', 'Rakennetaan laskukortit', 80);
+    const data = await resp.json();
+    if (data.type==='error') { showError('API-virhe', data.error?.message||''); return; }
+
+    const txt = (data.content||[]).map(c=>c.text||'').join('');
+    const clean = txt.replace(/```json|```/g,'').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); }
+    catch(e) { showError('JSON-jäsennysvirhe','Claude palautti odottamattoman muodon'); return; }
+
+    setStatus('Valmis!', `${(parsed.laskut||[]).length} laskua tunnistettu`, 100);
+
+    // Tallenna laskut
+    const uudet = (parsed.laskut || []).map((l, i) => ({...l, idx: laskut.length + i, tapIdx: null}));
+    laskut = [...laskut, ...uudet];
+    LS.saveLaskut(laskut);
+
+    setTimeout(() => {
+      aiBox.style.display = 'none';
+      renderLaskutKortit();
+      tasmaytatLaskut();
+      document.getElementById('file-laskut').value = '';
+    }, 600);
+
+  } catch(err) {
+    console.error(err);
+    showError('Verkkovirhe', err.message + ' — tarkista CORS-asetukset tai aja paikalliselta palvelimelta');
+  }
+}
+
+// Renderöi laskukortit tab 2:ssa
+function renderLaskutKortit() {
+  const kortitEl = document.getElementById('laskut-kortit');
+  const otsikkoEl = document.getElementById('laskut-otsikko');
+  const tulosEl = document.getElementById('laskut-tulos');
+  if (!kortitEl || !tulosEl) return;
+
+  if (otsikkoEl) otsikkoEl.textContent =
+    `${laskut.length} laskua tunnistettu` +
+    (laskut.filter(l=>l.tapIdx!==null).length > 0
+      ? ` · ${laskut.filter(l=>l.tapIdx!==null).length} täsmäytetty`
+      : '');
+
+  kortitEl.innerHTML = '';
+  if (!laskut.length) {
+    kortitEl.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--inf)">Ei laskuja vielä — lataa PDF yllä</div>';
+    tulosEl.style.display = 'block';
+    return;
+  }
+
+  laskut.forEach((l, i) => {
+    const matched = l.tapIdx !== null;
+    const tap = matched ? impTapahtumat.find(t => t.idx === l.tapIdx) : null;
+    const card = document.createElement('div');
+    card.style.cssText = `background:var(--pp);border:1px solid ${matched?'rgba(29,158,117,.3)':'var(--bd)'};border-radius:10px;padding:13px 15px;cursor:default;position:relative`;
+    if (matched) card.style.background = '#f5fbf8';
+
+    card.innerHTML = `
+      ${matched ? `<div style="position:absolute;top:10px;right:10px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:#e4f4ec;color:var(--fg3)">✓ Täsmäytetty</div>` : ''}
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;padding-right:${matched?'80px':'0'}">${l.toimittaja||'—'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px;margin-bottom:8px">
+        ${l.nro?`<div><span style="color:var(--inu)">Lasku</span> <span style="font-family:var(--ffm)">${l.nro}</span></div>`:''}
+        <div><span style="color:var(--inu)">Summa</span> <strong style="font-family:var(--ffm)">${l.summa_brutto?.toLocaleString('fi-FI',{minimumFractionDigits:2})||'—'} €</strong></div>
+        ${l.pvm?`<div><span style="color:var(--inu)">Päivä</span> ${l.pvm}</div>`:''}
+        ${l.erapv?`<div><span style="color:var(--inu)">Eräpäivä</span> ${l.erapv}</div>`:''}
+        ${l.viite?`<div><span style="color:var(--inu)">Viite</span> <span style="font-family:var(--ffm)">${l.viite}</span></div>`:''}
+        ${l.alv_prosentti?`<div><span style="color:var(--inu)">ALV</span> ${l.alv_prosentti} %</div>`:''}
+        ${l.ehdotettu_tili?`<div><span style="color:var(--inu)">Tili</span> <span style="font-family:var(--ffm);color:var(--fl)">${l.ehdotettu_tili}</span></div>`:''}
+      </div>
+      ${l.kuvaus?`<div style="font-size:11px;color:var(--inu);font-style:italic;line-height:1.4;margin-bottom:8px">${l.kuvaus}</div>`:''}
+      ${matched && tap ? `<div style="font-size:11px;padding:5px 8px;background:rgba(29,158,117,.07);border-radius:6px;color:var(--fg3)">
+        🏦 ${tap.arvopv} · ${tap.sel} · ${Math.abs(tap.summa).toLocaleString('fi-FI',{minimumFractionDigits:2})} €
+        ${tap.tasmaytysSyy?`<span style="color:var(--inu)"> · ${tap.tasmaytysSyy}</span>`:''}
+      </div>` : `<button onclick="avaaManualLasku(${i})"
+        style="width:100%;padding:5px;font-family:var(--ffb);font-size:11px;font-weight:500;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--inu);cursor:pointer"
+        onmouseover="this.style.background='var(--fpale)'" onmouseout="this.style.background='var(--pp)'">
+        + Kohdista manuaalisesti
+      </button>`}
+      <button onclick="poistaLasku(${i})" style="position:absolute;bottom:10px;right:10px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--bd2)" title="Poista lasku">🗑</button>
+    `;
+    kortitEl.appendChild(card);
+  });
+  tulosEl.style.display = 'block';
+}
+
+// Täsmäytä laskut tiliotteen tapahtumiin (sama algoritmi kuin prosessoiAITulos)
+function tasmaytatLaskut() {
+  if (!impTapahtumat.length) {
+    toast('Lataa ensin tiliote CSV-välilehdeltä');
+    return;
+  }
+  let uudet = 0;
+  laskut.forEach(lasku => {
+    if (lasku.tapIdx !== null) return;
+    let best = null, bestScore = 0;
+    impTapahtumat.forEach(t => {
+      if (t.laskuIdx !== undefined && t.laskuIdx !== null) return;
+      let score = 0; const reasons = [];
+      const tS = Math.abs(t.summa), lB = lasku.summa_brutto, lN = lasku.summa_netto;
+      if (lB && Math.abs(tS-lB) <= Math.max(1.0,lB*0.01))       { score+=40; reasons.push('summa'); }
+      else if (lN && Math.abs(tS-lN) <= Math.max(1.0,lN*0.01))  { score+=25; reasons.push('summa netto'); }
+      else if (lB && Math.abs(tS-lB) <= lB*0.05)                { score+=15; reasons.push('summa ~5%'); }
+      const tv=(t.viite||'').replace(/\s/g,''), lv=(lasku.viite||'').replace(/\s/g,'');
+      if (tv&&lv) {
+        if (tv===lv)                                              { score+=50; reasons.push('viite'); }
+        else if (tv.includes(lv)||lv.includes(tv))              { score+=35; reasons.push('viite osittain'); }
+        else if (lv.length>=6&&tv.endsWith(lv.slice(-6)))       { score+=20; reasons.push('viite loppu'); }
+      }
+      const norm=s=>(s||'').toLowerCase().replace(/[^a-zäöå0-9]/g,' ').replace(/\s+/g,' ').trim();
+      const tn=norm(t.maksu||t.sel), ln=norm(lasku.toimittaja);
+      if (tn&&ln&&tn.length>3&&ln.length>3) {
+        if (tn.includes(ln)||ln.includes(tn))                   { score+=30; reasons.push('nimi'); }
+        else {
+          const yhteinen=tn.split(' ').filter(s=>s.length>=4)
+            .filter(s=>ln.split(' ').some(ls=>ls.includes(s)||s.includes(ls)));
+          if (yhteinen.length)                                   { score+=15*yhteinen.length; reasons.push(`"${yhteinen[0]}"`); }
+        }
+      }
+      if (lasku.erapv&&t.arvopv) {
+        const d=Math.abs(new Date(lasku.erapv)-new Date(t.arvopv))/86400000;
+        if (d<=3) { score+=20; reasons.push('päivä ±3pv'); }
+        else if (d<=7) { score+=12; reasons.push('päivä ±7pv'); }
+        else if (d<=14) { score+=6; reasons.push('päivä ±14pv'); }
+      }
+      if (score>bestScore) { bestScore=score; best={t,reasons}; }
+    });
+    if (bestScore>=30&&best) {
+      const t=best.t;
+      lasku.tapIdx=t.idx; t.laskuIdx=lasku.idx;
+      t.tasmaytysSyy=best.reasons.join(' + ');
+      t.tasmaytyVarmuus=bestScore>=70?'korkea':bestScore>=45?'kohtalainen':'heikko';
+      if (lasku.ehdotettu_tili&&!t.vak)
+        t.vak={vt:lasku.ehdotettu_tili,alv:lasku.alv_prosentti||25.5,lbl:lasku.toimittaja};
+      uudet++;
+    }
+  });
+  LS.saveLaskut(laskut);
+  renderLaskutKortit();
+  renderImpTable();
+  const matched=laskut.filter(l=>l.tapIdx!==null).length;
+  toast(`✓ ${uudet} uutta täsmäytystä · ${matched}/${laskut.length} laskua kohdistettu`);
+}
+
+// Manuaalinen kohdistus — avaa modal
+function avaaManualLasku(laskuIdx) {
+  // Näytä lista tiliotteen tapahtumista joissa ei vielä laskua
+  const vapaat = impTapahtumat.filter(t=>t.laskuIdx===undefined||t.laskuIdx===null);
+  if (!vapaat.length) { toast('Kaikki tiliotteen tapahtumat on jo kohdistettu'); return; }
+  const lasku = laskut[laskuIdx];
+  const valittu = prompt(
+    `Kohdista lasku "${lasku.toimittaja}" (${lasku.summa_brutto?.toFixed(2)} €)\n\n` +
+    `Syötä rivinumero:\n` +
+    vapaat.map((t,i)=>`${i+1}. ${t.arvopv}  ${t.sel.slice(0,30)}  ${t.summa>=0?'+':''}${t.summa.toFixed(2)} €`).join('\n')
+  );
+  const idx=parseInt(valittu)-1;
+  if (idx>=0&&idx<vapaat.length) {
+    const t=vapaat[idx];
+    lasku.tapIdx=t.idx; t.laskuIdx=laskuIdx;
+    t.tasmaytysSyy='manuaalinen'; t.tasmaytyVarmuus='korkea';
+    if (lasku.ehdotettu_tili&&!t.vak)
+      t.vak={vt:lasku.ehdotettu_tili,alv:lasku.alv_prosentti||25.5,lbl:lasku.toimittaja};
+    LS.saveLaskut(laskut);
+    renderLaskutKortit(); renderImpTable();
+    toast(`✓ Kohdistettu: ${lasku.toimittaja} → ${t.sel.slice(0,25)}`);
+  }
+}
+
+function poistaLasku(i) {
+  if (!confirm(`Poistetaanko lasku "${laskut[i]?.toimittaja}"?`)) return;
+  const tap=impTapahtumat.find(t=>t.laskuIdx===i);
+  if (tap) { tap.laskuIdx=undefined; tap.tasmaytysSyy=undefined; }
+  laskut.splice(i,1);
+  laskut.forEach((l,idx)=>l.idx=idx);
+  LS.saveLaskut(laskut);
+  renderLaskutKortit(); renderImpTable();
+  toast('Lasku poistettu');
+}
+
+// ── PDF AI EROTTELU ──────────────────────────────────────────
+let laskut = [];
+let lmAktiivinen = null;
+let apiKey = '';   // tallennetaan sessioniin
+
+function apiKeyChanged(val) {
+  apiKey = (val || document.getElementById('api-key-input').value || '').trim();
+  const el = document.getElementById('api-key-status');
+  if (apiKey.startsWith('sk-ant-')) {
+    el.textContent = '✓ Asetettu';
+    el.style.background = '#e4f4ec';
+    el.style.color = 'var(--fg3)';
+    el.style.borderColor = 'rgba(29,158,117,.2)';
+    sessionStorage.setItem('adepta_api_key', apiKey);
+  } else if (apiKey.length > 5) {
+    el.textContent = '⚠ Tarkista avain';
+    el.style.background = 'var(--ambl)';
+    el.style.color = 'var(--amber)';
+    el.style.borderColor = 'rgba(160,92,26,.2)';
+  } else {
+    el.textContent = 'Ei asetettu';
+    el.style.background = 'var(--ppw)';
+    el.style.color = 'var(--inf)';
+    el.style.borderColor = 'var(--bd)';
+  }
+}
+
+function handleFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (f.name.toLowerCase().endsWith('.pdf')) {
+    analysePDF(f);
+  } else {
+    parseFile(f);
+  }
+}
+
+async function analysePDF(file) {
+  // Hae API-avain — ensin kentästä, sitten sessionista
+  apiKey = document.getElementById('api-key-input').value.trim()
+        || sessionStorage.getItem('adepta_api_key')
+        || '';
+
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    alert('PDF-analyysi vaatii Anthropic API-avaimen.\n\n'
+        + 'Syötä avain "🔑 Anthropic API-avain" -kenttään ennen PDF:n lataamista.\n\n'
+        + 'Avain alkaa sk-ant-api03-…\n'
+        + 'Hae osoitteesta: console.anthropic.com/settings/keys\n\n'
+        + 'CSV-tiliote (pankin export) toimii ilman avainta.');
+    document.getElementById('file-in').value = '';
+    return;
+  }
+
+  document.getElementById('dz').style.display = 'none';
+  document.getElementById('ai-analysing').style.display = 'block';
+  document.getElementById('vakio-info').style.display = 'none';
+
+  const setStatus = (msg, sub, pct) => {
+    document.getElementById('ai-status').textContent = msg;
+    document.getElementById('ai-substatus').textContent = sub;
+    document.getElementById('ai-progress-bar').style.width = pct + '%';
+  };
+
+  const showError = (title, detail) => {
+    document.getElementById('ai-status').textContent = '⚠ ' + title;
+    document.getElementById('ai-substatus').innerHTML = `<span style="color:var(--red)">${detail}</span>`;
+    document.getElementById('ai-progress-bar').style.background = 'var(--red)';
+    setTimeout(() => {
+      document.getElementById('ai-analysing').style.display = 'none';
+      document.getElementById('dz').style.display = 'block';
+      document.getElementById('vakio-info').style.display = 'block';
+      document.getElementById('ai-progress-bar').style.background = 'var(--fg2)';
+      document.getElementById('file-in').value = '';
+    }, 4000);
+  };
+
+  setStatus('Luetaan PDF…', `${file.name} · ${(file.size/1024).toFixed(0)} KB`, 10);
+
+  let base64;
+  try {
+    base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Tiedoston luku epäonnistui'));
+      r.readAsDataURL(file);
+    });
+  } catch(e) {
+    showError('Tiedoston lukuvirhe', e.message);
+    return;
+  }
+
+  setStatus('Claude analysoi…', 'Etsitään tiliote- ja laskuaineisto (voi kestää 10–30 s)', 30);
+
+  const prompt = `Analysoi tämä PDF-dokumentti. Se sisältää yhden tai useamman seuraavista:
+1. Pankkitiliote (suomalainen OP, Nordea, Handelsbanken tai muu)
+2. Ostolaskuja tai myyntilaskuja
+
+TÄRKEÄÄ: Jos dokumentissa on sekä tiliote että laskuja, yritä täsmäyttää laskut tiliotteen tapahtumiin.
+Täsmäytysperusteet tärkeysjärjestyksessä:
+- Viitenumero (laskun viite = tiliotteen viite, jopa osittainen osuma riittää)
+- Summa (lasku brutto ≈ tiliotteen summa, toleranssi ±1 € tai ±2 %)
+- Toimittajan nimi vs. tiliotteen maksajan nimi (osittainen vastaavuus riittää)
+- Päivämäärä (laskun eräpäivä ≈ tiliotteen arvopäivä, ±14 pv)
+
+Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
+{
+  "tiliote": {
+    "loydetty": true,
+    "iban": "tilinumero tai null",
+    "kausi": "esim. 1.5.–30.6.2025 tai null",
+    "tapahtumat": [
+      {
+        "kirjpv": "YYYY-MM-DD",
+        "arvopv": "YYYY-MM-DD",
+        "tiliotenro": 6,
+        "tapnro": 1,
+        "sel": "Tapahtuman selite",
+        "maksu": "Maksajan/saajan nimi tai null",
+        "summa": -150.00,
+        "viite": "viitenumero tai null"
+      }
+    ]
+  },
+  "laskut": [
+    {
+      "nro": "laskun numero",
+      "toimittaja": "toimittajan nimi",
+      "pvm": "YYYY-MM-DD",
+      "erapv": "YYYY-MM-DD tai null",
+      "summa_brutto": 150.00,
+      "summa_netto": 119.62,
+      "alv_prosentti": 25.5,
+      "viite": "viitenumero tai null",
+      "kuvaus": "laskun sisältö lyhyesti",
+      "ehdotettu_tili": "LK2025-tilinumero esim. 7950 tai null"
+    }
+  ],
+  "tasmaytyket": [
+    {
+      "tapnro": 2,
+      "lasku_nro": "2025-001",
+      "varmuus": "korkea",
+      "peruste": "viite ja summa täsmäävät"
+    }
+  ]
+}
+
+Täsmäytykset-kentässä tapnro viittaa tiliotteen Tap.nro-sarakkeeseen ja lasku_nro laskun numeroon.
+Varmuus: "korkea" (viite tai summa+nimi täsmää), "kohtalainen" (nimi+päivä tai summa lähellä), "heikko" (vain summa tai vain nimi).
+Tiliotteen tapahtumanumero (tapnro) on Tap.nro-sarakkeessa. Tiliotenro on juokseva numero sivun yläreunasta.
+Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa kuin liian vähän.`;
+
+  try {
+    setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',   // Haiku riittää dokumenttien erotteluun, halvempi
+        max_tokens: 8000,                      // riittää 100 sivun aineistolle
+        messages: [{
+          role: 'user',
+          content: [
+            {type: 'document', source: {type:'base64', media_type:'application/pdf', data: base64}},
+            {type: 'text', text: prompt}
+          ]
+        }]
+      })
+    });
+
+    setStatus('Käsitellään vastausta…', 'Rakennetaan tiliote ja laskut', 80);
+
+    // Tarkista HTTP-virheet ensin
+    if (!resp.ok) {
+      let errDetail = `HTTP ${resp.status}`;
+      try {
+        const errJson = await resp.json();
+        errDetail = errJson.error?.message || errJson.type || errDetail;
+      } catch(e) {}
+      if (resp.status === 401) {
+        showError('Virheellinen API-avain', `401 Unauthorized — tarkista avain. ${errDetail}`);
+      } else if (resp.status === 429) {
+        showError('Liian monta pyyntöä', '429 Rate limit — odota hetki ja yritä uudelleen');
+      } else {
+        showError(`API-virhe (${resp.status})`, errDetail);
+      }
+      return;
+    }
+
+    const data = await resp.json();
+
+    // Tarkista API-tason virhe
+    if (data.type === 'error') {
+      showError('API palautti virheen', data.error?.message || JSON.stringify(data.error));
+      return;
+    }
+
+    const txt = (data.content||[]).map(c=>c.text||'').join('');
+    if (!txt.trim()) {
+      showError('Tyhjä vastaus', 'Claude ei palauttanut sisältöä — yritä uudelleen');
+      return;
+    }
+
+    const clean = txt.replace(/```json|```/g,'').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      console.error('JSON parse failed:', clean.slice(0,200));
+      showError('JSON-jäsennysvirhe', 'Claude palautti odottamattoman muodon — yritä uudelleen');
+      return;
+    }
+
+    setStatus('Täsmäytetään aineistoa…', 'Yhdistetään laskut tiliotteen tapahtumiin', 95);
+    prosessoiAITulos(parsed, file.name);
+
+  } catch(err) {
+    console.error('AI analyysi epäonnistui:', err);
+    if (err.message && err.message.includes('fetch')) {
+      showError('Verkkovirhe', 'CORS-esto tai verkko poikki. Yritä avata tiedosto paikalliselta palvelimelta tai käytä CSV-tuontia.');
+    } else {
+      showError('Tuntematon virhe', err.message);
+    }
+  }
+}
+
+function prosessoiAITulos(parsed, filename) {
+  document.getElementById('ai-analysing').style.display = 'none';
+
+  // 1. Lataa tiliote
+  const tiliote = parsed.tiliote;
+  if (tiliote && tiliote.loydetty && tiliote.tapahtumat?.length) {
+    ladattuTiliote(
+      tiliote.tapahtumat.map(t => ({
+        ...t,
+        arvopv: t.arvopv || t.kirjpv,
+        kirjpv: t.kirjpv || t.arvopv,
+      })),
+      tiliote.iban || filename,
+      tiliote.kausi || ''
+    );
+  }
+
+  // 2. Lataa laskut
+  laskut = (parsed.laskut || []).map((l, i) => ({...l, idx: i, tapIdx: null}));
+
+  // 3. Käytä ensin Clauden omia täsmäytyksiä (paras tulos)
+  const aiTasmaytyket = parsed.tasmaytyket || [];
+  aiTasmaytyket.forEach(tm => {
+    const tap = impTapahtumat.find(t => t.tapnro === tm.tapnro);
+    const lasku = laskut.find(l => l.nro === tm.lasku_nro);
+    if (tap && lasku && lasku.tapIdx === null) {
+      lasku.tapIdx = tap.idx;
+      tap.laskuIdx = lasku.idx;
+      tap.tasmaytysSyy = tm.peruste || 'AI täsmäytys';
+      tap.tasmaytyVarmuus = tm.varmuus || 'korkea';
+      if (lasku.ehdotettu_tili && !tap.vak) {
+        tap.vak = {vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti || 25.5, lbl: lasku.toimittaja};
+      }
+    }
+  });
+
+  // 4. Täydennä JS-logiikalla niille joita AI ei täsmäyttänyt
+  //    Useampi signaali — osumat pisteytetään
+  laskut.forEach(lasku => {
+    if (lasku.tapIdx !== null) return; // jo täsmäytetty
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    impTapahtumat.forEach(t => {
+      if (t.laskuIdx !== undefined && t.laskuIdx !== null) return; // jo käytössä
+      let score = 0;
+      const reasons = [];
+
+      const tSumma = Math.abs(t.summa);
+      const lBrutto = lasku.summa_brutto;
+      const lNetto  = lasku.summa_netto;
+
+      // Summa brutto (tiukka: ±1€ tai ±1%)
+      if (lBrutto && Math.abs(tSumma - lBrutto) <= Math.max(1.0, lBrutto * 0.01)) {
+        score += 40; reasons.push('summa brutto');
+      }
+      // Summa netto (lasku ilman ALV = tiliotteen summa — joissain tapauksissa)
+      else if (lNetto && Math.abs(tSumma - lNetto) <= Math.max(1.0, lNetto * 0.01)) {
+        score += 25; reasons.push('summa netto');
+      }
+      // Summa löysempi toleranssi ±5%
+      else if (lBrutto && Math.abs(tSumma - lBrutto) <= lBrutto * 0.05) {
+        score += 15; reasons.push('summa ~5%');
+      }
+
+      // Viitenumero — poista välilyönnit ja tarkista osittainen vastaavuus
+      const tViite = (t.viite||'').replace(/\s/g,'');
+      const lViite = (lasku.viite||'').replace(/\s/g,'');
+      if (tViite && lViite) {
+        if (tViite === lViite) { score += 50; reasons.push('viite täsmää'); }
+        else if (tViite.includes(lViite) || lViite.includes(tViite)) { score += 35; reasons.push('viite osittain'); }
+        // Viimeiset 6+ merkkiä riittää (usein viitenumerossa on pitkä alkuosa)
+        else if (lViite.length >= 6 && tViite.endsWith(lViite.slice(-6))) { score += 20; reasons.push('viite loppu'); }
+      }
+
+      // Toimittajan nimi vs. maksajan nimi — normalisoi ja vertaa
+      const norm = s => (s||'').toLowerCase().replace(/[^a-zäöå0-9]/g,' ').replace(/\s+/g,' ').trim();
+      const tNimi = norm(t.maksu || t.sel);
+      const lNimi = norm(lasku.toimittaja);
+      if (tNimi && lNimi && tNimi.length > 3 && lNimi.length > 3) {
+        if (tNimi.includes(lNimi) || lNimi.includes(tNimi)) {
+          score += 30; reasons.push('nimi täsmää');
+        } else {
+          // Sanatasolla — löytyykö yhteisiä sanoja (>=4 merkkiä)
+          const tSanat = tNimi.split(' ').filter(s=>s.length>=4);
+          const lSanat = lNimi.split(' ').filter(s=>s.length>=4);
+          const yhteiset = tSanat.filter(s => lSanat.some(ls => ls.includes(s) || s.includes(ls)));
+          if (yhteiset.length > 0) { score += 15 * yhteiset.length; reasons.push(`nimi "${yhteiset[0]}"`); }
+        }
+      }
+
+      // Päivämääräläheisyys: eräpäivä vs. arvopäivä ±14 pv
+      if (lasku.erapv && t.arvopv) {
+        const diff = Math.abs(new Date(lasku.erapv) - new Date(t.arvopv)) / 86400000;
+        if (diff <= 3)  { score += 20; reasons.push('päivä ±3pv'); }
+        else if (diff <= 7)  { score += 12; reasons.push('päivä ±7pv'); }
+        else if (diff <= 14) { score += 6;  reasons.push('päivä ±14pv'); }
+      }
+
+      // Laskun päivä vs. kirjauspäivä
+      if (lasku.pvm && t.kirjpv) {
+        const diff = Math.abs(new Date(lasku.pvm) - new Date(t.kirjpv)) / 86400000;
+        if (diff <= 7) { score += 8; reasons.push('laskupäivä lähellä'); }
+      }
+
+      if (score > bestScore) { bestScore = score; bestMatch = {t, reasons}; }
+    });
+
+    // Kynnysarvo: vähintään 30 pistettä jotta täsmäytetään
+    if (bestScore >= 30 && bestMatch) {
+      const t = bestMatch.t;
+      lasku.tapIdx = t.idx;
+      t.laskuIdx = lasku.idx;
+      t.tasmaytysSyy = bestMatch.reasons.join(' + ');
+      t.tasmaytyVarmuus = bestScore >= 70 ? 'korkea' : bestScore >= 45 ? 'kohtalainen' : 'heikko';
+      if (lasku.ehdotettu_tili && !t.vak) {
+        t.vak = {vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti || 25.5, lbl: lasku.toimittaja};
+      }
+    }
+  });
+
+  // 5. Päivitä stats
+  const matchedCount = laskut.filter(l => l.tapIdx !== null).length;
+  const korkea  = impTapahtumat.filter(t => t.tasmaytyVarmuus === 'korkea').length;
+  const kohtal  = impTapahtumat.filter(t => t.tasmaytyVarmuus === 'kohtalainen').length;
+  const heikko  = impTapahtumat.filter(t => t.tasmaytyVarmuus === 'heikko').length;
+
+  document.getElementById('ai-src-info').textContent = `📄 ${filename}`;
+  document.getElementById('ai-match-stats').innerHTML =
+    `<span style="color:#7ec488">✓ ${matchedCount}/${laskut.length} laskua täsmäytetty</span>` +
+    (korkea  ? ` &nbsp;·&nbsp; <span style="color:#7ec488">${korkea} korkea</span>` : '') +
+    (kohtal  ? ` &nbsp;·&nbsp; <span style="color:#e8a86a">${kohtal} kohtalainen</span>` : '') +
+    (heikko  ? ` &nbsp;·&nbsp; <span style="color:#e87070">${heikko} heikko</span>` : '') +
+    (laskut.length - matchedCount > 0 ? ` &nbsp;·&nbsp; <span style="color:rgba(255,255,255,.4)">${laskut.length - matchedCount} ilman osumaa</span>` : '');
+
+  renderKortit();
+  renderImpTable();
+
+  document.getElementById('ai-results').style.display = 'block';
+  document.getElementById('import-preview').style.display = impTapahtumat.length ? 'block' : 'none';
+  toast(`✓ ${impTapahtumat.length} tapahtumaa · ${laskut.length} laskua · ${matchedCount} täsmäytystä`);
+}
+
+// ── KORTTINÄKYMÄ (split view) ────────────────────────────────
+function renderKortit() {
+  // Tiliote-kortit
+  const tapDiv = document.getElementById('tiliote-cards');
+  document.getElementById('tiliote-cnt').textContent = impTapahtumat.length + ' kpl';
+  tapDiv.innerHTML = '';
+  impTapahtumat.forEach((t, i) => {
+    const pos = t.summa > 0;
+    const matched = t.laskuIdx !== undefined && t.laskuIdx !== null;
+    const lasku = matched ? laskut[t.laskuIdx] : null;
+    const div = document.createElement('div');
+    div.className = 'tap-card' + (matched ? ' matched lasku-linked' : '') + (t.tila==='tuotu' ? ' tuotu' : '');
+    div.onclick = () => avaaLaskuModal(i);
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--ink)">${t.sel}</div>
+          ${t.maksu&&t.maksu!==t.sel?`<div style="font-size:10px;color:var(--inu)">${t.maksu}</div>`:''}
+        </div>
+        <div style="font-family:var(--ffm);font-size:13px;font-weight:700;color:${pos?'var(--fg3)':'var(--red)'}">
+          ${pos?'+':''}${t.summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} €
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-family:var(--ffm);font-size:10px;color:var(--inu)">${t.arvopv} · ${genTosite(t)}</div>
+        ${matched
+          ? `<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:#e4f4ec;color:var(--fg3)">🧾 ${lasku.toimittaja||'Lasku'}</span>`
+          : `<span style="font-size:10px;color:var(--amber);cursor:pointer">+ Liitä lasku</span>`}
+      </div>
+      ${t.tila==='tuotu'?'<div style="position:absolute;top:8px;right:8px;font-size:10px;color:var(--fg3);font-weight:600">✓ Tuotu</div>':''}
+    `;
+    tapDiv.appendChild(div);
+  });
+
+  // Lasku-kortit
+  const laskuDiv = document.getElementById('lasku-cards');
+  document.getElementById('lasku-cnt').textContent = laskut.length + ' kpl';
+  laskuDiv.innerHTML = '';
+  laskut.forEach((l, i) => {
+    const matched = l.tapIdx !== null;
+    const div = document.createElement('div');
+    div.className = 'lasku-card' + (matched ? ' matched' : ' unmatched');
+    div.innerHTML = `
+      <span class="match-badge ${matched?'match-auto':'match-none'}">${matched?'✓ Täsmäytetty':'⚠ Ei täsmäytystä'}</span>
+      <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px;padding-right:80px">${l.toimittaja||'Tuntematon toimittaja'}</div>
+      <div style="font-size:11px;color:var(--inu);margin-bottom:4px">${l.nro||''}${l.pvm?' · '+l.pvm:''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:11px;color:var(--inm)">${l.kuvaus||''}</div>
+        <div style="font-family:var(--ffm);font-size:12px;font-weight:600;color:var(--ink)">${l.summa_brutto?.toLocaleString('fi-FI',{minimumFractionDigits:2})||'—'} €</div>
+      </div>
+      ${l.ehdotettu_tili?`<div style="margin-top:4px;font-size:10px;color:var(--inu)"><span style="font-family:var(--ffm);color:var(--fl)">${l.ehdotettu_tili}</span> · ALV ${l.alv_prosentti||25.5}%</div>`:''}
+      ${matched?`<div style="margin-top:4px;font-size:10px;color:var(--fg3)">→ Tapahtuma: ${impTapahtumat[l.tapIdx]?.sel||''}</div>`:''}
+    `;
+    laskuDiv.appendChild(div);
+  });
+}
+
+// ── LASKU-MODAL ───────────────────────────────────────────────
+function avaaLaskuModal(tapIdx) {
+  const t = impTapahtumat[tapIdx];
+  if (!t) return;
+  lmAktiivinen = tapIdx;
+
+  const pos = t.summa > 0;
+  document.getElementById('lm-tap-sel').textContent = t.maksu && t.maksu!==t.sel ? `${t.sel} — ${t.maksu}` : t.sel;
+  document.getElementById('lm-tap-pv').textContent = `${t.arvopv} · ${genTosite(t)}`;
+  const sEl = document.getElementById('lm-tap-summa');
+  sEl.textContent = (pos?'+':'') + t.summa.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €';
+  sEl.style.color = pos ? 'var(--fg3)' : 'var(--red)';
+
+  // Automaattinen täsmäytys
+  const matchBox = document.getElementById('lm-match-box');
+  if (t.laskuIdx !== undefined && t.laskuIdx !== null) {
+    const l = laskut[t.laskuIdx];
+    matchBox.style.display = 'block';
+    document.getElementById('lm-match-content').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--ink)">${l.toimittaja||'—'} &nbsp; <span style="font-size:11px;color:var(--inu)">${l.nro||''}</span></div>
+          <div style="font-size:11px;color:var(--inu);margin-top:2px">${l.pvm||''} · Erä: ${l.erapv||'—'} · Viite: ${l.viite||'—'}</div>
+          <div style="font-size:11px;color:var(--inm);margin-top:3px">${l.kuvaus||''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div style="font-family:var(--ffm);font-size:14px;font-weight:600;color:var(--ink)">${l.summa_brutto?.toLocaleString('fi-FI',{minimumFractionDigits:2})||'—'} €</div>
+          <div style="font-size:10px;color:var(--inu)">sis. ALV ${l.alv_prosentti||'?'}%</div>
+          ${l.ehdotettu_tili?`<div style="font-size:10px;margin-top:4px"><span style="font-family:var(--ffm);color:var(--fl)">${l.ehdotettu_tili}</span></div>`:''}
+        </div>
+      </div>
+    `;
+    lmNaytaTilioi(l);
+  } else {
+    matchBox.style.display = 'none';
+    document.getElementById('lm-tilioi-box').style.display = 'none';
+  }
+
+  document.getElementById('lm-search').value = '';
+  document.getElementById('lm-lasku-list').style.display = 'none';
+  document.getElementById('lasku-modal').classList.add('op');
+  setTimeout(() => document.getElementById('lm-search').focus(), 100);
+}
+
+function lmNaytaTilioi(lasku) {
+  const box = document.getElementById('lm-tilioi-box');
+  const tili = TILIT.find(t => t.nro === lasku.ehdotettu_tili);
+  if (!lasku.ehdotettu_tili) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const t = impTapahtumat[lmAktiivinen];
+  const pos = t && t.summa > 0;
+  document.getElementById('lm-tilioi-content').innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap">
+      <span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">${pos?'1910':'lm-d'}</span>
+      <span style="color:var(--inu)">Debet</span>
+      <span style="color:var(--bd2)">|</span>
+      <span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">${pos?(tili?lasku.ehdotettu_tili:'?'):'1910'}</span>
+      <span style="color:var(--inu)">Kredit</span>
+      <span style="color:var(--bd2)">|</span>
+      <span style="font-family:var(--ffm);color:var(--inu)">${lasku.alv_prosentti||25.5}% ALV</span>
+      ${tili?`<span style="color:var(--inm)">${tili.lbl}</span>`:''}
+    </div>
+  `;
+}
+
+function lmSearch(val) {
+  const list = document.getElementById('lm-lasku-list');
+  if (!val.trim() || !laskut.length) { list.style.display = 'none'; return; }
+  const filtered = laskut.filter(l =>
+    (l.nro||'').includes(val) ||
+    (l.toimittaja||'').toLowerCase().includes(val.toLowerCase()) ||
+    (l.summa_brutto?.toString()||'').includes(val)
+  );
+  list.style.display = filtered.length ? 'block' : 'none';
+  list.innerHTML = '';
+  filtered.forEach(l => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:12px';
+    div.innerHTML = `<strong>${l.toimittaja||'—'}</strong> ${l.nro||''} &nbsp; <span style="font-family:var(--ffm);color:var(--fl)">${l.summa_brutto?.toLocaleString('fi-FI',{minimumFractionDigits:2})||'—'} €</span> <span style="color:var(--inu)">${l.pvm||''}</span>`;
+    div.onmouseover = () => div.style.background = 'var(--fmist)';
+    div.onmouseout  = () => div.style.background = '';
+    div.onmousedown = (e) => { e.preventDefault(); lmValitseLasku(l); };
+    list.appendChild(div);
+  });
+}
+
+function lmValitseLasku(lasku) {
+  const t = impTapahtumat[lmAktiivinen];
+  if (!t) return;
+  // Poista vanha linkitys
+  if (t.laskuIdx !== undefined && t.laskuIdx !== null) laskut[t.laskuIdx].tapIdx = null;
+  if (lasku.tapIdx !== null) impTapahtumat[lasku.tapIdx].laskuIdx = null;
+  // Uusi linkitys
+  lasku.tapIdx = lmAktiivinen;
+  t.laskuIdx = lasku.idx;
+  if (lasku.ehdotettu_tili) t.vak = {vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti||25.5, lbl: lasku.toimittaja};
+  // Päivitä UI
+  document.getElementById('lm-search').value = '';
+  document.getElementById('lm-lasku-list').style.display = 'none';
+  avaaLaskuModal(lmAktiivinen); // re-open with new data
+}
+
+function lmIrrotaLasku() {
+  const t = impTapahtumat[lmAktiivinen];
+  if (!t || t.laskuIdx === null || t.laskuIdx === undefined) return;
+  laskut[t.laskuIdx].tapIdx = null;
+  t.laskuIdx = null;
+  document.getElementById('lm-match-box').style.display = 'none';
+  document.getElementById('lm-tilioi-box').style.display = 'none';
+}
+
+function lmHyvaksy() {
+  if (lmAktiivinen === null) return;
+  impTuoRivi(lmAktiivinen);
+  renderKortit();
+  lmSulje();
+}
+
+function lmSulje() {
+  document.getElementById('lasku-modal').classList.remove('op');
+  lmAktiivinen = null;
+}
+
+// ── KEYBOARD SHORTCUTS ───────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); tallenna(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='z') { e.preventDefault(); undoL(); }
+  if (e.key==='Escape') { closeAllDropdowns(); vtSulje(); lmSulje(); }
+});
+
+// ── TOAST ────────────────────────────────────────────────────
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('sh');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('sh'), 2800);
+}
+
+// ── START ────────────────────────────────────────────────────
+lataaYritykset();
+</script>
+</body>
+</html>
