@@ -3358,9 +3358,9 @@ function generateAutoRow(r) {
     'style="width:200px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
     '<td style="padding:4px 6px"><input type="text" value="' + (r.sel||'') + '" ' +
     'style="width:100%;min-width:180px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" ' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.debet||'') + '" ' +
     'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f;background:#fff" readonly></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" ' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.kredit||'') + '" ' +
     'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#c0392b;background:#fff" readonly></td>' +
     '<td style="padding:4px 6px;color:#999;font-size:12px">ALV</td>' +
     '<td style="padding:4px 6px"></td>' +
@@ -3370,14 +3370,17 @@ function generateAutoRow(r) {
 function generateBalancingRow(r) {
   return '<tr style="border-bottom:1px solid var(--bd);background:#f0f4ff">' +
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
-    '<input type="text" value="' + (r.tili||'') + '" placeholder="Tasaus..." ' +
-    'oninput="tositeBalancingRow.tili=this.value" ' +
+    '<input type="text" value="' + (r.tili ? r.tili + ' ' + (r.tiliLbl||'') : '') + '" placeholder="Tasaus..." ' +
+    'oninput="tositeHakuBalancingTili(this)" ' +
+    'onfocus="tositeAvaaBalancingLista(this)" ' +
+    'onblur="setTimeout(()=>tositeSubjatBalancingLista(),200)" ' +
     'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
+    '<div id="ts-tili-lista-balancing" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
     '</div></td>' +
     '<td style="padding:4px 6px"><input type="text" value="" style="width:100%;min-width:180px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" ' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.debet||'') + '" ' +
     'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f;background:#fff" readonly></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" ' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.kredit||'') + '" ' +
     'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#c0392b;background:#fff" readonly></td>' +
     '<td style="padding:4px 6px;color:#4a90e2;font-size:12px">Tasaus</td>' +
     '<td style="padding:4px 6px"></td>' +
@@ -3386,6 +3389,10 @@ function generateBalancingRow(r) {
 
 function paivitaTositeTotals() {
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  
+  // Preserve balancing row account info
+  const prevTili = tositeBalancingRow ? tositeBalancingRow.tili : '';
+  const prevTiliLbl = tositeBalancingRow ? tositeBalancingRow.tiliLbl : '';
   
   // Update user row inputs to show net amounts when ALV is selected
   tositeRivit.forEach((r, i) => {
@@ -3470,7 +3477,7 @@ function paivitaTositeTotals() {
   const totalNetK = userNetK + alvTotK;
   const erotus = totalNetD - totalNetK;
   
-  tositeBalancingRow = { tili: '', debet: '', kredit: '' };
+  tositeBalancingRow = { tili: prevTili, tiliLbl: prevTiliLbl, debet: '', kredit: '' };
   if (Math.abs(erotus) > 0.01) {
     if (erotus < 0) {
       tositeBalancingRow.debet = fmt(Math.abs(erotus));
@@ -3651,6 +3658,77 @@ function handleListKey(e, rowIdx, el) {
 
 function tositeSubjatLista(rowIdx) {
   const lista = document.getElementById('ts-tili-lista-' + rowIdx);
+  if (!lista) return;
+  // Älä sulje listaa jos fokus on listan sisällä
+  if (lista.contains(document.activeElement)) return;
+  lista.style.display = 'none';
+}
+
+function tositeAvaaBalancingLista(input) {
+  tositeRenderBalancingLista(input.value);
+}
+
+function tositeHakuBalancingTili(input) {
+  tositeBalancingRow.tili = '';
+  tositeBalancingRow.tiliLbl = '';
+  tositeRenderBalancingLista(input.value);
+  tositeDirty = true;
+}
+
+function tositeRenderBalancingLista(q) {
+  const lista = document.getElementById('ts-tili-lista-balancing');
+  if (!lista) return;
+  const haku = q.toLowerCase().trim();
+  const tulokset = TILIT.filter(t =>
+    !haku || t.nro.startsWith(haku) || t.lbl.toLowerCase().includes(haku)
+  ).slice(0, 20);
+  if (!tulokset.length) { lista.style.display = 'none'; return; }
+  lista.style.display = 'block';
+  lista.innerHTML = tulokset.map(t =>
+    '<div tabindex="0" onkeydown="handleBalancingListKey(event,this)" onmousedown=\'tositeValitseBalancingTili("' + t.nro + '","' + t.lbl.replace(/"/g,'').replace(/'/g, '&apos;') + '")\' ' +
+    'style="padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:center" ' +
+    'onmouseover="this.style.background=\'#f0f7f1\'" onmouseout="this.style.background=\'\'">' +
+    '<span style="font-weight:600;color:#3d6b43;min-width:44px">' + t.nro + '</span>' +
+    '<span>' + t.lbl + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function tositeValitseBalancingTili(nro, lbl) {
+  tositeBalancingRow.tili = nro;
+  tositeBalancingRow.tiliLbl = lbl;
+  const input = document.querySelector('#ts-tili-lista-balancing').previousElementSibling;
+  if (input) input.value = nro + ' ' + lbl;
+  tositeSubjatBalancingLista();
+  tositeDirty = true;
+  updateAutoRowsInDOM();
+}
+
+function handleBalancingListKey(e, el) {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const next = el.nextElementSibling;
+    if (next) next.focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prev = el.previousElementSibling;
+    if (prev) prev.focus();
+    else {
+      const input = document.querySelector('#ts-tili-lista-balancing').previousElementSibling;
+      if (input) input.focus();
+    }
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    el.dispatchEvent(new MouseEvent('mousedown'));
+  } else if (e.key === 'Escape') {
+    tositeSubjatBalancingLista();
+    const input = document.querySelector('#ts-tili-lista-balancing').previousElementSibling;
+    if (input) input.focus();
+  }
+}
+
+function tositeSubjatBalancingLista() {
+  const lista = document.getElementById('ts-tili-lista-balancing');
   if (!lista) return;
   // Älä sulje listaa jos fokus on listan sisällä
   if (lista.contains(document.activeElement)) return;
