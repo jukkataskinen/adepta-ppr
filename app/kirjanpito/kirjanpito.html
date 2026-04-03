@@ -2649,6 +2649,7 @@ async function impTuoRivi(i) {
   const vak = t.vak || (t.vtNro ? {vt: t.vtNro, alv: t.alvp||0} : null);
   if (!vak) { avaaVtModal(i); return; }
   if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  console.log('impTuoRivi', i, 'curYritys:', curYritys?.id, 'vak:', vak);
 
   const pos = t.summa > 0;
   const alvp = vak.alv || 0;
@@ -2661,6 +2662,7 @@ async function impTuoRivi(i) {
   const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id);
   const nroData = await nroRes.json();
   const tosite_nro = nroData.seuraava || 1;
+  console.log('tosite_nro saatu:', tosite_nro);
 
   // Rakenna rivit uudella saldo-mallilla
   const rivit = [];
@@ -2697,6 +2699,7 @@ async function impTuoRivi(i) {
       })
     });
     const json = await res.json();
+    console.log('API vastaus:', res.status, json);
     if (res.ok) {
       t.tila = 'tuotu';
       renderImpTable();
