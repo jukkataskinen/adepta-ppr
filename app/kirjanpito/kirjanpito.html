@@ -920,6 +920,52 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           </button>
         </div>
       </div>
+
+      <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--bd)">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:8px">Fennoa — Pääkirjaluku</h3>
+        <p style="font-size:12px;color:var(--inu);margin-bottom:12px">
+          Tuo kaikki tapahtumat ja alkusaldot Fennoan pääkirja-CSV:stä.<br>
+          Formaatti: Account number;Account name;Date;Debit;Credit;Vat code;Description;Statement series;Statement number;Start balance;End balance
+        </p>
+        <div class="drop-zone" id="dz-ledger" onclick="document.getElementById('file-ledger').click()"
+             ondragover="event.preventDefault()" ondrop="handleLedgerDrop(event)"
+             style="border:2px dashed var(--bd2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px">
+          <input type="file" id="file-ledger" accept=".csv" style="display:none" onchange="handleLedgerFile(event)">
+          <div style="font-size:13px;color:var(--inu)">📄 Vedä Fennoa-pääkirja CSV tähän tai klikkaa</div>
+        </div>
+        <div id="ledger-preview" style="display:none">
+          <div style="margin-bottom:12px">
+            <strong style="font-size:13px">Alkusaldot (1.1.)</strong>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px">
+              <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+                <th style="padding:5px 8px;text-align:left">Tili</th>
+                <th style="padding:5px 8px;text-align:left">Nimi</th>
+                <th style="padding:5px 8px;text-align:right">Saldo</th>
+              </tr></thead>
+              <tbody id="ledger-alkusaldo-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin-bottom:12px">
+            <strong style="font-size:13px">Tositteet</strong>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px">
+              <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+                <th style="padding:5px 8px;text-align:left">Tosite</th>
+                <th style="padding:5px 8px;text-align:left">Päivämäärä</th>
+                <th style="padding:5px 8px;text-align:right">Rivejä</th>
+                <th style="padding:5px 8px;text-align:right">Täsmää</th>
+              </tr></thead>
+              <tbody id="ledger-tosite-tbody"></tbody>
+            </table>
+          </div>
+          <div id="ledger-summary" style="font-size:12px;margin-bottom:12px"></div>
+          <input type="date" id="ledger-alkusaldo-pvm" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-bottom:8px">
+          <label style="font-size:12px;color:var(--inu);margin-left:8px">Alkusaldojen kirjauspäivä</label><br>
+          <button id="ledger-import-btn" onclick="tuoLedgerData()"
+                  style="margin-top:8px;padding:8px 20px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">
+            Tuo pääkirja →
+          </button>
+        </div>
+      </div>
     </div>
 
   </div><!-- /main -->
@@ -4802,6 +4848,180 @@ function renderJournalPreview() {
     (virheet ? ' · <span style="color:var(--red)">⚠ ' + virheet + ' ei täsmää</span>' : ' · <span style="color:var(--fg3)">✓ Kaikki täsmäävät</span>');
 
   document.getElementById('journal-preview').style.display = 'block';
+}
+
+function handleLedgerDrop(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) parseLedgerCSV(file);
+}
+function handleLedgerFile(e) {
+  const file = e.target.files[0];
+  if (file) parseLedgerCSV(file);
+}
+
+let ledgerAlkusaldot = [];
+let ledgerTositteet = [];
+
+function parseLedgerCSV(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const bytes = new Uint8Array(e.target.result);
+    const text = new TextDecoder('iso-8859-1').decode(bytes);
+
+    ledgerAlkusaldot = [];
+    ledgerTositteet = {};
+    const naihdytTilit = {};
+
+    const parseFi = v => parseFloat((v||'').replace(/\s/g,'').replace(',','.')) || 0;
+
+    text.split('\n').forEach((line, idx) => {
+      if (idx === 0) return;
+      const cols = line.split(';');
+      if (cols.length < 10) return;
+      const tili = cols[0].trim();
+      if (!tili || !tili[0].match(/\d/)) return;
+
+      const nimi = cols[1].trim();
+      const pvmRaw = cols[2].trim();
+      const debet = parseFi(cols[3]);
+      const kredit = parseFi(cols[4]);
+      const alv = parseFloat((cols[5]||'').replace(',','.')) || 0;
+      const selite = cols[6].trim();
+      const tositeNro = parseInt(cols[8]) || 0;
+      const alkusaldo = parseFi(cols[9]);
+
+      // Alkusaldo ensimmäisestä rivin start_balance per tili
+      if (!(tili in naihdytTilit) && alkusaldo !== 0) {
+        naihdytTilit[tili] = true;
+        ledgerAlkusaldot.push({ tili, nimi, saldo: alkusaldo });
+      } else {
+        naihdytTilit[tili] = true;
+      }
+
+      if (debet === 0 && kredit === 0) return;
+
+      const m = pvmRaw.match(/(\d+)\.(\d+)\.(\d+)/);
+      if (!m) return;
+      const pvm = m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+
+      if (!ledgerTositteet[tositeNro]) {
+        ledgerTositteet[tositeNro] = { nro: tositeNro, pvm, selite, rivit: [] };
+      }
+      ledgerTositteet[tositeNro].rivit.push({
+        tili, selite, saldo: Math.round((debet-kredit)*100)/100, alv
+      });
+    });
+
+    ledgerTositteet = Object.values(ledgerTositteet).sort((a,b) => a.nro - b.nro);
+    renderLedgerPreview();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderLedgerPreview() {
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Alkusaldot
+  const aBody = document.getElementById('ledger-alkusaldo-tbody');
+  aBody.innerHTML = '';
+  ledgerAlkusaldot.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.innerHTML = '<td style="padding:4px 8px;font-weight:600;color:var(--fl)">' + r.tili + '</td>' +
+      '<td style="padding:4px 8px;color:var(--inu)">' + r.nimi + '</td>' +
+      '<td style="padding:4px 8px;text-align:right;font-family:monospace">' + fmt(r.saldo) + '</td>';
+    aBody.appendChild(tr);
+  });
+
+  // Tositteet
+  const tBody = document.getElementById('ledger-tosite-tbody');
+  tBody.innerHTML = '';
+  ledgerTositteet.forEach(t => {
+    const erotus = t.rivit.reduce((s,r)=>s+r.saldo,0);
+    const ok = Math.abs(erotus) < 0.01;
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.innerHTML = '<td style="padding:4px 8px;font-weight:600;color:var(--fl)">GL.' + t.nro + '</td>' +
+      '<td style="padding:4px 8px">' + fmtPv(t.pvm) + '</td>' +
+      '<td style="padding:4px 8px;text-align:right">' + t.rivit.length + '</td>' +
+      '<td style="padding:4px 8px;text-align:right;color:' + (ok?'var(--fg3)':'var(--red)') + '">' + (ok?'✓':erotus.toFixed(2)) + '</td>';
+    tBody.appendChild(tr);
+  });
+
+  const alkuSumma = ledgerAlkusaldot.reduce((s,r)=>s+r.saldo,0);
+  document.getElementById('ledger-summary').innerHTML =
+    '<strong>' + ledgerAlkusaldot.length + ' alkusaldoa</strong> (summa: ' + fmt(alkuSumma) + ') · ' +
+    '<strong>' + ledgerTositteet.length + ' tositetta</strong> · ' +
+    ledgerTositteet.reduce((s,t)=>s+t.rivit.length,0) + ' vientiä';
+
+  // Aseta oletuspäivämäärä alkusaldoille
+  const pvmEl = document.getElementById('ledger-alkusaldo-pvm');
+  if (!pvmEl.value && ledgerTositteet.length > 0) {
+    const vuosi = ledgerTositteet[0].pvm.slice(0,4);
+    pvmEl.value = vuosi + '-01-01';
+  }
+
+  document.getElementById('ledger-preview').style.display = 'block';
+}
+
+async function tuoLedgerData() {
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  const btn = document.getElementById('ledger-import-btn');
+  btn.disabled = true;
+  btn.textContent = 'Tuodaan...';
+
+  const alkusaldoPvm = document.getElementById('ledger-alkusaldo-pvm').value;
+  let tuotu = 0, virheet = 0;
+
+  // 1. Tuo alkusaldot tositteena 0
+  if (ledgerAlkusaldot.length > 0 && alkusaldoPvm) {
+    const res = await fetch('/api/ppr/paivakirja', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        asiakas_id: curYritys.id,
+        tosite_nro: 0,
+        paivamaara: alkusaldoPvm,
+        rivit: ledgerAlkusaldot.map(r => ({
+          tili: r.tili,
+          selite: 'Alkusaldo - saldojen nouto',
+          saldo: r.saldo,
+          alv_prosentti: null
+        }))
+      })
+    });
+    if (res.ok) tuotu++;
+    else virheet++;
+  }
+
+  // 2. Tuo tositteet
+  for (const t of ledgerTositteet) {
+    try {
+      const res = await fetch('/api/ppr/paivakirja', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          asiakas_id: curYritys.id,
+          tosite_nro: t.nro,
+          paivamaara: t.pvm,
+          rivit: t.rivit.map(r => ({
+            tili: r.tili,
+            selite: (r.selite || t.selite || '') + ' - saldojen nouto',
+            saldo: r.saldo,
+            alv_prosentti: r.alv || null
+          }))
+        })
+      });
+      if (res.ok) tuotu++;
+      else virheet++;
+    } catch(e) { virheet++; }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Tuo pääkirja →';
+  await lataaRivit(curYritys.id);
+  toast('Tuonti valmis — ' + tuotu + ' tositetta' + (virheet ? ', ' + virheet + ' epäonnistui' : ''));
 }
 
 async function tuoJournalData() {
