@@ -1936,10 +1936,13 @@ async function genTestidata() {
   const vuosi = curTilikausiVuosi || new Date().getFullYear();
   const myynnit = [8000,12000,9500,11000,7500,13000,10000,14500,8500,11500,9000,15000];
   let nro = 100;
+  let luotu = 0;
   for (let kk = 1; kk <= 12; kk++) {
     const pv = `${vuosi}-${String(kk).padStart(2,'0')}-15`;
-    const netto = myynnit[kk-1];
-    // Myyntilasku
+    const brutto = myynnit[kk-1];
+    const netto = brutto / 1.255;
+    const alv = brutto - netto;
+    // Myyntilasku: 3000 kredit netto, 29390 kredit alv, 1910 debet brutto
     await fetch('/api/ppr/paivakirja', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -1947,15 +1950,18 @@ async function genTestidata() {
         asiakas_id: curYritys.id,
         tosite_nro: nro++,
         paivamaara: pv,
-        rivit: [{
-          selite: 'Myyntilasku ' + kk + '/' + vuosi,
-          debet_tili: '1910', kredit_tili: '3000',
-          netto: netto, alv_prosentti: 25.5
-        }]
+        rivit: [
+          { tili: '3000', selite: 'Myynti ' + kk + '/' + vuosi, saldo: -netto },
+          { tili: '29390', selite: 'ALV 25,5%', saldo: -alv },
+          { tili: '1910', selite: 'Pankkitili', saldo: brutto }
+        ]
       })
     });
+    luotu++;
     // Ostolasku joka toinen kuukausi
     if (kk % 2 === 0) {
+      const oNetto = 500 / 1.255;
+      const oAlv = 500 - oNetto;
       await fetch('/api/ppr/paivakirja', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
@@ -1963,18 +1969,18 @@ async function genTestidata() {
           asiakas_id: curYritys.id,
           tosite_nro: nro++,
           paivamaara: pv,
-          rivit: [{
-            selite: 'Kirjanpitopalvelu ' + kk + '/' + vuosi,
-            debet_tili: '8060', kredit_tili: '1910',
-            netto: 500, alv_prosentti: 25.5
-          }]
+          rivit: [
+            { tili: '8060', selite: 'Kirjanpito ' + kk + '/' + vuosi, saldo: oNetto },
+            { tili: '1763', selite: 'ALV-saamiset', saldo: oAlv },
+            { tili: '1910', selite: 'Pankkitili', saldo: -500 }
+          ]
         })
       });
+      luotu++;
     }
   }
   await lataaRivit(curYritys.id);
-  renderRpt(curRptName());
-  toast('Testidata luotu ✓ — ' + (nro-100) + ' tositetta');
+  toast('Testidata luotu ✓ — ' + luotu + ' tositetta');
 }
 
 // ── BANK IMPORT ──────────────────────────────────────────────
