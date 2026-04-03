@@ -1090,7 +1090,7 @@ function brutto(netto, alvp) {
   return +(netto + alvE(netto, alvp)).toFixed(2);
 }
 function fmtE(n) {
-  return n.toLocaleString('fi-FI', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  return n.toLocaleString('fi-FI', {minimumFractionDigits:2,maximumFractionDigits:2});
 }
 function parseFi(s) {
   if (!s) return 0;
