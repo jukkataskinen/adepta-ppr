@@ -3303,19 +3303,19 @@ function renderTositeRivit() {
     // Selite
     '<td style="padding:4px 6px"><input type="text" value="' + ((r.sel||'').replace(/"/g, '&quot;')) + '" placeholder="Selite..." ' +
     'data-row="' + i + '" data-col="1" ' +
-    'oninput="tositeUpdField(' + i + ','sel',this.value)" ' +
+    'oninput="tositeUpdField(' + i + ',' + "'sel'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',1)" ' +
     'style="width:100%;min-width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
     // Debet
     '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="2" ' +
-    'oninput="tositeUpdField(' + i + ','debet',this.value)" ' +
+    'oninput="tositeUpdField(' + i + ',' + "'debet'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',2)" ' +
     'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f"></td>' +
     // Kredit
     '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="3" ' +
-    'oninput="tositeUpdField(' + i + ','kredit',this.value)" ' +
+    'oninput="tositeUpdField(' + i + ',' + "'kredit'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',3)" ' +
     'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#c0392b"></td>' +
     // Poista
