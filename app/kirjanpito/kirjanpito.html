@@ -1713,64 +1713,77 @@ function rptTulos() {
   </div>`;
 }
 function rptTase() {
-  const db = (nro) => rows.filter(r=>r.d===nro).reduce((s,r)=>s+brutto(r.netto,r.alvp),0);
-  const kb = (nro) => rows.filter(r=>r.k===nro).reduce((s,r)=>s+brutto(r.netto,r.alvp),0);
+  const db = (nro) => rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
+  const kb = (nro) => rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
   const saldo = (nro, normaali) => normaali==='D' ? db(nro)-kb(nro) : kb(nro)-db(nro);
-  const pankki    = saldo('1910','D');
-  const saamiset  = saldo('1701','D');
-  const alvSaam   = saldo('1763','D');
-  const muutSaam  = saldo('1779','D');
-  const vastaavaa = pankki + saamiset + alvSaam + muutSaam;
-  const opaaoma   = saldo('2001','K') + saldo('2061','K') + saldo('2201','K');
-  const edVoitto  = saldo('2251','K');
-  const ostovelat = saldo('2871','K');
-  const verovelka = saldo('2939','K');
-  const siirtov   = saldo('2979','K');
+
+  // VASTAAVAA
+  const aineettomat = saldo('1021','D') + saldo('1049','D') + saldo('1051','D');
+  const koneet = saldo('1161','D') + saldo('1171','D');
+  const sijoitukset = saldo('1440','D');
+  const pysyvatYht = aineettomat + koneet + sijoitukset;
+
+  const vaihtoOm = saldo('1501','D') + saldo('1521','D');
+  const myyntisaam = saldo('1701','D') + saldo('1711','D');
+  const muutSaam = saldo('1759','D') + saldo('1762','D') + saldo('1763','D') + saldo('1779','D') + saldo('1800','D') + saldo('1849','D');
+  const rahat = saldo('1900','D') + saldo('1910','D') + saldo('1920','D') + saldo('1950','D') + saldo('1970','D');
+  const vaihtuvatYht = vaihtoOm + myyntisaam + muutSaam + rahat;
+
+  const vastaavaaYht = pysyvatYht + vaihtuvatYht;
+
+  // VASTATTAVAA
+  const opaaoma = saldo('2001','K') + saldo('2061','K') + saldo('2171','K') + saldo('2181','K') + saldo('2201','K');
+  const edVoitto = saldo('2251','K');
+  const yksityistili = saldo('2350','K');
+
+  // Tilikauden tulos
   const lv = (nrot) => rows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
   const ku = (nrot) => rows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
-  const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
-  const muuttuotot  = lv(['3750','3844','3990','3994']);
-  const aineet      = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490']);
-  const palkat      = ku(['5000']);
-  const elake       = ku(['6100','6130','6140','6240']);
-  const sivukulut   = ku(['6300','6400']);
-  const poistot     = ku(['6820','6830','6870','6890']);
-  const toimitila   = ku(['7204','7210','7214','7360','7370','7380','7390','7414','7430']);
-  const ajoneuvot   = ku(['7530','7540','7574']);
-  const it          = ku(['7650','7730']);
-  const matkat      = ku(['7800','7810','7820']);
-  const myyntimark  = ku(['7910','7920','7930']);
-  const hallinto    = ku(['7950','7960','7970','8010','8060','8100','8200','8450']);
-  const muutkulut   = ku(['8500','8540']);
-  const liiketkulut = aineet + palkat + elake + sivukulut + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
-  const liikkulos   = liikevaihto + muuttuotot - liiketkulut;
-  const korot_t     = lv(['8650']);
-  const korot_k     = ku(['8710','8790']);
-  const tulos       = liikkulos + korot_t - korot_k;
-  const vastattavaa = opaaoma + edVoitto + ostovelat + verovelka + siirtov + tulos;
-  const erotus = Math.abs(vastaavaa - vastattavaa);
-  return `<div class="rpt-section">
-    <div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa</div><div class="rpt-hdr-s">30.4.2025</div></div>
-    ${rptRow('1701 Myyntisaamiset', saamiset, '', true)}
-    ${rptRow('1763 ALV-saamiset', alvSaam, '', true)}
-    ${rptRow('1779 Muut saamiset', muutSaam, '', true)}
-    ${rptRow('1910 Pankkitili', pankki, '', true)}
-    ${rptRow('VASTAAVAA YHTEENSÄ', vastaavaa, 'total')}
-  </div>
-  <div class="rpt-section">
-    <div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa</div><div class="rpt-hdr-s">30.4.2025</div></div>
-    ${rptRow('2001/2201 Oma pääoma', opaaoma, '', true)}
-    ${rptRow('2251 Ed. tilikausien voitto', edVoitto, '', true)}
-    ${rptRow('2871 Ostovelat', ostovelat, '', true)}
-    ${rptRow('2939 Verovelka', verovelka, '', true)}
-    ${rptRow('2979 Siirtovelat', siirtov, '', true)}
-    ${rptRow('Tilikauden tulos', tulos, '', true)}
-    ${rptRow('VASTATTAVAA YHTEENSÄ', vastattavaa, 'total')}
-    <div class="rpt-row total">
-      <div class="rpt-row-l" style="font-weight:600">${erotus<1?'✓ Tase tasapainossa':'⚠ Tase ei tasapainossa'}</div>
-      <div class="rpt-row-v">${fmtE(erotus)}</div>
-    </div>
-  </div>`;
+  const tuotot = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454','3750','3844','3990','3994','8650']);
+  const kulut = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490','5000','6100','6130','6140','6240','6300','6400','6820','6830','6870','6890','7210','7214','7360','7370','7380','7390','7414','7430','7530','7540','7574','7650','7730','7800','7810','7820','7910','7920','7930','7950','7960','7970','8010','8060','8100','8200','8450','8500','8540','8710','8790','9000','9009']);
+  const tulos = tuotot - kulut;
+
+  const omaPaaoma = opaaoma + edVoitto + yksityistili + tulos;
+  const tilinpaatossiirrot = saldo('2481','K');
+
+  const pitkaVelat = saldo('2621','K') + saldo('2631','K') + saldo('2749','K');
+  const lyhytVelat = saldo('2821','K') + saldo('2864','K') + saldo('2871','K') + saldo('2925','K') + saldo('2939','K') + saldo('29390','K') + saldo('29391','K') + saldo('29392','K') + saldo('2947','K') + saldo('2949','K') + saldo('2963','K') + saldo('2979','K');
+
+  const vastattavaaYht = omaPaaoma + tilinpaatossiirrot + pitkaVelat + lyhytVelat;
+  const erotus = Math.abs(vastaavaaYht - vastattavaaYht);
+
+  const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
+
+  return '<div class="rpt-section">' +
+    '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa</div></div>' +
+    hdr('Pysyvät vastaavat') +
+    (aineettomat ? rptRow('Aineettomat hyödykkeet', aineettomat, '', true) : '') +
+    (koneet ? rptRow('Koneet ja kalusto', koneet, '', true) : '') +
+    (sijoitukset ? rptRow('Sijoitukset', sijoitukset, '', true) : '') +
+    rptRow('Pysyvät vastaavat yhteensä', pysyvatYht, 'total') +
+    hdr('Vaihtuvat vastaavat') +
+    (vaihtoOm ? rptRow('Vaihto-omaisuus', vaihtoOm, '', true) : '') +
+    (myyntisaam ? rptRow('Myyntisaamiset', myyntisaam, '', true) : '') +
+    (muutSaam ? rptRow('Muut saamiset ja siirtosaamiset', muutSaam, '', true) : '') +
+    rptRow('Rahat ja pankkisaamiset', rahat, '', true) +
+    rptRow('Vaihtuvat vastaavat yhteensä', vaihtuvatYht, 'total') +
+    rptRow('VASTAAVAA YHTEENSÄ', vastaavaaYht, 'total') +
+    '</div>' +
+    '<div class="rpt-section">' +
+    '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa</div></div>' +
+    hdr('Oma pääoma') +
+    (opaaoma ? rptRow('Sidottu oma pääoma', opaaoma, '', true) : '') +
+    (edVoitto ? rptRow('Edellisten tilikausien voitto/tappio', edVoitto, '', true) : '') +
+    (yksityistili ? rptRow('Yksityisnostot', -yksityistili, '', true) : '') +
+    rptRow('Tilikauden tulos', tulos, '', true) +
+    rptRow('Oma pääoma yhteensä', omaPaaoma, 'total') +
+    (tilinpaatossiirrot ? hdr('Tilinpäätössiirtojen kertymä') + rptRow('Toimintavaraus', tilinpaatossiirrot, '', true) : '') +
+    (pitkaVelat ? hdr('Pitkäaikainen vieras pääoma') + rptRow('Pitkäaikaiset velat', pitkaVelat, '', true) : '') +
+    hdr('Lyhytaikainen vieras pääoma') +
+    rptRow('Lyhytaikaiset velat', lyhytVelat, '', true) +
+    rptRow('VASTATTAVAA YHTEENSÄ', vastattavaaYht, 'total') +
+    '<div class="rpt-row total"><div class="rpt-row-l" style="font-weight:600">' + (erotus<1 ? '✓ Tase tasapainossa' : '⚠ Tase ei tasapainossa') + '</div><div class="rpt-row-v">' + fmtE(erotus) + '</div></div>' +
+    '</div>';
 }
 function rptAlv() {
   // Myynnin ALV = kredit-tilit 3000-3999 joilla alv > 0
