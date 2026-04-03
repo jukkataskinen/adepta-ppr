@@ -200,6 +200,14 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 .rpt-row-v.pos{color:var(--fg3)}
 .rpt-row-v.neg{color:var(--red)}
 .rpt-row.indent .rpt-row-l{padding-left:16px;font-size:12px;color:var(--inu)}
+.rpt-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.rpt-tbl th{background:var(--fd);color:rgba(255,255,255,.7);font-family:var(--ffm);font-weight:500;padding:8px 12px;text-align:right;white-space:nowrap}
+.rpt-tbl th:first-child{text-align:left;font-family:var(--ffd);font-weight:300;color:#fff;font-size:13px}
+.rpt-tbl td{padding:8px 12px;border-bottom:1px solid var(--bd);color:var(--inm);text-align:right;font-family:var(--ffm);white-space:nowrap}
+.rpt-tbl td:first-child{text-align:left;font-family:inherit;color:var(--inm);padding-left:16px;font-size:12px;color:var(--inu)}
+.rpt-tbl tr.rpt-total td{background:var(--fmist);font-weight:600;color:var(--fm)}
+.rpt-tbl tr.rpt-total td:first-child{color:var(--inm);padding-left:12px;font-size:13px}
+.rpt-tbl tr:last-child td{border-bottom:none}
 
 /* Tilikartta */
 .tk-table{width:100%;border-collapse:collapse;border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:12px}
@@ -770,6 +778,11 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button class="rpt-tab act" onclick="showRpt('tulos',this)">Tuloslaskelma</button>
         <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
         <button class="rpt-tab" onclick="showRpt('alv',this)">ALV-laskelma</button>
+      </div>
+      <div id="rpt-period-sel" style="display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:13px">
+        <label><input type="radio" name="rptPeriod" value="vuosi" checked onchange="setRptPeriod('vuosi')"> Vuosi</label>
+        <label><input type="radio" name="rptPeriod" value="kvartaali" onchange="setRptPeriod('kvartaali')"> Neljännesvuosi</label>
+        <label><input type="radio" name="rptPeriod" value="kuukausi" onchange="setRptPeriod('kuukausi')"> Kuukausi</label>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--inu)">Näkymä:</span>
@@ -1665,6 +1678,7 @@ function lisaaTositeManual(rowId) {
 
 // ── REPORTS ──────────────────────────────────────────────────
 let rptMode = 'lyhyt';
+let rptPeriod = 'vuosi';
 let rptAlku = new Date().getFullYear() + '-01-01';
 let rptLoppu = new Date().toISOString().slice(0,10);
 let rptRows = [];
@@ -1678,7 +1692,12 @@ function setRptMode(mode, btn) {
 function showRpt(name, btn) {
   document.querySelectorAll('.rpt-tab').forEach(b => b.classList.remove('act'));
   if (btn) btn.classList.add('act');
+  document.getElementById('rpt-period-sel').style.display = name === 'tulos' ? 'flex' : 'none';
   renderRpt(name);
+}
+function setRptPeriod(p) {
+  rptPeriod = p;
+  renderRpt('tulos');
 }
 function curRptName() {
   const act = document.querySelector('.rpt-tabs .rpt-tab.act');
@@ -1708,7 +1727,98 @@ function rptRow(l, v, cls='', indent=false, sub='') {
     <div class="rpt-row-v">${vStr}</div>
   </div>`;
 }
+function calcTulos(r) {
+  const lv = (nrot) => r.filter(x=>nrot.includes(x.k)).reduce((s,x)=>s+x.netto,0);
+  const ku = (nrot) => r.filter(x=>nrot.includes(x.d)).reduce((s,x)=>s+x.netto,0);
+  const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
+  const muuttuotot  = lv(['3750','3844','3990','3994']);
+  const myynti255   = lv(['3000','3001','3002','3003','3004']);
+  const vuokrat     = lv(['3450','3454','3750']);
+  const muutlv      = lv(['3844','3990','3994']);
+  const aineet      = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490']);
+  const palkat      = ku(['5000']);
+  const elake       = ku(['6100','6130','6140','6240']);
+  const sivukulut   = ku(['6300','6400']);
+  const poistot     = ku(['6820','6830','6870','6890']);
+  const toimitila   = ku(['7204','7210','7214','7360','7370','7380','7390','7414','7430']);
+  const ajoneuvot   = ku(['7530','7540','7574']);
+  const it          = ku(['7650','7730']);
+  const matkat      = ku(['7800','7810','7820']);
+  const myyntimark  = ku(['7910','7920','7930']);
+  const hallinto    = ku(['7950','7960','7970','8010','8060','8100','8200','8450']);
+  const muutkulut   = ku(['8500','8540']);
+  const henk        = palkat + elake + sivukulut;
+  const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
+  const liikkulos   = liikevaihto + muuttuotot - liiketkulut;
+  const korot_t     = lv(['8650']);
+  const korot_k     = ku(['8710','8790']);
+  const tulos       = liikkulos + korot_t - korot_k;
+  return {myynti255,vuokrat,muutlv,liikevaihto,muuttuotot,aineet,palkat,elake,sivukulut,
+          toimitila,ajoneuvot,it,matkat,myyntimark,hallinto,muutkulut,poistot,
+          henk,liiketkulut,liikkulos,korot_t,korot_k,tulos};
+}
+function rptTulosTable(cols) {
+  const data = cols.map(c => calcTulos(c.rows));
+  const fv = (v) => v < -0.005 ? '-' + fmtE(Math.abs(v)) : fmtE(Math.abs(v));
+  const row = (lbl, fn, total=false) => {
+    const cls = total ? ' class="rpt-total"' : '';
+    const tds = data.map(d => `<td>${fv(fn(d))}</td>`).join('');
+    return `<tr${cls}><td>${lbl}</td>${tds}</tr>`;
+  };
+  return `<div class="rpt-section" style="overflow-x:auto"><table class="rpt-tbl">
+    <thead><tr><th>Tuloslaskelma</th>${cols.map(c=>`<th>${c.lbl}</th>`).join('')}</tr></thead>
+    <tbody>
+    ${row('Myynti 25,5%',                        d=>d.myynti255)}
+    ${row('Vuokratuotot',                         d=>d.vuokrat)}
+    ${row('Muut liiketoiminnan tuotot',            d=>d.muutlv)}
+    ${row('LIIKEVAIHTO JA MUUT TUOTOT',           d=>d.liikevaihto+d.muuttuotot, true)}
+    ${row('Aineet, tarvikkeet ja ulk. palvelut',   d=>-d.aineet)}
+    ${row('Palkat ja palkkiot',                    d=>-d.palkat)}
+    ${row('Eläkekulut',                            d=>-d.elake)}
+    ${row('Muut henkilösivukulut',                 d=>-d.sivukulut)}
+    ${row('Toimitilakulut',                        d=>-d.toimitila)}
+    ${row('Ajoneuvokulut',                         d=>-d.ajoneuvot)}
+    ${row('IT-kulut',                              d=>-d.it)}
+    ${row('Matkakulut',                            d=>-d.matkat)}
+    ${row('Myynti ja markkinointi',                d=>-d.myyntimark)}
+    ${row('Hallintokulut',                         d=>-d.hallinto)}
+    ${row('Muut liiketoiminnan kulut',             d=>-d.muutkulut)}
+    ${row('Poistot',                               d=>-d.poistot)}
+    ${row('LIIKETOIMINNAN KULUT YHT.',             d=>-d.liiketkulut, true)}
+    ${row('LIIKEVOITTO (-TAPPIO)',                  d=>d.liikkulos, true)}
+    ${row('Korkotuotot',                           d=>d.korot_t)}
+    ${row('Korkokulut',                            d=>-d.korot_k)}
+    ${row('TILIKAUDEN TULOS',                      d=>d.tulos, true)}
+    </tbody></table></div>`;
+}
 function rptTulos() {
+  if (rptPeriod === 'kvartaali') {
+    const vuosi = (rptAlku || '').slice(0,4) || new Date().getFullYear();
+    const qRows = (q) => rows.filter(r => {
+      const m = parseInt((r.pv||'').slice(5,7));
+      return r.pv >= rptAlku && r.pv <= rptLoppu && m >= (q-1)*3+1 && m <= q*3;
+    });
+    return rptTulosTable([
+      {lbl:'Q1', rows:qRows(1)},
+      {lbl:'Q2', rows:qRows(2)},
+      {lbl:'Q3', rows:qRows(3)},
+      {lbl:'Q4', rows:qRows(4)},
+      {lbl:'Yhteensä', rows:rptRows},
+    ]);
+  }
+  if (rptPeriod === 'kuukausi') {
+    const kuukaudet = ['Tammi','Helmi','Maalis','Huhti','Touko','Kesä',
+                       'Heinä','Elo','Syys','Loka','Marras','Joulu'];
+    const cols = kuukaudet.map((lbl,i) => ({
+      lbl,
+      rows: rows.filter(r => {
+        const m = parseInt((r.pv||'').slice(5,7));
+        return r.pv >= rptAlku && r.pv <= rptLoppu && m === i+1;
+      })
+    }));
+    cols.push({lbl:'Yhteensä', rows:rptRows});
+    return rptTulosTable(cols);
+  }
   const lv = (nrot) => rptRows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
   const ku = (nrot) => rptRows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
   const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
