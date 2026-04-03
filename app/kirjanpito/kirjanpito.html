@@ -1963,7 +1963,7 @@ function calcTulos(r) {
   const korot_t    = -sumAlue(8650, 8699);   // kredit-normal → käännetään
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
-  const muutVerot  =  sumAlue(9100, 9999);
+  const muutVerot = r.filter(x => { const n=parseInt((x.d||x.k)||'0'); return n>=9100&&n<=9999; }).reduce((s,x) => s + (x.k ? x.netto : -x.netto), 0);
 
   const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
   const liikkulos   = tuotot - liiketkulut;
@@ -2115,7 +2115,7 @@ function rptTulos() {
   const korot_t    = -sumAlue(8650, 8699);
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
-  const muutVerot  =  sumAlue(9100, 9999);
+  const muutVerot = rptRows.filter(r => { const n=parseInt((r.d||r.k)||'0'); return n>=9100&&n<=9999; }).reduce((s,r) => s + (r.k ? r.netto : -r.netto), 0);
 
   const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
   const liikkulos   = tuotot - liiketkulut;
@@ -2238,7 +2238,7 @@ function rptTase() {
   const korot_t    = -sumAlue(8650, 8699);
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
-  const muutVerot  =  sumAlue(9100, 9999);
+  const muutVerot = rptRows.filter(r => { const n=parseInt((r.d||r.k)||'0'); return n>=9100&&n<=9999; }).reduce((s,r) => s + (r.k ? r.netto : -r.netto), 0);
   const liiketkulut = aineet + henk + poistot + toimitila + konekulut + ajoneuvot + itkulut + matkat + myyntimark + hallinto + muutkulut;
   const tulos = tuotot - liiketkulut + korot_t - korot_k - verot + muutVerot;
 
