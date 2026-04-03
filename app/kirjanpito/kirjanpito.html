@@ -3299,6 +3299,7 @@ function renderTositeRivit() {
     'oninput="tositeHakuTili(this,' + i + ')" ' +
     'onfocus="tositeAvaaLista(this,' + i + ')" ' +
     'onblur="setTimeout(()=>tositeSubjatLista(' + i + '),150)" ' +
+    'onkeydown="if(event.key===\'ArrowDown\'){event.preventDefault();var l=document.getElementById(\'ts-tili-lista-' + i + '\');if(l&&l.firstElementChild){l.firstElementChild.focus();}}" ' +
     'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
     '<div id="ts-tili-lista-' + i + '" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
     '</div></td>' +
@@ -3361,18 +3362,6 @@ function paivitaTositeTotals() {
 }
 
 function tsKey(e, rowIdx, col) {
-  if (e.key === 'ArrowDown' && col === 0) {
-    e.preventDefault();
-    const lista = document.getElementById('ts-tili-lista-' + rowIdx);
-    if (lista && lista.style.display !== 'none') {
-      const first = lista.querySelector('div');
-      if (first) {
-        first.focus();
-        first.style.background = '#f0f7f1';
-      }
-    }
-    return;
-  }
   if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
     e.preventDefault();
     if (col < 4) {
@@ -3440,39 +3429,26 @@ function tositeValitseTili(rowIdx, nro, lbl) {
   }, 50);
 }
 
-function handleListKey(e, rowIdx, div) {
-  const lista = div.parentElement;
-  const allDivs = lista.querySelectorAll('div');
+function handleListKey(e, rowIdx, el) {
   if (e.key === 'ArrowDown') {
     e.preventDefault();
-    const next = div.nextElementSibling;
-    if (next) {
-      allDivs.forEach(d => d.style.background = '');
-      next.style.background = '#f0f7f1';
-      next.focus();
-    }
+    const next = el.nextElementSibling;
+    if (next) next.focus();
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
-    const prev = div.previousElementSibling;
-    if (prev) {
-      allDivs.forEach(d => d.style.background = '');
-      prev.style.background = '#f0f7f1';
-      prev.focus();
-    } else {
-      allDivs.forEach(d => d.style.background = '');
+    const prev = el.previousElementSibling;
+    if (prev) prev.focus();
+    else {
       const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="0"]');
       if (input) input.focus();
     }
   } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault();
-    allDivs.forEach(d => d.style.background = '');
-    const spans = div.querySelectorAll('span');
-    const nro = spans[0].textContent;
-    const lbl = spans[1].textContent;
-    tositeValitseTili(rowIdx, nro, lbl);
+    el.dispatchEvent(new MouseEvent('mousedown'));
   } else if (e.key === 'Escape') {
-    allDivs.forEach(d => d.style.background = '');
     tositeSubjatLista(rowIdx);
+    const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="0"]');
+    if (input) input.focus();
   }
 }
 
