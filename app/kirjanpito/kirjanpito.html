@@ -3311,6 +3311,24 @@ function renderTositeRivit() {
 }
 
 function generateUserRow(r, i) {
+  // Calculate display values - always show net amounts when ALV is selected
+  let displayDebet = r.debet || '';
+  let displayKredit = r.kredit || '';
+  
+  if ((parseFloat(r.alvp) || 0) > 0) {
+    const grossDebet = parseFloat(r.debet) || 0;
+    const grossKredit = parseFloat(r.kredit) || 0;
+    const gross = grossDebet || grossKredit;
+    if (gross > 0) {
+      const net = gross / (1 + parseFloat(r.alvp) / 100);
+      if (grossDebet > 0) {
+        displayDebet = net.toFixed(2);
+      } else if (grossKredit > 0) {
+        displayKredit = net.toFixed(2);
+      }
+    }
+  }
+  
   return '<tr style="border-bottom:1px solid var(--bd)">' +
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
     '<input type="text" value="' + ((r.tili ? r.tili + ' ' + r.tiliLbl : '').replace(/"/g, '&quot;')) + '" placeholder="Tilinumero tai nimi..." ' +
@@ -3327,12 +3345,12 @@ function generateUserRow(r, i) {
     'oninput="tositeUpdField(' + i + ',' + "'sel'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',1)" ' +
     'style="width:100%;min-width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" placeholder="0,00" ' +
+    '<td style="padding:4px 6px"><input type="number" value="' + displayDebet + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="2" ' +
     'oninput="tositeUpdField(' + i + ',' + "'debet'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',2)" ' +
     'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f"></td>' +
-    '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" placeholder="0,00" ' +
+    '<td style="padding:4px 6px"><input type="number" value="' + displayKredit + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="3" ' +
     'oninput="tositeUpdField(' + i + ',' + "'kredit'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',3)" ' +
@@ -3393,19 +3411,6 @@ function paivitaTositeTotals() {
   // Preserve balancing row account info
   const prevTili = tositeBalancingRow ? tositeBalancingRow.tili : '';
   const prevTiliLbl = tositeBalancingRow ? tositeBalancingRow.tiliLbl : '';
-  
-  // Update user row inputs to show net amounts when ALV is selected
-  tositeRivit.forEach((r, i) => {
-    if ((parseFloat(r.alvp) || 0) > 0) {
-      const gross = parseFloat(r.debet) || parseFloat(r.kredit) || 0;
-      if (gross > 0) {
-        const net = gross / (1 + parseFloat(r.alvp) / 100);
-        const netFmt = net.toFixed(2);
-        const input = document.querySelector('[data-row="' + i + '"][data-col="' + (r.debet ? '2' : '3') + '"]');
-        if (input && input !== document.activeElement) input.value = netFmt;
-      }
-    }
-  });
   
   // Calculate ALV rows
   tositeAlvRivit = [];
@@ -3516,30 +3521,6 @@ function updateAutoRowsInDOM() {
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   const tbody = document.getElementById('tosite-tbody');
   const userRowCount = tositeRivit.length;
-  
-  // Update user row display to show net amounts when ALV is selected
-  tositeRivit.forEach((r, i) => {
-    const alvp = parseFloat(r.alvp) || 0;
-    if (alvp > 0) {
-      const debet = parseFloat(r.debet) || 0;
-      const kredit = parseFloat(r.kredit) || 0;
-      const gross = debet || kredit;
-      if (gross > 0) {
-        const net = gross / (1 + alvp / 100);
-        // Update the display values in user row inputs, leaving data unchanged
-        const debInput = document.querySelector('[data-row="' + i + '"][data-col="2"]');
-        const kredInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
-        if (debet > 0 && debInput) {
-          debInput.value = fmt(net);
-          debInput.style.fontStyle = 'italic';
-        }
-        if (kredit > 0 && kredInput) {
-          kredInput.value = fmt(net);
-          kredInput.style.fontStyle = 'italic';
-        }
-      }
-    }
-  });
   
   // Remove all existing auto/balancing rows
   const allRows = tbody.querySelectorAll('tr');
