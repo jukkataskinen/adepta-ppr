@@ -1220,6 +1220,20 @@ function render() {
       '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#c0392b">' + (kredit ? kredit.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>';
     tbody.appendChild(tr);
   });
+  // Yhteensä-rivi taulukon loppuun
+  const table = document.getElementById('jt');
+  const oldFoot = table.querySelector('tfoot.filter-total');
+  if (oldFoot) oldFoot.remove();
+  const totDebet  = displayRows.filter(r=>r.d).reduce((s,r)=>s+r.netto,0);
+  const totKredit = displayRows.filter(r=>r.k).reduce((s,r)=>s+r.netto,0);
+  const tfoot = document.createElement('tfoot');
+  tfoot.className = 'filter-total';
+  tfoot.innerHTML = `<tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+    <td colspan="7" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä — ${displayRows.length} vientiä</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${fmtE(totDebet)}</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${fmtE(totKredit)}</td>
+  </tr>`;
+  table.appendChild(tfoot);
   updateTotals();
 }
 
@@ -2175,17 +2189,20 @@ function renderPaakirja() {
     : [...new Set([...filtered.map(r=>r.d), ...filtered.map(r=>r.k)].filter(Boolean))].sort();
   const fv = (v) => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits:2, maximumFractionDigits:2});
   let html = '';
+  let grandD = 0, grandK = 0;
   tilit.forEach(tili => {
     const tiliRows = filtered.filter(r => r.d === tili || r.k === tili)
                              .sort((a,b) => (a.pv||'').localeCompare(b.pv||''));
     if (!tiliRows.length) return;
     const tiliInfo = TILIT.find(t => t.nro === tili);
     const dNorm = isDebetNorm(tili);
-    let saldo = 0;
+    let saldo = 0, tiliD = 0, tiliK = 0;
     let tbody = tiliRows.map(r => {
       const isD = r.d === tili;
       const dAmt = isD ? r.netto : 0;
       const kAmt = !isD ? r.netto : 0;
+      tiliD += dAmt; tiliK += kAmt;
+      grandD += dAmt; grandK += kAmt;
       saldo += dNorm ? (dAmt - kAmt) : (kAmt - dAmt);
       const saldoColor = saldo < -0.005 ? 'color:#c0392b' : '';
       return `<tr style="border-bottom:1px solid var(--bd)">
@@ -2197,6 +2214,13 @@ function renderPaakirja() {
         <td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);${saldoColor}">${fv(saldo)}</td>
       </tr>`;
     }).join('');
+    const saldoColor = saldo < -0.005 ? 'color:#c0392b' : 'color:var(--inm)';
+    const tfoot = `<tfoot><tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+      <td colspan="3" style="padding:7px 12px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä</td>
+      <td style="padding:7px 12px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${fv(tiliD)}</td>
+      <td style="padding:7px 12px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${fv(tiliK)}</td>
+      <td style="padding:7px 12px;font-size:12px;font-weight:600;text-align:right;font-family:var(--ffm);${saldoColor}">${fv(saldo)}</td>
+    </tr></tfoot>`;
     html += `<div class="rpt-section" style="margin-bottom:16px">
       <div class="rpt-hdr">
         <div class="rpt-hdr-t">${tili}${tiliInfo?' '+tiliInfo.lbl:''}</div>
@@ -2212,9 +2236,23 @@ function renderPaakirja() {
           <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Saldo</th>
         </tr></thead>
         <tbody>${tbody}</tbody>
+        ${tfoot}
       </table>
     </div>`;
   });
+  if (grandD > 0.005 || grandK > 0.005) {
+    html += `<div class="rpt-section">
+      <div class="rpt-hdr"><div class="rpt-hdr-t">Kaikki tilit yhteensä</div></div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="background:var(--ppw)">
+          <td colspan="3" style="padding:10px 14px;font-size:13px;font-weight:600;color:var(--inm)">Yhteensä</td>
+          <td style="padding:10px 14px;font-size:13px;font-weight:600;text-align:right;color:#2a7a4f">${fv(grandD)}</td>
+          <td style="padding:10px 14px;font-size:13px;font-weight:600;text-align:right;color:#c0392b">${fv(grandK)}</td>
+          <td style="padding:10px 14px"></td>
+        </tr>
+      </table>
+    </div>`;
+  }
   document.getElementById('paakirja-content').innerHTML =
     html || '<div style="color:var(--inu);font-size:13px;padding:16px 0">Ei vientejä valitulla aikavälillä.</div>';
 }
