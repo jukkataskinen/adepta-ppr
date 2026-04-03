@@ -290,6 +290,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="sb-sec">Näkymä</div>
     <div class="nav-item" id="nav-tosite" onclick="showPanel('tosite')"><span class="ic">✏️</span>Tositteen syöttö</div>
     <div class="nav-item act" id="nav-pk" onclick="showPanel('paivak')"><span class="ic">📒</span>Päiväkirja</div>
+    <div class="nav-item" id="nav-pk2" onclick="showPanel('paakirja')"><span class="ic">📖</span>Pääkirja</div>
     <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')"><span class="ic">🏦</span>Pankkituonti</div>
     <div class="nav-item" id="nav-tositteet" onclick="showPanel('tositteet')"><span class="ic">📎</span>Tositteet</div>
     <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')"><span class="ic">📊</span>Raportit</div>
@@ -377,6 +378,17 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div style="font-size:11px;color:var(--inu)">Tilikausi: <strong>1.1.2025 – 31.12.2025</strong></div>
       </div>
 
+      <!-- Päiväkirja-suodattimet -->
+      <div style="display:flex;gap:8px;padding:6px 12px;border-bottom:1px solid var(--bd);align-items:center;flex-shrink:0;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--inu)">Suodatus:</span>
+        <input type="date" id="pk-filter-alku" style="font-size:12px;padding:3px 7px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--fg)" onchange="render()" placeholder="Alku">
+        <span style="font-size:11px;color:var(--inu)">–</span>
+        <input type="date" id="pk-filter-loppu" style="font-size:12px;padding:3px 7px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--fg)" onchange="render()" placeholder="Loppu">
+        <select id="pk-filter-tili" style="font-size:12px;padding:3px 7px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--fg);font-family:var(--ffb)" onchange="render()">
+          <option value="">— Kaikki tilit —</option>
+        </select>
+        <button onclick="document.getElementById('pk-filter-alku').value='';document.getElementById('pk-filter-loppu').value='';document.getElementById('pk-filter-tili').value='';render()" style="font-size:11px;padding:3px 8px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inu);cursor:pointer">Tyhjennä</button>
+      </div>
       <!-- Import notification bar — näkyy kun jonossa on tapahtumia -->
       <div id="import-notify-bar" style="display:none;background:#fffbf0;border-bottom:1px solid #f0e0a0;padding:7px 18px;flex-shrink:0;align-items:center;gap:10px">
         <span style="font-size:15px">🏦</span>
@@ -426,6 +438,28 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           <span class="bal-ok">✓ Kirjanpito tasapainossa</span>
         </div>
       </div>
+    </div>
+
+    <!-- ─── PÄÄKIRJA PANEL ─── -->
+    <div id="panel-paakirja" class="panel">
+      <h2>Pääkirja</h2>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end;flex-wrap:wrap">
+        <div>
+          <label style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--inu);display:block;margin-bottom:4px">Alku</label>
+          <input type="date" id="pk2-alku" onchange="renderPaakirja()">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--inu);display:block;margin-bottom:4px">Loppu</label>
+          <input type="date" id="pk2-loppu" onchange="renderPaakirja()">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--inu);display:block;margin-bottom:4px">Tili</label>
+          <select id="pk2-tili" onchange="renderPaakirja()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-size:13px;font-family:var(--ffb)">
+            <option value="">— Kaikki tilit —</option>
+          </select>
+        </div>
+      </div>
+      <div id="paakirja-content"></div>
     </div>
 
     <!-- ─── PANKKITUONTI PANEL ─── -->
@@ -1088,11 +1122,33 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {paivak:'pk',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'};
+  const navMap = {paivak:'pk',paakirja:'pk2',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') renderTositteet();
+  if (name === 'paivak') {
+    // Täytä päiväkirja-tilidropdown
+    const tilit = [...new Set([...rows.map(r=>r.d), ...rows.map(r=>r.k)].filter(Boolean))].sort();
+    const sel = document.getElementById('pk-filter-tili');
+    if (sel) {
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— Kaikki tilit —</option>' +
+        tilit.map(t => `<option value="${t}"${t===cur?' selected':''}>${t} ${TILIT.find(tl=>tl.nro===t)?.lbl||''}</option>`).join('');
+    }
+  }
+  if (name === 'paakirja') {
+    const vuosi = curTilikausiVuosi || new Date().getFullYear();
+    const alkuEl = document.getElementById('pk2-alku');
+    const loppuEl = document.getElementById('pk2-loppu');
+    if (!alkuEl.value) alkuEl.value = vuosi + '-01-01';
+    if (!loppuEl.value) loppuEl.value = new Date().toISOString().slice(0,10);
+    const tilit = [...new Set([...rows.map(r=>r.d), ...rows.map(r=>r.k)].filter(Boolean))].sort();
+    const sel = document.getElementById('pk2-tili');
+    sel.innerHTML = '<option value="">— Kaikki tilit —</option>' +
+      tilit.map(t => `<option value="${t}">${t} ${TILIT.find(tl=>tl.nro===t)?.lbl||''}</option>`).join('');
+    renderPaakirja();
+  }
   if (name === 'raportit') {
     const alkuEl = document.getElementById('rpt-alku');
     const loppuEl = document.getElementById('rpt-loppu');
@@ -1137,7 +1193,15 @@ const NC = 7;
 function render() {
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
-  rows.forEach((r, i) => {
+  const alku = document.getElementById('pk-filter-alku')?.value || '';
+  const loppu = document.getElementById('pk-filter-loppu')?.value || '';
+  const tili = document.getElementById('pk-filter-tili')?.value || '';
+  const displayRows = rows.filter(r =>
+    (!alku || r.pv >= alku) &&
+    (!loppu || r.pv <= loppu) &&
+    (!tili || r.d === tili || r.k === tili)
+  );
+  displayRows.forEach((r, i) => {
     const tr = document.createElement('tr');
     tr.className = 'jr';
     const debet = r.netto > 0 && !r.k ? r.netto : 0;
@@ -2096,6 +2160,64 @@ function rptAlv() {
   </div>`;
 }
 
+function renderPaakirja() {
+  const alku  = document.getElementById('pk2-alku')?.value  || '';
+  const loppu = document.getElementById('pk2-loppu')?.value || '';
+  const tiliSel = document.getElementById('pk2-tili')?.value || '';
+  const filtered = rows.filter(r =>
+    (!alku  || r.pv >= alku) &&
+    (!loppu || r.pv <= loppu)
+  );
+  // D-normaali: 1xxx (vastaavaa) ja 4xxx-9xxx (kulut)
+  const isDebetNorm = (nro) => { const n = parseInt(nro); return (n >= 1000 && n < 2000) || n >= 4000; };
+  const tilit = tiliSel
+    ? [tiliSel]
+    : [...new Set([...filtered.map(r=>r.d), ...filtered.map(r=>r.k)].filter(Boolean))].sort();
+  const fv = (v) => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits:2, maximumFractionDigits:2});
+  let html = '';
+  tilit.forEach(tili => {
+    const tiliRows = filtered.filter(r => r.d === tili || r.k === tili)
+                             .sort((a,b) => (a.pv||'').localeCompare(b.pv||''));
+    if (!tiliRows.length) return;
+    const tiliInfo = TILIT.find(t => t.nro === tili);
+    const dNorm = isDebetNorm(tili);
+    let saldo = 0;
+    let tbody = tiliRows.map(r => {
+      const isD = r.d === tili;
+      const dAmt = isD ? r.netto : 0;
+      const kAmt = !isD ? r.netto : 0;
+      saldo += dNorm ? (dAmt - kAmt) : (kAmt - dAmt);
+      const saldoColor = saldo < -0.005 ? 'color:#c0392b' : '';
+      return `<tr style="border-bottom:1px solid var(--bd)">
+        <td style="padding:7px 12px;font-size:12px">${r.pv||''}</td>
+        <td style="padding:7px 12px;font-size:12px">${r.ts||''}</td>
+        <td style="padding:7px 12px;font-size:12px;color:var(--inu)">${r.sel||''}</td>
+        <td style="padding:7px 12px;font-size:12px;text-align:right;color:#2a7a4f">${dAmt>0.005?fv(dAmt):''}</td>
+        <td style="padding:7px 12px;font-size:12px;text-align:right;color:#c0392b">${kAmt>0.005?fv(kAmt):''}</td>
+        <td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);${saldoColor}">${fv(saldo)}</td>
+      </tr>`;
+    }).join('');
+    html += `<div class="rpt-section" style="margin-bottom:16px">
+      <div class="rpt-hdr">
+        <div class="rpt-hdr-t">${tili}${tiliInfo?' '+tiliInfo.lbl:''}</div>
+        <div class="rpt-hdr-s">${tiliRows.length} vientiä</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--ppw)">
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Päivä</th>
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tosite</th>
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Selite</th>
+          <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Debet</th>
+          <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Kredit</th>
+          <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Saldo</th>
+        </tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>`;
+  });
+  document.getElementById('paakirja-content').innerHTML =
+    html || '<div style="color:var(--inu);font-size:13px;padding:16px 0">Ei vientejä valitulla aikavälillä.</div>';
+}
 async function genTestidata() {
   if (!curYritys) { toast('Valitse ensin yritys'); return; }
   const vuosi = curTilikausiVuosi || new Date().getFullYear();
