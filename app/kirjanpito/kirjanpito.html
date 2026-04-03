@@ -1791,33 +1791,88 @@ function rptTulosTable(cols) {
     ${row('TILIKAUDEN TULOS',                      d=>d.tulos, true)}
     </tbody></table></div>`;
 }
+function rptTulosTablePitka(cols) {
+  const fv = (v) => v < -0.005 ? '-' + fmtE(Math.abs(v)) : fmtE(Math.abs(v));
+  const val = (r, nro, norm) => {
+    const db = r.filter(x=>x.d===nro).reduce((s,x)=>s+x.netto,0);
+    const kb = r.filter(x=>x.k===nro).reduce((s,x)=>s+x.netto,0);
+    return norm==='K' ? kb-db : -(db-kb);
+  };
+  const acctRow = (nro, norm) => {
+    const vals = cols.map(c => val(c.rows, nro, norm));
+    if (vals.every(v => Math.abs(v) < 0.01)) return '';
+    const nimi = TILIT.find(t=>t.nro===nro)?.lbl || nro;
+    return `<tr><td style="padding-left:28px;font-size:11px;color:var(--inu)">${nro} ${nimi}</td>${vals.map(v=>`<td>${fv(v)}</td>`).join('')}</tr>`;
+  };
+  const shdr = (lbl) => `<tr><td colspan="${cols.length+1}" style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:10px 12px 3px;background:var(--pp)">${lbl}</td></tr>`;
+  const data = cols.map(c => calcTulos(c.rows));
+  const totRow = (lbl, fn) => `<tr class="rpt-total"><td>${lbl}</td>${data.map(d=>`<td>${fv(fn(d))}</td>`).join('')}</tr>`;
+  return `<div class="rpt-section" style="overflow-x:auto"><table class="rpt-tbl">
+    <thead><tr><th>Tuloslaskelma (tilikohtainen)</th>${cols.map(c=>`<th>${c.lbl}</th>`).join('')}</tr></thead>
+    <tbody>
+    ${shdr('Liikevaihto')}
+    ${['3000','3001','3002','3003','3004','3344','3355','3450','3454'].map(n=>acctRow(n,'K')).join('')}
+    ${shdr('Muut liiketoiminnan tuotot')}
+    ${['3750','3844','3990','3994'].map(n=>acctRow(n,'K')).join('')}
+    ${totRow('LIIKEVAIHTO JA MUUT TUOTOT', d=>d.liikevaihto+d.muuttuotot)}
+    ${shdr('Aineet, tarvikkeet ja ulkopuoliset palvelut')}
+    ${['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Palkat ja palkkiot')}${acctRow('5000','D')}
+    ${shdr('Eläkekulut')}
+    ${['6100','6130','6140','6240'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Muut henkilösivukulut')}
+    ${['6300','6400'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Toimitilakulut')}
+    ${['7204','7210','7214','7360','7370','7380','7390','7414','7430'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Ajoneuvokulut')}
+    ${['7530','7540','7574'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('IT-kulut')}
+    ${['7650','7730'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Matkakulut')}
+    ${['7800','7810','7820'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Myynti ja markkinointi')}
+    ${['7910','7920','7930'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Hallintokulut')}
+    ${['7950','7960','7970','8010','8060','8100','8200','8450'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Muut liiketoiminnan kulut')}
+    ${['8500','8540'].map(n=>acctRow(n,'D')).join('')}
+    ${shdr('Poistot')}
+    ${['6820','6830','6870','6890'].map(n=>acctRow(n,'D')).join('')}
+    ${totRow('LIIKETOIMINNAN KULUT YHT.', d=>-d.liiketkulut)}
+    ${totRow('LIIKEVOITTO (-TAPPIO)', d=>d.liikkulos)}
+    ${shdr('Rahoitustuotot')}${acctRow('8650','K')}
+    ${shdr('Rahoituskulut')}
+    ${['8710','8790'].map(n=>acctRow(n,'D')).join('')}
+    ${totRow('TILIKAUDEN TULOS', d=>d.tulos)}
+    </tbody></table></div>`;
+}
 function rptTulos() {
-  if (rptPeriod === 'kvartaali') {
-    const vuosi = (rptAlku || '').slice(0,4) || new Date().getFullYear();
-    const qRows = (q) => rows.filter(r => {
-      const m = parseInt((r.pv||'').slice(5,7));
-      return r.pv >= rptAlku && r.pv <= rptLoppu && m >= (q-1)*3+1 && m <= q*3;
-    });
-    return rptTulosTable([
-      {lbl:'Q1', rows:qRows(1)},
-      {lbl:'Q2', rows:qRows(2)},
-      {lbl:'Q3', rows:qRows(3)},
-      {lbl:'Q4', rows:qRows(4)},
-      {lbl:'Yhteensä', rows:rptRows},
-    ]);
-  }
-  if (rptPeriod === 'kuukausi') {
-    const kuukaudet = ['Tammi','Helmi','Maalis','Huhti','Touko','Kesä',
-                       'Heinä','Elo','Syys','Loka','Marras','Joulu'];
-    const cols = kuukaudet.map((lbl,i) => ({
-      lbl,
-      rows: rows.filter(r => {
+  if (rptPeriod !== 'vuosi') {
+    let cols;
+    if (rptPeriod === 'kvartaali') {
+      const qRows = (q) => rows.filter(r => {
         const m = parseInt((r.pv||'').slice(5,7));
-        return r.pv >= rptAlku && r.pv <= rptLoppu && m === i+1;
-      })
-    }));
-    cols.push({lbl:'Yhteensä', rows:rptRows});
-    return rptTulosTable(cols);
+        return r.pv >= rptAlku && r.pv <= rptLoppu && m >= (q-1)*3+1 && m <= q*3;
+      });
+      cols = [
+        {lbl:'Q1', rows:qRows(1)},
+        {lbl:'Q2', rows:qRows(2)},
+        {lbl:'Q3', rows:qRows(3)},
+        {lbl:'Q4', rows:qRows(4)},
+        {lbl:'Yhteensä', rows:rptRows},
+      ];
+    } else {
+      const kk = ['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu'];
+      cols = kk.map((lbl,i) => ({
+        lbl,
+        rows: rows.filter(r => {
+          const m = parseInt((r.pv||'').slice(5,7));
+          return r.pv >= rptAlku && r.pv <= rptLoppu && m === i+1;
+        })
+      }));
+      cols.push({lbl:'Yhteensä', rows:rptRows});
+    }
+    return rptMode === 'pitka' ? rptTulosTablePitka(cols) : rptTulosTable(cols);
   }
   const lv = (nrot) => rptRows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
   const ku = (nrot) => rptRows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
