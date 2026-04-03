@@ -3482,12 +3482,21 @@ function paivitaTositeTotals() {
   const totalNetK = userNetK + alvTotK;
   const erotus = totalNetD - totalNetK;
   
+  // Calculate balancing row including existing balancing amounts
+  let balD = 0, balK = 0;
+  if (tositeBalancingRow) {
+    const parseFi = v => typeof v === 'string' ? parseFloat(v.replace(/\s/g,'').replace(',','.')) || 0 : parseFloat(v) || 0;
+    balD = parseFi(tositeBalancingRow.debet);
+    balK = parseFi(tositeBalancingRow.kredit);
+  }
+  const erotusBalancing = (totalNetD + balD) - (totalNetK + balK);
+  
   tositeBalancingRow = { tili: prevTili, tiliLbl: prevTiliLbl, debet: '', kredit: '' };
-  if (Math.abs(erotus) > 0.01) {
-    if (erotus < 0) {
-      tositeBalancingRow.debet = fmt(Math.abs(erotus));
+  if (Math.abs(erotusBalancing) > 0.01) {
+    if (erotusBalancing < 0) {
+      tositeBalancingRow.debet = fmt(Math.abs(erotusBalancing));
     } else {
-      tositeBalancingRow.kredit = fmt(erotus);
+      tositeBalancingRow.kredit = fmt(erotusBalancing);
     }
   }
   
@@ -3497,23 +3506,23 @@ function paivitaTositeTotals() {
   document.getElementById('ts-tot-debet').textContent = fmt(dispTotD);
   document.getElementById('ts-tot-kredit').textContent = fmt(dispTotK);
   const tasaEl = document.getElementById('ts-tasapaino');
-  if (Math.abs(erotus) < 0.01) {
+  if (Math.abs(erotusBalancing) < 0.01) {
     tasaEl.textContent = '✓ Tosite täsmää';
     tasaEl.style.color = '#1D9E75';
   } else {
-    tasaEl.textContent = 'Erotus: ' + fmt(Math.abs(erotus)) + ' €';
+    tasaEl.textContent = 'Erotus: ' + fmt(Math.abs(erotusBalancing)) + ' €';
     tasaEl.style.color = '#c0392b';
   }
   
   // Update button state
   const btn = document.getElementById('tosite-save-btn');
   const hasUserRows = tositeRivit.some(r => r.tili);
-  const isBlanaced = Math.abs(erotus) < 0.01;
+  const isBlanaced = Math.abs(erotusBalancing) < 0.01;
   const voidaan = tositeDirty && hasUserRows && isBlanaced;
   btn.disabled = !voidaan;
   btn.style.opacity = voidaan ? '1' : '0.4';
 
-  console.log('Tasapaino:', erotus, 'tositeDirty:', tositeDirty, 'hasUserRows:', tositeRivit.some(r => r.tili), 'voidaan:', tositeDirty && tositeRivit.some(r => r.tili) && Math.abs(erotus) < 0.01);
+  console.log('Tasapaino:', erotusBalancing, 'tositeDirty:', tositeDirty, 'hasUserRows:', tositeRivit.some(r => r.tili), 'voidaan:', tositeDirty && tositeRivit.some(r => r.tili) && Math.abs(erotusBalancing) < 0.01);
 
   // Update auto rows in DOM without regenerating user rows
   updateAutoRowsInDOM();
