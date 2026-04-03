@@ -3211,9 +3211,8 @@ function tasmaytatLaskut() {
       if (t.laskuIdx !== undefined && t.laskuIdx !== null) return;
       let score = 0; const reasons = [];
       const tS = Math.abs(t.summa), lB = lasku.summa_brutto, lN = lasku.summa_netto;
-      if (lB && Math.abs(tS-lB) <= Math.max(1.0,lB*0.01))       { score+=40; reasons.push('summa'); }
-      else if (lN && Math.abs(tS-lN) <= Math.max(1.0,lN*0.01))  { score+=25; reasons.push('summa netto'); }
-      else if (lB && Math.abs(tS-lB) <= lB*0.05)                { score+=15; reasons.push('summa ~5%'); }
+      if (lB && Math.abs(tS-lB) <= 0.01)       { score+=40; reasons.push('summa'); }
+      else if (lN && Math.abs(tS-lN) <= 0.01)  { score+=25; reasons.push('summa netto'); }
       const tv=(t.viite||'').replace(/\s/g,''), lv=(lasku.viite||'').replace(/\s/g,'');
       if (tv&&lv) {
         if (tv===lv)                                              { score+=50; reasons.push('viite'); }
@@ -3238,7 +3237,9 @@ function tasmaytatLaskut() {
       }
       if (score>bestScore) { bestScore=score; best={t,reasons}; }
     });
-    if (bestScore>=30&&best) {
+    const hasSumma = best?.reasons.some(r => r.includes('summa'));
+    const hasNimiTaiViite = best?.reasons.some(r => r.includes('nimi') || r.includes('viite'));
+    if (bestScore>=50&&best&&hasSumma&&hasNimiTaiViite) {
       const t=best.t;
       lasku.tapIdx=t.idx; t.laskuIdx=lasku.idx;
       t.tasmaytysSyy=best.reasons.join(' + ');
