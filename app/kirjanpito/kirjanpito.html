@@ -397,6 +397,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               <th>Selite</th>
               <th>Tili</th>
               <th>Tilin nimi</th>
+              <th>ALV %</th>
               <th class="r">Debet €</th>
               <th class="r">Kredit €</th>
             </tr>
@@ -1121,6 +1122,7 @@ function render() {
       '<td style="padding:4px 8px;font-size:12px">' + (r.sel || '') + '</td>' +
       '<td style="padding:4px 8px;font-size:12px;font-weight:600">' + tili + '</td>' +
       '<td style="padding:4px 8px;font-size:12px;color:var(--inu)">' + tiliNimi + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px;text-align:center;color:var(--inu)">' + (r.alvp > 0 ? r.alvp + '%' : '') + '</td>' +
       '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#2a7a4f">' + (debet ? debet.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>' +
       '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#c0392b">' + (kredit ? kredit.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>';
     tbody.appendChild(tr);
