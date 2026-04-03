@@ -3277,13 +3277,19 @@ function lisaaTositeRivi() {
   // Aseta päivämäärä automaattisesti jos tyhjä
   const pvmEl = document.getElementById('ts-pvm');
   if (!pvmEl.value) pvmEl.value = new Date().toISOString().slice(0,10);
-  tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '' });
+  const hasBalancing = tositeRivit.length > 0 && tositeRivit[tositeRivit.length-1].tasaus === true;
+  if (hasBalancing) {
+    tositeRivit.splice(tositeRivit.length - 1, 0, { id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: false });
+  } else {
+    tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: false });
+    tositeRivit.push({ id: Date.now() + 1, tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: true });
+  }
   tositeDirty = true;
   renderTositeRivit();
   setTimeout(() => {
     const rows = document.querySelectorAll('#tosite-tbody tr');
     if (rows.length) {
-      const input = rows[rows.length-1].querySelector('input');
+      const input = rows[rows.length-2].querySelector('input');
       if (input) input.focus();
     }
   }, 30);
@@ -3291,7 +3297,7 @@ function lisaaTositeRivi() {
 
 function renderTositeRivit() {
   document.getElementById('tosite-tbody').innerHTML = tositeRivit.map((r, i) =>
-    '<tr style="border-bottom:1px solid var(--bd)">' +
+    '<tr style="border-bottom:1px solid var(--bd)' + (r.tasaus ? ';background:#f0f4ff' : '') + '">' +
     // Tili
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
     '<input type="text" value="' + ((r.tili ? r.tili + ' ' + r.tiliLbl : '').replace(/"/g, '&quot;')) + '" placeholder="Tilinumero tai nimi..." ' +
@@ -3341,22 +3347,43 @@ function renderTositeRivit() {
 }
 
 function paivitaTositeTotals() {
-  const totD = tositeRivit.reduce((s,r) => s + (parseFloat(r.debet)||0), 0);
-  const totK = tositeRivit.reduce((s,r) => s + (parseFloat(r.kredit)||0), 0);
+  const nonBalancingRows = tositeRivit.filter(r => r.tasaus !== true);
+  const totD = nonBalancingRows.reduce((s,r) => s + (parseFloat(r.debet)||0), 0);
+  const totK = nonBalancingRows.reduce((s,r) => s + (parseFloat(r.kredit)||0), 0);
   const erotus = totD - totK;
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('ts-tot-debet').textContent = fmt(totD);
-  document.getElementById('ts-tot-kredit').textContent = fmt(totK);
+  
+  // Auto-fit tasaus (balancing) row
+  if (tositeRivit.length > 0 && tositeRivit[tositeRivit.length-1].tasaus === true) {
+    const tasausRow = tositeRivit[tositeRivit.length-1];
+    if (Math.abs(erotus) < 0.01) {
+      tasausRow.debet = '';
+      tasausRow.kredit = '';
+    } else if (erotus > 0) {
+      tasausRow.kredit = erotus.toString();
+      tasausRow.debet = '';
+    } else {
+      tasausRow.debet = Math.abs(erotus).toString();
+      tasausRow.kredit = '';
+    }
+  }
+  
+  const totalD = tositeRivit.reduce((s,r) => s + (parseFloat(r.debet)||0), 0);
+  const totalK = tositeRivit.reduce((s,r) => s + (parseFloat(r.kredit)||0), 0);
+  const finalErotus = totalD - totalK;
+  
+  document.getElementById('ts-tot-debet').textContent = fmt(totalD);
+  document.getElementById('ts-tot-kredit').textContent = fmt(totalK);
   const tasaEl = document.getElementById('ts-tasapaino');
-  if (Math.abs(erotus) < 0.01) {
+  if (Math.abs(finalErotus) < 0.01) {
     tasaEl.textContent = '✓ Tosite täsmää';
     tasaEl.style.color = '#1D9E75';
   } else {
-    tasaEl.textContent = 'Erotus: ' + fmt(erotus) + ' €';
+    tasaEl.textContent = 'Erotus: ' + fmt(finalErotus) + ' €';
     tasaEl.style.color = '#c0392b';
   }
   const btn = document.getElementById('tosite-save-btn');
-  const voidaan = tositeDirty && tositeRivit.length >= 2 && Math.abs(erotus) < 0.01;
+  const voidaan = tositeDirty && nonBalancingRows.length >= 1 && Math.abs(finalErotus) < 0.01;
   btn.disabled = !voidaan;
   btn.style.opacity = voidaan ? '1' : '0.4';
 }
@@ -3381,6 +3408,11 @@ function tsKey(e, rowIdx, col) {
 }
 
 function tositeUpdField(i, f, v) {
+  // Handle edit of balancing row
+  if (tositeRivit[i].tasaus === true && (f === 'debet' || f === 'kredit')) {
+    tositeRivit[i].tasaus = false;
+    tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: true });
+  }
   tositeRivit[i][f] = v;
   tositeDirty = true;
   paivitaTositeTotals();
@@ -3466,7 +3498,7 @@ function poistaTositeRivi(i) {
 }
 
 function tyhjennaTositelomake() {
-  tositeRivit = [];
+  tositeRivit = [{ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: true }];
   tositeDirty = false;
   document.getElementById('ts-nro').value = '';
   document.getElementById('ts-pvm').value = '';
@@ -3485,9 +3517,15 @@ async function tallennaTositteet() {
 
   if (!paivamaara) { toast('Syötä päiväys'); btn.disabled = false; return; }
 
+  // Check that all rows have tili selected
+  if (tositeRivit.some(r => !r.tili)) {
+    toast('Kaikille riveille on valittava tili');
+    btn.disabled = false;
+    return;
+  }
+
   // Muunna: debet = positiivinen saldo, kredit = negatiivinen
   const rivit = tositeRivit
-    .filter(r => r.tili)
     .map(r => ({
       tili: r.tili,
       selite: r.sel || null,
