@@ -2472,17 +2472,22 @@ function ladattuTiliote(tapahtumat, iban, period) {
 
   // Info bar
   const infoBar = document.getElementById('tiliote-info');
-  infoBar.style.display = 'flex';
-  document.getElementById('ti-iban').textContent = iban || 'Tiedosto';
-  document.getElementById('ti-period').textContent = period || '';
+  if (infoBar) infoBar.style.display = 'flex';
+  const tiIban = document.getElementById('ti-iban');
+  if (tiIban) tiIban.textContent = iban || 'Tiedosto';
+  const tiPeriod = document.getElementById('ti-period');
+  if (tiPeriod) tiPeriod.textContent = period || '';
   const auto = impTapahtumat.filter(t=>t.tila==='auto').length;
-  document.getElementById('ti-stats').innerHTML =
+  const tiStats = document.getElementById('ti-stats');
+  if (tiStats) tiStats.innerHTML =
     `<span style="color:#7ec488">${auto} tunnistettu automaattisesti</span>
      &nbsp;·&nbsp; <span style="color:#e8a86a">${impTapahtumat.length - auto} vaatii vastatilin</span>`;
 
   renderImpTable();
-  document.getElementById('import-preview-csv').style.display = 'block';
-  document.getElementById('vakio-info').style.display = 'none';
+  const prevCsv = document.getElementById('import-preview-csv');
+  if (prevCsv) prevCsv.style.display = 'block';
+  const vakioInfo = document.getElementById('vakio-info');
+  if (vakioInfo) vakioInfo.style.display = 'none';
   toast(`${tapahtumat.length} tapahtumaa tiliotteelta`);
   console.log('impTapahtumat:', impTapahtumat);
 }
