@@ -1057,18 +1057,16 @@ function vaihdaAsiakas(id) {
 
 // ── PANEL SWITCH ─────────────────────────────────────────────
 function showPanel(name) {
-  ['paivak','pankki','tositteet','raportit','tilikartta'].forEach(n => {
-    const el = document.getElementById('panel-'+n);
-    if (el) el.style.display = 'none';
-    const navId = {paivak:'pk',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'}[n];
-    const nav = document.getElementById('nav-'+navId);
-    if (nav) nav.classList.remove('act');
-  });
+  document.querySelectorAll('.panel').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('act'));
+
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
+
   const navMap = {paivak:'pk',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
+
   if (name === 'tositteet') renderTositteet();
 }
 
