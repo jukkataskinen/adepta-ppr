@@ -301,6 +301,9 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <a class="nav-item" href="/asiakkaat" style="text-decoration:none"><span class="ic">🏢</span>Asiakkaat</a>
     <a class="nav-item" href="/kayttajat" style="text-decoration:none"><span class="ic">👤</span>Käyttäjät</a>
     <div class="sb-div"></div>
+    <div class="sb-sec">Kirjanpidon työkalut</div>
+    <div class="nav-item" id="nav-tyokalut" onclick="showPanel('tyokalut')"><span class="ic">🔧</span>Tuo aineisto</div>
+    <div class="sb-div"></div>
     <div class="sb-foot">Kirjautunut:<br><strong>Merja Korhonen</strong> · Pääkäyttäjä</div>
   </div>
 
@@ -875,6 +878,46 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </table>
     </div>
 
+    <!-- ─── KIRJANPIDON TYÖKALUT PANEL ─── -->
+    <div id="panel-tyokalut" class="panel">
+      <h2>Kirjanpidon työkalut</h2>
+      <div class="panel-sub">Historiadatan tuonti ja muut apuvälineet</div>
+
+      <div style="margin-bottom:24px">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:8px">Fennoa / päiväkirja CSV-tuonti</h3>
+        <p style="font-size:12px;color:var(--inu);margin-bottom:12px">
+          Tuo kirjanpitohistoria Fennoasta tai muusta järjestelmästä.
+          Formaatti: puolipisteerotteluinen CSV, encoding ISO-8859-1.<br>
+          Sarakkeet: Tosite;Päiväys;;; tai ;Tili;Nimi;ALV;Selite;Debet;Kredit
+        </p>
+        <div class="drop-zone" id="dz-journal" onclick="document.getElementById('file-journal').click()"
+             ondragover="event.preventDefault()" ondrop="handleJournalDrop(event)"
+             style="border:2px dashed var(--bd2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px">
+          <input type="file" id="file-journal" accept=".csv" style="display:none" onchange="handleJournalFile(event)">
+          <div style="font-size:13px;color:var(--inu)">📄 Vedä CSV-päiväkirja tähän tai klikkaa</div>
+        </div>
+        <div id="journal-preview" style="display:none">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
+            <thead>
+              <tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+                <th style="padding:6px 8px;text-align:left">Tosite</th>
+                <th style="padding:6px 8px;text-align:left">Päivämäärä</th>
+                <th style="padding:6px 8px;text-align:left">Selite</th>
+                <th style="padding:6px 8px;text-align:right">Rivejä</th>
+                <th style="padding:6px 8px;text-align:right">Erotus</th>
+              </tr>
+            </thead>
+            <tbody id="journal-tbody"></tbody>
+          </table>
+          <div id="journal-summary" style="font-size:12px;margin-bottom:12px"></div>
+          <button id="journal-import-btn" onclick="tuoJournalData()"
+                  style="padding:8px 20px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">
+            Tuo päiväkirja →
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -1154,7 +1197,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {paivak:'pk',paakirja:'pk2',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk'};
+  const navMap = {paivak:'pk',paakirja:'pk2',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -4667,6 +4710,133 @@ async function tallennaTositteet() {
     toast('Verkkovirhe');
     btn.disabled = false;
   }
+}
+
+// ── KIRJANPIDON TYÖKALUT: PÄIVÄKIRJA CSV-TUONTI ──────────────
+let journalTositteet = [];
+
+function handleJournalDrop(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) parseJournalCSV(file);
+}
+
+function handleJournalFile(e) {
+  const file = e.target.files[0];
+  if (file) parseJournalCSV(file);
+}
+
+function parseJournalCSV(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const bytes = new Uint8Array(e.target.result);
+    const decoder = new TextDecoder('iso-8859-1');
+    const text = decoder.decode(bytes);
+
+    journalTositteet = [];
+    let current = null;
+
+    text.split('\n').forEach(line => {
+      const cols = line.split(';');
+
+      // Tositteen otsikkorivi: GL.X;pvm;;;selite
+      if (cols[0] && cols[0].trim().match(/^GL\.\d/)) {
+        if (current) journalTositteet.push(current);
+        const pvmRaw = cols[1]?.trim() || '';
+        const m = pvmRaw.match(/(\d+)\.(\d+)\.(\d+)/);
+        const pvm = m ? m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0') : pvmRaw;
+        const nro = parseInt(cols[0].trim().replace('GL.',''));
+        current = { nro, pvm, selite: cols[4]?.trim()||'', rivit: [] };
+      }
+      // Vientirivi: ;tili;nimi;alv;selite;debet;kredit
+      else if (cols[0] === '' && cols[1]?.trim() && cols[1].trim()[0] >= '0' && cols[1].trim()[0] <= '9') {
+        const tili = cols[1].trim();
+        const alv = parseFloat((cols[3]?.trim()||'0').replace(',','.')) || 0;
+        const sel = cols[4]?.trim() || '';
+        const parseFi = v => parseFloat((v||'').replace(/\s/g,'').replace(',','.')) || 0;
+        const debet = parseFi(cols[5]);
+        const kredit = parseFi(cols[6]);
+        if ((debet || kredit) && current) {
+          current.rivit.push({ tili, selite: sel, saldo: Math.round((debet-kredit)*100)/100, alv });
+        }
+      }
+    });
+    if (current) journalTositteet.push(current);
+
+    renderJournalPreview();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderJournalPreview() {
+  const tbody = document.getElementById('journal-tbody');
+  tbody.innerHTML = '';
+  let totalRivit = 0;
+  let virheet = 0;
+
+  journalTositteet.forEach(t => {
+    const erotus = t.rivit.reduce((s,r) => s+r.saldo, 0);
+    const tasapainossa = Math.abs(erotus) < 0.01;
+    if (!tasapainossa) virheet++;
+    totalRivit += t.rivit.length;
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.innerHTML =
+      '<td style="padding:5px 8px;font-weight:600;color:var(--fl)">GL.' + t.nro + '</td>' +
+      '<td style="padding:5px 8px">' + fmtPv(t.pvm) + '</td>' +
+      '<td style="padding:5px 8px;color:var(--inu)">' + t.selite + '</td>' +
+      '<td style="padding:5px 8px;text-align:right">' + t.rivit.length + '</td>' +
+      '<td style="padding:5px 8px;text-align:right;color:' + (tasapainossa?'var(--fg3)':'var(--red)') + '">' +
+        (tasapainossa ? '✓' : erotus.toFixed(2)) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('journal-summary').innerHTML =
+    '<strong>' + journalTositteet.length + ' tositetta</strong>, ' + totalRivit + ' vientiä' +
+    (virheet ? ' · <span style="color:var(--red)">⚠ ' + virheet + ' ei täsmää</span>' : ' · <span style="color:var(--fg3)">✓ Kaikki täsmäävät</span>');
+
+  document.getElementById('journal-preview').style.display = 'block';
+}
+
+async function tuoJournalData() {
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  if (!journalTositteet.length) return;
+
+  const btn = document.getElementById('journal-import-btn');
+  btn.disabled = true;
+  btn.textContent = 'Tuodaan...';
+
+  let tuotu = 0;
+  let virheet = 0;
+
+  for (const t of journalTositteet) {
+    try {
+      const res = await fetch('/api/ppr/paivakirja', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          asiakas_id: curYritys.id,
+          tosite_nro: t.nro,
+          paivamaara: t.pvm,
+          rivit: t.rivit.map(r => ({
+            tili: r.tili,
+            selite: r.selite || t.selite || null,
+            saldo: r.saldo,
+            alv_prosentti: r.alv || null
+          }))
+        })
+      });
+      if (res.ok) tuotu++;
+      else virheet++;
+    } catch(e) {
+      virheet++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Tuo päiväkirja →';
+  await lataaRivit(curYritys.id);
+  toast('Tuonti valmis — ' + tuotu + ' tositetta tuotu' + (virheet ? ', ' + virheet + ' epäonnistui' : ''));
 }
 </script>
 </body>
