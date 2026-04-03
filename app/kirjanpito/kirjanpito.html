@@ -1658,9 +1658,10 @@ function renderRpt(name) {
   else if (name === 'alv') el.innerHTML = rptAlv();
 }
 function rptRow(l, v, cls='', indent=false, sub='') {
+  const vStr = v < -0.005 ? '-' + fmtE(Math.abs(v)) : fmtE(Math.abs(v));
   return `<div class="rpt-row${cls?' '+cls:''}${indent?' indent':''}">
     <div><div class="rpt-row-l">${l}</div>${sub?`<div class="rpt-row-s">${sub}</div>`:''}</div>
-    <div class="rpt-row-v${v<0?' neg':v>0?' pos':''}">${fmtE(Math.abs(v))}${v<0?' (negatiivinen)':''}</div>
+    <div class="rpt-row-v">${vStr}</div>
   </div>`;
 }
 function rptTulos() {
