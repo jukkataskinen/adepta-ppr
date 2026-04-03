@@ -1960,10 +1960,11 @@ function calcTulos(r) {
   const korot_t    = -sumAlue(8650, 8699);   // kredit-normal → käännetään
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
+  const muutVerot  =  sumAlue(9100, 9999);
 
   const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
   const liikkulos   = tuotot - liiketkulut;
-  const tulos       = liikkulos + korot_t - korot_k - verot;
+  const tulos       = liikkulos + korot_t - korot_k - verot + muutVerot;
 
   // Yhteensopivuus rptTulosTable-renderin kanssa
   return {
@@ -2111,10 +2112,11 @@ function rptTulos() {
   const korot_t    = -sumAlue(8650, 8699);
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
+  const muutVerot  =  sumAlue(9100, 9999);
 
   const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
   const liikkulos   = tuotot - liiketkulut;
-  const tulos       = liikkulos + korot_t - korot_k - verot;
+  const tulos       = liikkulos + korot_t - korot_k - verot + muutVerot;
 
   const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
 
@@ -2164,6 +2166,7 @@ function rptTulos() {
       (korot_t > 0 ? hdr('Rahoitustuotot') + tilitAlue(8650, 8699, 'k').map(riviK).join('') : '') +
       (korot_k > 0 ? hdr('Rahoituskulut')  + tilitAlue(8700, 8799, 'd').map(riviD).join('') : '') +
       (verot    > 0 ? hdr('Verot')          + tilitAlue(9000, 9099, 'd').map(riviD).join('') : '') +
+      (muutVerot    ? hdr('Veronpalautukset ja muut veroerät') + tilitAlue(9100, 9999, 'd').map(riviD).join('') + tilitAlue(9100, 9999, 'k').map(riviK).join('') : '') +
       rptRow('TILIKAUDEN TULOS', tulos, 'total') +
       '</div>';
   }
@@ -2185,6 +2188,7 @@ function rptTulos() {
     (korot_t > 0 ? rptRow('Rahoitustuotot', korot_t, '', true) : '') +
     (korot_k > 0 ? rptRow('Rahoituskulut', -korot_k, '', true) : '') +
     (verot    > 0 ? rptRow('Verot',         -verot,   '', true) : '') +
+    (muutVerot    ? rptRow('Veronpalautukset ja muut veroerät', muutVerot, '', true) : '') +
     rptRow('TILIKAUDEN TULOS', tulos, 'total') +
     '</div>';
 }
@@ -2231,8 +2235,9 @@ function rptTase() {
   const korot_t    = -sumAlue(8650, 8699);
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
+  const muutVerot  =  sumAlue(9100, 9999);
   const liiketkulut = aineet + henk + poistot + toimitila + konekulut + ajoneuvot + itkulut + matkat + myyntimark + hallinto + muutkulut;
-  const tulos = tuotot - liiketkulut + korot_t - korot_k - verot;
+  const tulos = tuotot - liiketkulut + korot_t - korot_k - verot + muutVerot;
 
   // VASTATTAVAA: tilit 2000-2999 joilla positiivinen kredit-saldo
   const vastattavaaTilit = kaikkiTilit.filter(t => {
