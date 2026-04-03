@@ -1941,34 +1941,39 @@ function rptRow(l, v, cls='', indent=false, sub='') {
   </div>`;
 }
 function calcTulos(r) {
-  const lv = (nrot) => r.filter(x=>nrot.includes(x.k)).reduce((s,x)=>s+x.netto,0);
-  const ku = (nrot) => r.filter(x=>nrot.includes(x.d)).reduce((s,x)=>s+x.netto,0);
-  const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
-  const muuttuotot  = lv(['3750','3844','3990','3994']);
-  const myynti255   = lv(['3000','3001','3002','3003','3004']);
-  const vuokrat     = lv(['3450','3454','3750']);
-  const muutlv      = lv(['3844','3990','3994']);
-  const aineet      = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490']);
-  const palkat      = ku(['5000']);
-  const elake       = ku(['6100','6130','6140','6240']);
-  const sivukulut   = ku(['6300','6400']);
-  const poistot     = ku(['6820','6830','6870','6890']);
-  const toimitila   = ku(['7204','7210','7214','7360','7370','7380','7390','7414','7430']);
-  const ajoneuvot   = ku(['7530','7540','7574']);
-  const it          = ku(['7650','7730']);
-  const matkat      = ku(['7800','7810','7820']);
-  const myyntimark  = ku(['7910','7920','7930']);
-  const hallinto    = ku(['7950','7960','7970','8010','8060','8100','8200','8450']);
-  const muutkulut   = ku(['8500','8540']);
-  const henk        = palkat + elake + sivukulut;
+  const sumAlue = (alku, loppu) => r.filter(x => {
+    const n = parseInt((x.d||x.k)||'0');
+    return n >= alku && n <= loppu;
+  }).reduce((s,x) => s + (x.d ? x.netto : -x.netto), 0);
+
+  const tuotot     = -sumAlue(3000, 3999);   // kredit-normal → käännetään positiiviseksi
+  const aineet     =  sumAlue(4000, 4999);
+  const henk       =  sumAlue(5000, 6499);   // palkat + eläke + sivukulut
+  const poistot    =  sumAlue(6800, 6899);
+  const toimitila  =  sumAlue(7200, 7499);
+  const ajoneuvot  =  sumAlue(7500, 7599);
+  const it         =  sumAlue(7600, 7799);
+  const matkat     =  sumAlue(7800, 7899);
+  const myyntimark =  sumAlue(7900, 7999);
+  const hallinto   =  sumAlue(8000, 8499);
+  const muutkulut  =  sumAlue(8500, 8649);
+  const korot_t    = -sumAlue(8650, 8699);   // kredit-normal → käännetään
+  const korot_k    =  sumAlue(8700, 8799);
+  const verot      =  sumAlue(9000, 9099);
+
   const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
-  const liikkulos   = liikevaihto + muuttuotot - liiketkulut;
-  const korot_t     = lv(['8650']);
-  const korot_k     = ku(['8710','8790']);
-  const tulos       = liikkulos + korot_t - korot_k;
-  return {myynti255,vuokrat,muutlv,liikevaihto,muuttuotot,aineet,palkat,elake,sivukulut,
-          toimitila,ajoneuvot,it,matkat,myyntimark,hallinto,muutkulut,poistot,
-          henk,liiketkulut,liikkulos,korot_t,korot_k,tulos};
+  const liikkulos   = tuotot - liiketkulut;
+  const tulos       = liikkulos + korot_t - korot_k - verot;
+
+  // Yhteensopivuus rptTulosTable-renderin kanssa
+  return {
+    liikevaihto: tuotot, muuttuotot: 0,
+    myynti255: tuotot, vuokrat: 0, muutlv: 0,
+    aineet, palkat: henk, elake: 0, sivukulut: 0,
+    toimitila, ajoneuvot, it, matkat, myyntimark,
+    hallinto, muutkulut, poistot,
+    henk, liiketkulut, liikkulos, korot_t, korot_k, verot, tulos
+  };
 }
 function rptTulosTable(cols) {
   const data = cols.map(c => calcTulos(c.rows));
@@ -2087,32 +2092,42 @@ function rptTulos() {
     }
     return rptMode === 'pitka' ? rptTulosTablePitka(cols) : rptTulosTable(cols);
   }
-  const lv = (nrot) => rptRows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
-  const ku = (nrot) => rptRows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
-  const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
-  const muuttuotot  = lv(['3750','3844','3990','3994']);
-  const aineet      = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490']);
-  const palkat      = ku(['5000']);
-  const elake       = ku(['6100','6130','6140','6240']);
-  const sivukulut   = ku(['6300','6400']);
-  const poistot     = ku(['6820','6830','6870','6890']);
-  const toimitila   = ku(['7204','7210','7214','7360','7370','7380','7390','7414','7430']);
-  const ajoneuvot   = ku(['7530','7540','7574']);
-  const it          = ku(['7650','7730']);
-  const matkat      = ku(['7800','7810','7820']);
-  const myyntimark  = ku(['7910','7920','7930']);
-  const hallinto    = ku(['7950','7960','7970','8010','8060','8100','8200','8450']);
-  const muutkulut   = ku(['8500','8540']);
-  const henk        = palkat + elake + sivukulut;
+  const sumAlue = (alku, loppu) => rptRows.filter(r => {
+    const n = parseInt((r.d||r.k)||'0');
+    return n >= alku && n <= loppu;
+  }).reduce((s,r) => s + (r.d ? r.netto : -r.netto), 0);
+
+  const tuotot     = -sumAlue(3000, 3999);
+  const aineet     =  sumAlue(4000, 4999);
+  const henk       =  sumAlue(5000, 6499);
+  const poistot    =  sumAlue(6800, 6899);
+  const toimitila  =  sumAlue(7200, 7499);
+  const ajoneuvot  =  sumAlue(7500, 7599);
+  const it         =  sumAlue(7600, 7799);
+  const matkat     =  sumAlue(7800, 7899);
+  const myyntimark =  sumAlue(7900, 7999);
+  const hallinto   =  sumAlue(8000, 8499);
+  const muutkulut  =  sumAlue(8500, 8649);
+  const korot_t    = -sumAlue(8650, 8699);
+  const korot_k    =  sumAlue(8700, 8799);
+  const verot      =  sumAlue(9000, 9099);
+
   const liiketkulut = aineet + henk + poistot + toimitila + ajoneuvot + it + matkat + myyntimark + hallinto + muutkulut;
-  const liikkulos   = liikevaihto + muuttuotot - liiketkulut;
-  const korot_t     = lv(['8650']);
-  const korot_k     = ku(['8710','8790']);
-  const tulos       = liikkulos + korot_t - korot_k;
+  const liikkulos   = tuotot - liiketkulut;
+  const tulos       = liikkulos + korot_t - korot_k - verot;
+
   const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
+
+  // Hae kaikki tilit alueelta (d tai k)
+  const tilitAlue = (alku, loppu, field) => {
+    const tilit = new Set();
+    rptRows.forEach(r => { if (r[field]) { const n=parseInt(r[field]); if(n>=alku&&n<=loppu) tilit.add(r[field]); }});
+    return [...tilit].sort();
+  };
+
   if (rptMode === 'pitka') {
-    // kulutili: näytetään negatiivisena kuten lyhyessä
-    const trd = (nro) => {
+    const riviK = (nro) => rptTiliRivi(nro, 'K');
+    const riviD = (nro) => { // kulutili näytetään negatiivisena
       const v = rptRows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0) -
                 rptRows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
       if (Math.abs(v) < 0.01) return '';
@@ -2120,65 +2135,57 @@ function rptTulos() {
     };
     return '<div class="rpt-section">' +
       '<div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma (tilikohtainen)</div></div>' +
-      hdr('Liikevaihto') +
-      ['3000','3001','3002','3003','3004','3344','3355','3450','3454'].map(n=>rptTiliRivi(n,'K')).join('') +
-      hdr('Muut liiketoiminnan tuotot') +
-      ['3750','3844','3990','3994'].map(n=>rptTiliRivi(n,'K')).join('') +
-      rptRow('LIIKEVAIHTO JA MUUT TUOTOT', liikevaihto+muuttuotot, 'total') +
-      hdr('Aineet, tarvikkeet ja ulkopuoliset palvelut') +
-      ['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490'].map(trd).join('') +
-      hdr('Palkat ja palkkiot') + trd('5000') +
-      hdr('Eläkekulut') +
-      ['6100','6130','6140','6240'].map(trd).join('') +
-      hdr('Muut henkilösivukulut') +
-      ['6300','6400'].map(trd).join('') +
-      hdr('Toimitilakulut') +
-      ['7204','7210','7214','7360','7370','7380','7390','7414','7430'].map(trd).join('') +
-      hdr('Ajoneuvokulut') +
-      ['7530','7540','7574'].map(trd).join('') +
-      hdr('IT-kulut') +
-      ['7650','7730'].map(trd).join('') +
-      hdr('Matkakulut') +
-      ['7800','7810','7820'].map(trd).join('') +
-      hdr('Myynti ja markkinointi') +
-      ['7910','7920','7930'].map(trd).join('') +
-      hdr('Hallintokulut') +
-      ['7950','7960','7970','8010','8060','8100','8200','8450'].map(trd).join('') +
-      hdr('Muut liiketoiminnan kulut') +
-      ['8500','8540'].map(trd).join('') +
+      hdr('Liikevaihto ja muut tuotot') +
+      tilitAlue(3000, 3999, 'k').map(riviK).join('') +
+      rptRow('LIIKEVAIHTO JA MUUT TUOTOT', tuotot, 'total') +
+      hdr('Aineet ja ostot') +
+      tilitAlue(4000, 4999, 'd').map(riviD).join('') +
+      hdr('Henkilöstökulut') +
+      tilitAlue(5000, 6499, 'd').map(riviD).join('') +
       hdr('Poistot') +
-      ['6820','6830','6870','6890'].map(trd).join('') +
+      tilitAlue(6800, 6899, 'd').map(riviD).join('') +
+      hdr('Toimitilakulut') +
+      tilitAlue(7200, 7499, 'd').map(riviD).join('') +
+      hdr('Ajoneuvokulut') +
+      tilitAlue(7500, 7599, 'd').map(riviD).join('') +
+      hdr('IT-kulut') +
+      tilitAlue(7600, 7799, 'd').map(riviD).join('') +
+      hdr('Matkakulut') +
+      tilitAlue(7800, 7899, 'd').map(riviD).join('') +
+      hdr('Myynti ja markkinointi') +
+      tilitAlue(7900, 7999, 'd').map(riviD).join('') +
+      hdr('Hallintokulut') +
+      tilitAlue(8000, 8499, 'd').map(riviD).join('') +
+      hdr('Muut liiketoiminnan kulut') +
+      tilitAlue(8500, 8649, 'd').map(riviD).join('') +
       rptRow('LIIKETOIMINNAN KULUT YHT.', -liiketkulut, 'total') +
       rptRow('LIIKEVOITTO (-TAPPIO)', liikkulos, 'total') +
-      (korot_t>0 ? hdr('Rahoitustuotot') + rptTiliRivi('8650','K') : '') +
-      (korot_k>0 ? hdr('Rahoituskulut') + ['8710','8790'].map(trd).join('') : '') +
+      (korot_t > 0 ? hdr('Rahoitustuotot') + tilitAlue(8650, 8699, 'k').map(riviK).join('') : '') +
+      (korot_k > 0 ? hdr('Rahoituskulut')  + tilitAlue(8700, 8799, 'd').map(riviD).join('') : '') +
+      (verot    > 0 ? hdr('Verot')          + tilitAlue(9000, 9099, 'd').map(riviD).join('') : '') +
       rptRow('TILIKAUDEN TULOS', tulos, 'total') +
       '</div>';
   }
-  return `<div class="rpt-section">
-    <div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma</div><div class="rpt-hdr-s">1.1.–30.4.2025</div></div>
-    ${rptRow('Myynti 25,5%', lv(['3000','3001','3002','3003','3004']),   '', true)}
-    ${rptRow('Vuokratuotot',  lv(['3450','3454','3750']),                '', true)}
-    ${rptRow('Muut liiketoiminnan tuotot', lv(['3844','3990','3994']),   '', true)}
-    ${rptRow('LIIKEVAIHTO JA MUUT TUOTOT', liikevaihto+muuttuotot,      'total')}
-    ${rptRow('Aineet, tarvikkeet ja ulkopuoliset palvelut', -aineet,     '', true)}
-    ${rptRow('Palkat ja palkkiot',   -palkat,   '', true)}
-    ${rptRow('Eläkekulut',           -elake,    '', true)}
-    ${rptRow('Muut henkilösivukulut',-sivukulut,'', true)}
-    ${rptRow('Toimitilakulut',       -toimitila,'', true)}
-    ${rptRow('Ajoneuvokulut',        -ajoneuvot,'', true)}
-    ${rptRow('IT-kulut',             -it,       '', true)}
-    ${rptRow('Matkakulut',           -matkat,   '', true)}
-    ${rptRow('Myynti ja markkinointi',-myyntimark,'',true)}
-    ${rptRow('Hallintokulut',        -hallinto,  '', true)}
-    ${rptRow('Muut liiketoiminnan kulut', -muutkulut, '', true)}
-    ${rptRow('Poistot',              -poistot,   '', true)}
-    ${rptRow('LIIKETOIMINNAN KULUT YHT.', -liiketkulut, 'total')}
-    ${rptRow('LIIKEVOITTO (-TAPPIO)', liikkulos, 'total')}
-    ${korot_t>0 ? rptRow('Korkotuotot',    korot_t, '', true) : ''}
-    ${korot_k>0 ? rptRow('Korkokulut',    -korot_k, '', true) : ''}
-    ${rptRow('TILIKAUDEN TULOS', tulos, 'total')}
-  </div>`;
+  return '<div class="rpt-section">' +
+    '<div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma</div></div>' +
+    rptRow('Liikevaihto ja muut tuotot',                   tuotot,      'total') +
+    (aineet     ? rptRow('Aineet ja ostot',                -aineet,     '', true) : '') +
+    (henk       ? rptRow('Henkilöstökulut',                -henk,       '', true) : '') +
+    (poistot    ? rptRow('Poistot',                        -poistot,    '', true) : '') +
+    (toimitila  ? rptRow('Toimitilakulut',                 -toimitila,  '', true) : '') +
+    (ajoneuvot  ? rptRow('Ajoneuvokulut',                  -ajoneuvot,  '', true) : '') +
+    (it         ? rptRow('IT-kulut',                       -it,         '', true) : '') +
+    (matkat     ? rptRow('Matkakulut',                     -matkat,     '', true) : '') +
+    (myyntimark ? rptRow('Myynti ja markkinointi',         -myyntimark, '', true) : '') +
+    (hallinto   ? rptRow('Hallintokulut',                  -hallinto,   '', true) : '') +
+    (muutkulut  ? rptRow('Muut liiketoiminnan kulut',      -muutkulut,  '', true) : '') +
+    rptRow('LIIKETOIMINNAN KULUT YHT.', -liiketkulut, 'total') +
+    rptRow('LIIKEVOITTO (-TAPPIO)', liikkulos, 'total') +
+    (korot_t > 0 ? rptRow('Rahoitustuotot', korot_t, '', true) : '') +
+    (korot_k > 0 ? rptRow('Rahoituskulut', -korot_k, '', true) : '') +
+    (verot    > 0 ? rptRow('Verot',         -verot,   '', true) : '') +
+    rptRow('TILIKAUDEN TULOS', tulos, 'total') +
+    '</div>';
 }
 function rptTase() {
   // Laske nettosaldo per tili
