@@ -4981,7 +4981,7 @@ async function tuoLedgerData() {
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         asiakas_id: curYritys.id,
-        tosite_nro: 0,
+        tosite_nro: 9000,
         paivamaara: alkusaldoPvm,
         rivit: ledgerAlkusaldot.map(r => ({
           tili: r.tili,
