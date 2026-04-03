@@ -3384,19 +3384,21 @@ function generateBalancingRow(r) {
     '</tr>';
 }
 
-function getNetAmount(r) {
-  const alvp = parseFloat(r.alvp) || 0;
-  const debet = parseFloat(r.debet) || 0;
-  const kredit = parseFloat(r.kredit) || 0;
-  const gross = debet || kredit;
-  if (alvp > 0 && gross > 0) {
-    return gross / (1 + alvp / 100);
-  }
-  return gross;
-}
-
 function paivitaTositeTotals() {
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  
+  // Update user row inputs to show net amounts when ALV is selected
+  tositeRivit.forEach((r, i) => {
+    if ((parseFloat(r.alvp) || 0) > 0) {
+      const gross = parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+      if (gross > 0) {
+        const net = gross / (1 + parseFloat(r.alvp) / 100);
+        const netFmt = net.toFixed(2);
+        const input = document.querySelector('[data-row="' + i + '"][data-col="' + (r.debet ? '2' : '3') + '"]');
+        if (input && input !== document.activeElement) input.value = netFmt;
+      }
+    }
+  });
   
   // Calculate ALV rows
   tositeAlvRivit = [];
@@ -3405,12 +3407,14 @@ function paivitaTositeTotals() {
   tositeRivit.forEach(r => {
     if ((r.alvp || 0) > 0) {
       const alvPct = parseFloat(r.alvp);
-      const gross = parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+      const grossDebet = parseFloat(r.debet) || 0;
+      const grossKredit = parseFloat(r.kredit) || 0;
+      const gross = grossDebet || grossKredit;
       const net = gross / (1 + alvPct / 100);
       const alvEuro = gross - net;
       
       // Determine ALV account and direction
-      const isKredit = r.kredit > 0;
+      const isKredit = grossKredit > 0;
       const alvTili = isKredit ? '29390' : '1763';
       const alvKey = alvTili + (isKredit ? 'K' : 'D');
       
@@ -3440,10 +3444,14 @@ function paivitaTositeTotals() {
   // Calculate NET totals from user rows and ALV rows
   let userNetD = 0, userNetK = 0;
   tositeRivit.forEach(r => {
-    const net = getNetAmount(r);
-    if (r.debet > 0) {
+    const alvp = parseFloat(r.alvp) || 0;
+    const debet = parseFloat(r.debet) || 0;
+    const kredit = parseFloat(r.kredit) || 0;
+    const gross = debet || kredit;
+    const net = alvp > 0 && gross > 0 ? gross / (1 + alvp / 100) : gross;
+    if (debet > 0) {
       userNetD += net;
-    } else if (r.kredit > 0) {
+    } else if (kredit > 0) {
       userNetK += net;
     }
   });
