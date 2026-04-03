@@ -300,30 +300,49 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <!-- ─── PÄIVÄKIRJA PANEL ─── -->
     <div id="panel-tosite" class="panel">
   <h2>Tositteen syöttö</h2>
-  <div class="panel-sub">Syötä kirjanpitovientejä manuaalisesti</div>
+  <div class="panel-sub">Syötä kirjanpitovientejä — debet positiivinen, kredit negatiivinen</div>
 
-  <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
-    <input type="date" id="ts-pvm" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px">
-    <input type="text" id="ts-tsnro" placeholder="Tositenro" style="width:100px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px">
-    <button onclick="lisaaTosite()" style="padding:6px 18px;background:#1D9E75;color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">+ Lisää rivi</button>
-    <button onclick="tallennaTositteet()" id="tosite-save-btn" disabled style="padding:6px 18px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer;opacity:0.4">Tallenna</button>
+  <!-- Tositteen otsikko -->
+  <div style="display:flex;gap:16px;margin-bottom:20px;align-items:center;padding:12px 16px;background:var(--ppw);border-radius:8px;border:1px solid var(--bd)">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite nro</label>
+      <input type="text" id="ts-nro" placeholder="(automaattinen)" style="width:140px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Päiväys</label>
+      <input type="date" id="ts-pvm" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff">
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end">
+      <button onclick="lisaaTositeRivi()" style="padding:6px 16px;background:#1D9E75;color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">+ Rivi</button>
+      <button onclick="tallennaTositteet()" id="tosite-save-btn" disabled style="padding:6px 18px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer;opacity:0.4">Tallenna</button>
+    </div>
   </div>
 
+  <!-- Rivit -->
   <table style="width:100%;border-collapse:collapse;font-size:13px">
     <thead>
-      <tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
-        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Päivä</th>
-        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite</th>
+      <tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);width:220px">Tili</th>
         <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Selite</th>
-        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Debet</th>
-        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Kredit</th>
-        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Netto €</th>
-        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">ALV %</th>
-        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Brutto €</th>
-        <th></th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#2a7a4f;width:110px">Debet €</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#c0392b;width:110px">Kredit €</th>
+        <th style="width:36px"></th>
       </tr>
     </thead>
     <tbody id="tosite-tbody"></tbody>
+    <tfoot>
+      <tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+        <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inu)">Tositteen erotus</td>
+        <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#2a7a4f" id="ts-tot-debet">0,00</td>
+        <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#c0392b" id="ts-tot-kredit">0,00</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td colspan="5" style="padding:4px 10px 8px">
+          <span id="ts-tasapaino" style="font-size:12px;font-weight:600"></span>
+        </td>
+      </tr>
+    </tfoot>
   </table>
 </div>
 
@@ -1031,6 +1050,7 @@ function vaihdaAsiakas(id) {
   curYritys = y;
   renderCo();
   lataaRivit(y.id);
+  alustaTositeNro();
   checkImportQueue();
   toast(`${y.nimi} ladattu`);
 }
@@ -3238,154 +3258,179 @@ lataaYritykset();
 // ── TOSITTEEN SYÖTTÖ ─────────────────────────────────────────
 let tositeRivit = [];
 let tositeDirty = false;
+let seuraavaTositeNro = null;
 
-function lisaaTosite() {
-  const pvm = document.getElementById('ts-pvm').value || new Date().toISOString().slice(0,10);
-  const tsnro = document.getElementById('ts-tsnro').value || '';
-  const id = Date.now();
-  tositeRivit.push({ id, pvm, tsnro, sel: '', d: '', k: '', netto: 0, alvp: 0 });
+async function alustaTositeNro() {
+  if (!curYritys) return;
+  try {
+    const r = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id);
+    const d = await r.json();
+    seuraavaTositeNro = d.seuraava || 1;
+    const el = document.getElementById('ts-nro');
+    if (el && !el.value) el.placeholder = seuraavaTositeNro;
+  } catch(e) {}
+}
+
+function lisaaTositeRivi() {
+  // Aseta päivämäärä automaattisesti jos tyhjä
+  const pvmEl = document.getElementById('ts-pvm');
+  if (!pvmEl.value) pvmEl.value = new Date().toISOString().slice(0,10);
+  tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '' });
   tositeDirty = true;
   renderTositeRivit();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#tosite-tbody tr');
+    if (rows.length) {
+      const input = rows[rows.length-1].querySelector('input');
+      if (input) input.focus();
+    }
+  }, 30);
 }
 
 function renderTositeRivit() {
   document.getElementById('tosite-tbody').innerHTML = tositeRivit.map((r, i) =>
     '<tr style="border-bottom:1px solid var(--bd)">' +
-    '<td style="padding:4px 6px"><input type="date" data-row="' + i + '" data-col="0" value="' + r.pvm + '" oninput="tositeUpd(' + i + ',\'pvm\',this.value)" onkeydown="tositeKey(event,' + i + ',0)" style="width:120px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><input type="text" data-row="' + i + '" data-col="1" value="' + (r.tsnro||'') + '" oninput="tositeUpd(' + i + ',\'tsnro\',this.value)" onkeydown="tositeKey(event,' + i + ',1)" style="width:80px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    '<td style="padding:4px 6px"><input type="text" data-row="' + i + '" data-col="2" value="' + (r.sel||'') + '" placeholder="Selite..." oninput="tositeUpd(' + i + ',\'sel\',this.value)" onkeydown="tositeKey(event,' + i + ',2)" style="width:180px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    // Tili
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
-    '<input type="text" value="' + (r.d ? r.d + ' ' + (TILIT.find(t=>t.nro===r.d)?.lbl||'') : '') + '" placeholder="Debet-tili..." ' +
+    '<input type="text" value="' + (r.tili ? r.tili + ' ' + r.tiliLbl : '') + '" placeholder="Tilinumero tai nimi..." ' +
+    'data-row="' + i + '" data-col="0" ' +
+    'oninput="tositeHakuTili(this,' + i + ')" ' +
+    'onfocus="tositeAvaaLista(this,' + i + ')" ' +
+    'onblur="setTimeout(()=>tositeSubjatLista(' + i + '),150)" ' +
+    'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
+    '<div id="ts-tili-lista-' + i + '" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
+    '</div></td>' +
+    // Selite
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.sel||'') + '" placeholder="Selite..." ' +
+    'data-row="' + i + '" data-col="1" ' +
+    'oninput="tositeUpdField(' + i + ','sel',this.value)" ' +
+    'onkeydown="tsKey(event,' + i + ',1)" ' +
+    'style="width:100%;min-width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
+    // Debet
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" placeholder="0,00" ' +
+    'data-row="' + i + '" data-col="2" ' +
+    'oninput="tositeUpdField(' + i + ','debet',this.value)" ' +
+    'onkeydown="tsKey(event,' + i + ',2)" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f"></td>' +
+    // Kredit
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="3" ' +
-    'onkeydown="tositeKey(event,' + i + ',3)" ' +
-    'oninput="tositeHakuTili(this,' + i + ',\'d\')" ' +
-    'onfocus="tositeAvaaLista(this,' + i + ',\'d\')" ' +
-    'onblur="setTimeout(()=>tositeSubjatLista(\'' + i + 'd\'),150)" ' +
-    'style="width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
-    '<div id="tili-lista-' + i + 'd" style="display:none;position:absolute;top:100%;left:0;width:280px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
-    '</div></td>' +
-    '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
-    '<input type="text" value="' + (r.k ? r.k + ' ' + (TILIT.find(t=>t.nro===r.k)?.lbl||'') : '') + '" placeholder="Kredit-tili..." ' +
-    'data-row="' + i + '" data-col="4" ' +
-    'onkeydown="tositeKey(event,' + i + ',4)" ' +
-    'oninput="tositeHakuTili(this,' + i + ',\'k\')" ' +
-    'onfocus="tositeAvaaLista(this,' + i + ',\'k\')" ' +
-    'onblur="setTimeout(()=>tositeSubjatLista(\'' + i + 'k\'),150)" ' +
-    'style="width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
-    '<div id="tili-lista-' + i + 'k" style="display:none;position:absolute;top:100%;left:0;width:280px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
-    '</div></td>' +
-    '<td style="padding:4px 6px"><input type="number" data-row="' + i + '" data-col="5" value="' + (r.netto||'') + '" oninput="tositeUpd(' + i + ',\'netto\',parseFloat(this.value)||0)" onkeydown="tositeKey(event,' + i + ',5)" style="width:90px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right"></td>' +
-    '<td style="padding:4px 6px"><select data-row="' + i + '" data-col="6" onchange="tositeUpd(' + i + ',\'alvp\',parseFloat(this.value))" onkeydown="tositeKey(event,' + i + ',6)" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"><option value="0">0%</option><option value="10">10%</option><option value="14">14%</option><option value="25.5">25.5%</option></select></td>' +
-    '<td style="padding:4px 6px;text-align:right"><span data-row="' + i + '" data-brutto style="font-size:12px;font-family:monospace">' + ((r.netto*(1+r.alvp/100))||0).toLocaleString('fi-FI',{minimumFractionDigits:2}) + '</span></td>' +
-    '<td style="padding:4px 6px"><button onclick="poistaTosite(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
+    'oninput="tositeUpdField(' + i + ','kredit',this.value)" ' +
+    'onkeydown="tsKey(event,' + i + ',3)" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#c0392b"></td>' +
+    // Poista
+    '<td style="padding:4px 6px"><button onclick="poistaTositeRivi(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
     '</tr>'
   ).join('');
-  document.getElementById('tosite-save-btn').disabled = !tositeDirty || tositeRivit.length === 0;
-  document.getElementById('tosite-save-btn').style.opacity = (tositeDirty && tositeRivit.length > 0) ? '1' : '0.4';
+  paivitaTositeTotals();
 }
 
-function tositeKey(e, rowIdx, col) {
-  const maxCol = 6;
-  if (e.key === 'Tab' || e.key === 'Enter') {
+function paivitaTositeTotals() {
+  const totD = tositeRivit.reduce((s,r) => s + (parseFloat(r.debet)||0), 0);
+  const totK = tositeRivit.reduce((s,r) => s + (parseFloat(r.kredit)||0), 0);
+  const erotus = totD - totK;
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('ts-tot-debet').textContent = fmt(totD);
+  document.getElementById('ts-tot-kredit').textContent = fmt(totK);
+  const tasaEl = document.getElementById('ts-tasapaino');
+  if (Math.abs(erotus) < 0.01) {
+    tasaEl.textContent = '✓ Tosite täsmää';
+    tasaEl.style.color = '#1D9E75';
+  } else {
+    tasaEl.textContent = 'Erotus: ' + fmt(erotus) + ' €';
+    tasaEl.style.color = '#c0392b';
+  }
+  const btn = document.getElementById('tosite-save-btn');
+  const voidaan = tositeDirty && tositeRivit.length >= 2 && Math.abs(erotus) < 0.01;
+  btn.disabled = !voidaan;
+  btn.style.opacity = voidaan ? '1' : '0.4';
+}
+
+function tsKey(e, rowIdx, col) {
+  if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
     e.preventDefault();
-    if (e.shiftKey) {
-      if (col > 0) focusTosite(rowIdx, col - 1);
-      else if (rowIdx > 0) focusTosite(rowIdx - 1, maxCol);
+    if (col < 3) {
+      const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col+1) + '"]');
+      if (next) next.focus();
     } else {
-      if (col < maxCol) focusTosite(rowIdx, col + 1);
-      else {
-        lisaaTosite();
-        setTimeout(() => focusTosite(tositeRivit.length - 1, 0), 50);
-      }
+      lisaaTositeRivi();
     }
   }
-  if (e.key === 'ArrowDown' && col !== 2) {
-    e.preventDefault();
-    if (rowIdx < tositeRivit.length - 1) focusTosite(rowIdx + 1, col);
-  }
-  if (e.key === 'ArrowUp' && col !== 2) {
-    e.preventDefault();
-    if (rowIdx > 0) focusTosite(rowIdx - 1, col);
-  }
-  if (e.key === 'Delete' && col === maxCol) {
-    e.preventDefault();
-    poistaTosite(rowIdx);
+  if ((e.key === 'Tab' || e.key === 'Enter') && e.shiftKey) {
+    if (col > 0) {
+      e.preventDefault();
+      const prev = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col-1) + '"]');
+      if (prev) prev.focus();
+    }
   }
 }
 
-function focusTosite(rowIdx, col) {
-  const el = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + col + '"]');
-  if (el) { el.focus(); if (el.tagName === 'INPUT') el.select(); }
-}
-
-function tositeUpd(i, f, v) {
+function tositeUpdField(i, f, v) {
   tositeRivit[i][f] = v;
   tositeDirty = true;
-  // Päivitä vain brutto-sarake jos netto tai alvp muuttuu
-  if (f === 'netto' || f === 'alvp') {
-    const brutto = (tositeRivit[i].netto * (1 + tositeRivit[i].alvp / 100));
-    const bruttoEl = document.querySelector('[data-row="' + i + '"][data-brutto]');
-    if (bruttoEl) bruttoEl.textContent = brutto.toLocaleString('fi-FI', {minimumFractionDigits:2});
-  }
-  // Päivitä tallenna-nappi
-  const btn = document.getElementById('tosite-save-btn');
-  if (btn) {
-    btn.disabled = !tositeDirty || tositeRivit.length === 0;
-    btn.style.opacity = (tositeDirty && tositeRivit.length > 0) ? '1' : '0.4';
-  }
-  // EI re-renderöintiä tekstikenttiin
+  paivitaTositeTotals();
 }
 
-function tositeAvaaLista(input, rowIdx, puoli) {
-  const q = input.value;
-  tositeRenderLista(rowIdx, puoli, q);
+function tositeAvaaLista(input, rowIdx) {
+  tositeRenderLista(rowIdx, input.value);
 }
 
-function tositeHakuTili(input, rowIdx, puoli) {
-  tositeUpd(rowIdx, puoli === 'd' ? 'd_teksti' : 'k_teksti', input.value);
-  tositeRenderLista(rowIdx, puoli, input.value);
+function tositeHakuTili(input, rowIdx) {
+  tositeRivit[rowIdx].tili = '';
+  tositeRivit[rowIdx].tiliLbl = '';
+  tositeRenderLista(rowIdx, input.value);
+  tositeDirty = true;
 }
 
-function tositeRenderLista(rowIdx, puoli, q) {
-  const listaId = 'tili-lista-' + rowIdx + puoli;
-  const lista = document.getElementById(listaId);
+function tositeRenderLista(rowIdx, q) {
+  const lista = document.getElementById('ts-tili-lista-' + rowIdx);
   if (!lista) return;
-  const hakusana = q.toLowerCase().trim();
+  const haku = q.toLowerCase().trim();
   const tulokset = TILIT.filter(t =>
-    !hakusana ||
-    t.nro.startsWith(hakusana) ||
-    t.lbl.toLowerCase().includes(hakusana)
+    !haku || t.nro.startsWith(haku) || t.lbl.toLowerCase().includes(haku)
   ).slice(0, 20);
-  if (tulokset.length === 0) { lista.style.display = 'none'; return; }
+  if (!tulokset.length) { lista.style.display = 'none'; return; }
   lista.style.display = 'block';
   lista.innerHTML = tulokset.map(t =>
-    '<div onmousedown="tositeValitseTili(' + rowIdx + ',\'' + puoli + '\',\'' + t.nro + '\',\'' + t.lbl.replace(/'/g,'') + '\')" ' +
+    '<div onmousedown="tositeValitseTili(' + rowIdx + ','' + t.nro + '','' + t.lbl.replace(/'/g,'') + '')" ' +
     'style="padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:center" ' +
-    'onmouseover="this.style.background=\'#f0f7f1\'" onmouseout="this.style.background=\'\'">' +
-    '<span style="font-weight:600;color:#3d6b43;min-width:40px">' + t.nro + '</span>' +
+    'onmouseover="this.style.background='#f0f7f1'" onmouseout="this.style.background=''">' +
+    '<span style="font-weight:600;color:#3d6b43;min-width:44px">' + t.nro + '</span>' +
     '<span>' + t.lbl + '</span>' +
     '</div>'
   ).join('');
 }
 
-function tositeValitseTili(rowIdx, puoli, nro, lbl) {
-  tositeRivit[rowIdx][puoli] = nro;
-  const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (puoli==='d'?3:4) + '"]');
+function tositeValitseTili(rowIdx, nro, lbl) {
+  tositeRivit[rowIdx].tili = nro;
+  tositeRivit[rowIdx].tiliLbl = lbl;
+  const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="0"]');
   if (input) input.value = nro + ' ' + lbl;
-  tositeSubjatLista(rowIdx + puoli);
+  tositeSubjatLista(rowIdx);
   tositeDirty = true;
-  // Fokus seuraavaan kenttään
-  setTimeout(() => focusTosite(rowIdx, puoli==='d' ? 4 : 5), 50);
+  setTimeout(() => {
+    const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="1"]');
+    if (next) next.focus();
+  }, 50);
 }
 
-function tositeSubjatLista(id) {
-  const lista = document.getElementById('tili-lista-' + id);
+function tositeSubjatLista(rowIdx) {
+  const lista = document.getElementById('ts-tili-lista-' + rowIdx);
   if (lista) lista.style.display = 'none';
 }
 
-function poistaTosite(i) {
+function poistaTositeRivi(i) {
   tositeRivit.splice(i, 1);
   renderTositeRivit();
+}
+
+function tyhjennaTositelomake() {
+  tositeRivit = [];
+  tositeDirty = false;
+  document.getElementById('ts-nro').value = '';
+  document.getElementById('ts-pvm').value = '';
+  renderTositeRivit();
+  alustaTositeNro();
 }
 
 async function tallennaTositteet() {
@@ -3393,29 +3438,31 @@ async function tallennaTositteet() {
   const btn = document.getElementById('tosite-save-btn');
   btn.disabled = true;
 
+  const nroEl = document.getElementById('ts-nro');
+  const tosite_nro = parseInt(nroEl.value) || seuraavaTositeNro || 1;
+  const paivamaara = document.getElementById('ts-pvm').value;
+
+  if (!paivamaara) { toast('Syötä päiväys'); btn.disabled = false; return; }
+
+  // Muunna: debet = positiivinen saldo, kredit = negatiivinen
+  const rivit = tositeRivit
+    .filter(r => r.tili)
+    .map(r => ({
+      tili: r.tili,
+      selite: r.sel || null,
+      saldo: r.debet ? parseFloat(r.debet) : -(parseFloat(r.kredit)||0),
+    }));
+
   try {
-    const res = await fetch('/api/ppr/paivakirja/lisaa', {
+    const res = await fetch('/api/ppr/paivakirja', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        asiakas_id: curYritys.id,
-        rivit: tositeRivit.filter(r => r.sel && r.d && r.k).map(r => ({
-          paivamaara: r.pvm,
-          tositenro: r.tsnro || null,
-          selite: r.sel,
-          debet_tili: r.d,
-          kredit_tili: r.k,
-          netto: r.netto,
-          alv_prosentti: r.alvp,
-        }))
-      })
+      body: JSON.stringify({ asiakas_id: curYritys.id, tosite_nro, paivamaara, rivit })
     });
     const json = await res.json();
     if (res.ok) {
-      tositeRivit = [];
-      tositeDirty = false;
-      renderTositeRivit();
-      toast('Tallennettu ✓ — ' + json.tallennettu + ' vientiä');
+      toast('Tallennettu ✓ — tosite ' + tosite_nro + ', ' + json.tallennettu + ' riviä');
+      tyhjennaTositelomake();
       lataaRivit(curYritys.id);
     } else {
       toast('Virhe: ' + json.error);
