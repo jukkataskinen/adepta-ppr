@@ -2484,6 +2484,7 @@ function ladattuTiliote(tapahtumat, iban, period) {
   document.getElementById('import-preview-csv').style.display = 'block';
   document.getElementById('vakio-info').style.display = 'none';
   toast(`${tapahtumat.length} tapahtumaa tiliotteelta`);
+  console.log('impTapahtumat:', impTapahtumat);
 }
 
 function renderImpTable() {
@@ -2568,6 +2569,7 @@ function renderImpTable() {
     if (tbody)    tbody.appendChild(tr);
     if (tbodyPdf) tbodyPdf.appendChild(tr.cloneNode(true));
   });
+  console.log('tbody rivejä:', document.getElementById('imp-tbody')?.children.length);
 }
 
 // ── LASKU-ESIKATSELU POPUP ───────────────────────────────────
