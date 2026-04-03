@@ -2644,49 +2644,70 @@ function naytaLaskuPopup(event, tapIdx) {
     });
   }, 10);
 }
-function impTuoRivi(i) {
+async function impTuoRivi(i) {
   const t = impTapahtumat[i];
   const vak = t.vak || (t.vtNro ? {vt: t.vtNro, alv: t.alvp||0} : null);
   if (!vak) { avaaVtModal(i); return; }
-  const pos  = t.summa > 0;
-  const alvp = vak.alv;
-  const netto = +(Math.abs(t.summa) / (alvp>0 ? 1+alvp/100 : 1)).toFixed(2);
-  const d = pos ? '1910' : vak.vt;
-  const k = pos ? vak.vt  : '1910';
-  const selite = (t.maksu && t.maksu !== t.sel) ? `${t.sel} — ${t.maksu}` : t.sel;
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
 
-  // Hae liitetty lasku jos on
-  const liitettyLasku = (t.laskuIdx !== null && t.laskuIdx !== undefined)
-    ? laskut[t.laskuIdx] : null;
+  const pos = t.summa > 0;
+  const alvp = vak.alv || 0;
+  const brutto = Math.abs(t.summa);
+  const netto = alvp > 0 ? brutto / (1 + alvp/100) : brutto;
+  const alv = brutto - netto;
+  const selite = (t.maksu && t.maksu !== t.sel) ? t.sel + ' — ' + t.maksu : t.sel;
 
-  push();
-  rows.push({
-    id:    nextId++,
-    pv:    t.arvopv,
-    ts:    genTosite(t),
-    sel:   selite,
-    d, k, netto, alvp,
-    // Tositteen tiedot — säilyvät päiväkirjarivissä
-    tosite_nro:      liitettyLasku?.nro        || null,
-    tosite_tmttja:   liitettyLasku?.toimittaja || (t.maksu||null),
-    tosite_pvm:      liitettyLasku?.pvm        || t.arvopv || null,
-    tosite_summa:    liitettyLasku?.summa_brutto ?? Math.abs(t.summa),
-    tosite_viite:    liitettyLasku?.viite       || t.viite || null,
-    tosite_kuvaus:   liitettyLasku?.kuvaus      || null,
-    pankkisumma:     t.summa,
-    pankkiviite:     t.viite || null,
-  });
-  setDirty(true);
-  t.tila = 'tuotu';
-  LS.saveRows();
-  // Päivitä jono
-  const queue = LS.loadQueue();
-  const qIdx = queue.findIndex(q => q.arvopv===t.arvopv && q.summa===t.summa && q.sel===t.sel);
-  if (qIdx >= 0) { queue.splice(qIdx,1); LS.saveQueue(queue); }
-  if (queue.length === 0) { LS.clearQueue(); checkImportQueue(); }
-  renderImpTable();
-  render();
-  toast(`✓ ${genTosite(t)} kirjattu päiväkirjaan`);
+  // Hae seuraava tositenumero
+  const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id);
+  const nroData = await nroRes.json();
+  const tosite_nro = nroData.seuraava || 1;
+
+  // Rakenna rivit uudella saldo-mallilla
+  const rivit = [];
+  if (pos) {
+    // Tulo: 1910 debet, vastatili kredit
+    rivit.push({ tili: '1910', selite: selite, saldo: brutto });
+    if (alvp > 0) {
+      rivit.push({ tili: vak.vt, selite: selite, saldo: -netto, alv_prosentti: alvp });
+      rivit.push({ tili: '29390', selite: 'ALV ' + alvp + '%', saldo: -alv });
+    } else {
+      rivit.push({ tili: vak.vt, selite: selite, saldo: -brutto });
+    }
+  } else {
+    // Meno: vastatili debet, 1910 kredit
+    if (alvp > 0) {
+      rivit.push({ tili: vak.vt, selite: selite, saldo: netto, alv_prosentti: alvp });
+      rivit.push({ tili: '1763', selite: 'ALV ' + alvp + '%', saldo: alv });
+      rivit.push({ tili: '1910', selite: selite, saldo: -brutto });
+    } else {
+      rivit.push({ tili: vak.vt, selite: selite, saldo: brutto });
+      rivit.push({ tili: '1910', selite: selite, saldo: -brutto });
+    }
+  }
+
+  try {
+    const res = await fetch('/api/ppr/paivakirja', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        asiakas_id: curYritys.id,
+        tosite_nro,
+        paivamaara: t.arvopv,
+        rivit
+      })
+    });
+    const json = await res.json();
+    if (res.ok) {
+      t.tila = 'tuotu';
+      renderImpTable();
+      await lataaRivit(curYritys.id);
+      toast('✓ ' + selite + ' kirjattu tositteena ' + tosite_nro);
+    } else {
+      toast('Virhe: ' + json.error);
+    }
+  } catch(e) {
+    toast('Verkkovirhe');
+  }
 }
 
 function siirryPankki() { showPanel('pankki'); }
