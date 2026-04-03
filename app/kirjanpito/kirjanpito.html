@@ -394,14 +394,11 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               <th class="c">#</th>
               <th>Päivä</th>
               <th>Tosite</th>
-              <th>Selite / Vakiokirjaus</th>
-              <th>Debet-tili</th>
-              <th>Kredit-tili</th>
-              <th class="r">Netto €</th>
-              <th class="c">ALV%</th>
-              <th class="r">ALV €</th>
-              <th class="r">Brutto €</th>
-              <th></th>
+              <th>Selite</th>
+              <th>Tili</th>
+              <th>Tilin nimi</th>
+              <th class="r">Debet €</th>
+              <th class="r">Kredit €</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -1113,48 +1110,21 @@ function render() {
   rows.forEach((r, i) => {
     const tr = document.createElement('tr');
     tr.className = 'jr';
-    tr.dataset.id = r.id;
-    tr.dataset.i = i;
-    const alve = alvE(r.netto, r.alvp);
-    const br = brutto(r.netto, r.alvp);
-    const vak = matchVakio(r.sel);
-    if (vak) tr.classList.add('sug-row');
-    tr.innerHTML = `
-      <td class="rn">${i+1}</td>
-      <td class="c0"><input class="ji mono" type="date" value="${r.pv}" data-col="0" data-id="${r.id}" onchange="fieldChange(${r.id},'pv',this.value)" onkeydown="ck(event,${i},0)"></td>
-      <td class="c0"><input class="ji mono" type="text" value="${r.ts}" placeholder="AV-001" data-col="1" data-id="${r.id}" oninput="fieldChange(${r.id},'ts',this.value)" onkeydown="ck(event,${i},1)"></td>
-      <td class="c0">
-        <div class="sel-wrap">
-          <input class="sel-input" type="text" value="${r.sel}" placeholder="Selite / tapahtuma…" data-col="2" data-id="${r.id}" oninput="selChange(${r.id},this)" onkeydown="ck(event,${i},2)">
-          <div class="sug-badge ${vak?'vis':''}" id="sug-${r.id}" onclick="applySug(${r.id})">${vak?'⚡ '+vak.lbl:''}</div>
-          ${r.tosite_tmttja||r.tosite_nro ? `<span title="Tosite: ${r.tosite_nro||r.tosite_tmttja}" onclick="showPanel('tositteet')" style="cursor:pointer;font-size:13px;margin-right:4px;flex-shrink:0" tabindex="-1">📎</span>` : ''}
-        </div>
-      </td>
-      <td class="c0"><div class="acct-wrap" id="aw-d-${r.id}">
-        <button class="acct-btn${r.d?'':' empty'}" onclick="openAcct('d',${r.id},${i})" onkeydown="ck(event,${i},3)" id="ab-d-${r.id}">${r.d?tiliShort(r.d):'Valitse tili…'}</button>
-        <span class="acct-arrow">▾</span>
-      </div></td>
-      <td class="c0"><div class="acct-wrap" id="aw-k-${r.id}">
-        <button class="acct-btn${r.k?'':' empty'}" onclick="openAcct('k',${r.id},${i})" onkeydown="ck(event,${i},4)" id="ab-k-${r.id}">${r.k?tiliShort(r.k):'Valitse tili…'}</button>
-        <span class="acct-arrow">▾</span>
-      </div></td>
-      <td class="c0"><input class="ji num" type="text" value="${r.netto?r.netto.toLocaleString('fi-FI',{minimumFractionDigits:2}):''}" placeholder="0,00" data-col="5" data-id="${r.id}" onfocus="this.select()" onblur="numBlur(this,${r.id})" onkeydown="ck(event,${i},5)"></td>
-      <td class="c0">
-        <select class="ji" style="text-align:center;font-size:12px" data-col="6" data-id="${r.id}" onchange="fieldChange(${r.id},'alvp',parseFloat(this.value))" onkeydown="ck(event,${i},6)">
-          ${[0,10,14,24,25.5].map(v=>`<option value="${v}"${r.alvp===v?' selected':''}>${v===0?'0 %':v+' %'}</option>`).join('')}
-        </select>
-      </td>
-      <td class="c0"><input class="ji calc" type="text" value="${alve>0?alve.toLocaleString('fi-FI',{minimumFractionDigits:2}):''}" placeholder="—" readonly tabindex="-1"></td>
-      <td class="c0"><input class="ji calc" type="text" value="${br>0?br.toLocaleString('fi-FI',{minimumFractionDigits:2}):''}" placeholder="—" readonly tabindex="-1" style="font-weight:500;color:var(--ink)"></td>
-      <td class="c0"><button class="del-btn" onclick="delRow(${i})" title="Poista rivi (Del)">×</button></td>
-    `;
+    const debet = r.netto > 0 && !r.k ? r.netto : 0;
+    const kredit = r.netto > 0 && r.k ? r.netto : 0;
+    const tili = r.d || r.k || '';
+    const tiliNimi = TILIT.find(t => t.nro === tili)?.lbl || '';
+    tr.innerHTML =
+      '<td class="rn">' + (i+1) + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px">' + (r.pv || '') + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px">' + (r.ts || '') + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px">' + (r.sel || '') + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px;font-weight:600">' + tili + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px;color:var(--inu)">' + tiliNimi + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#2a7a4f">' + (debet ? debet.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#c0392b">' + (kredit ? kredit.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>';
     tbody.appendChild(tr);
   });
-  // Add row button — same as SKOG's arb
-  const addTr = document.createElement('tr');
-  addTr.className = 'add-row';
-  addTr.innerHTML = `<td colspan="11"><button class="add-row-btn" id="arb" onclick="addRow(rows.length-1)" onkeydown="arbK(event)">＋ Lisää tapahtuma &nbsp;<kbd>Enter</kbd></button></td>`;
-  tbody.appendChild(addTr);
   updateTotals();
 }
 
