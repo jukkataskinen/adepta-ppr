@@ -8,24 +8,15 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const asiakas_id = searchParams.get('asiakas_id')
-  const vuosi = searchParams.get('vuosi')
 
   if (!asiakas_id) return NextResponse.json({ error: 'asiakas_id puuttuu' }, { status: 400 })
 
-  let query = supabaseAdmin!
+  const { data, error } = await supabaseAdmin!
     .from('ppr_paivakirja')
     .select('id, tosite_nro, paivamaara, tili, selite, saldo, alv_prosentti')
     .eq('asiakas_id', asiakas_id)
     .order('paivamaara')
     .order('tosite_nro')
-
-  if (vuosi) {
-    const start = `${vuosi}-01-01`
-    const end   = `${vuosi}-12-31`
-    query = query.gte('paivamaara', start).lte('paivamaara', end)
-  }
-
-  const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
 }
