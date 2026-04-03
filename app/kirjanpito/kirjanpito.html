@@ -255,6 +255,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -3003,6 +3004,30 @@ function dzDropCsv(e)    { e.preventDefault(); dzLeave(e,'dz-csv'); const f=e.da
 function dzDropLaskut(e) { e.preventDefault(); dzLeave(e,'dz-laskut'); const f=e.dataTransfer.files[0]; if(f) analyseLaskutPDF(f); }
 function dzDrop(e)       { e.preventDefault(); dzLeave(e,'dz'); const f=e.dataTransfer.files[0]; if(f){ f.name.toLowerCase().endsWith('.pdf')?analysePDF(f):parseFile(f); } }
 
+// ── PDF-SIVU KUVAKSI (PDF.js) ────────────────────────────────
+async function pdfSivuKuvaksi(base64, sivunro = 1) {
+  try {
+    if (typeof pdfjsLib === 'undefined') return null;
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const data = atob(base64);
+    const bytes = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i);
+    const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+    const sivu = Math.min(sivunro, pdf.numPages);
+    const page = await pdf.getPage(sivu);
+    const viewport = page.getViewport({scale: 1.5});
+    const canvas = document.createElement('canvas');
+    canvas.width  = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch(e) {
+    console.warn('pdfSivuKuvaksi virhe:', e);
+    return null;
+  }
+}
+
 // ── TAB 2: LASKUT PDF ────────────────────────────────────────
 async function handleLaskutFile(e) {
   const f = e.target.files[0];
@@ -3127,6 +3152,13 @@ Jos et tiedä tiliä, jätä null. Tunnista kaikki laskut — älä jätä yhtä
     // Tallenna laskut
     const uudet = (parsed.laskut || []).map((l, i) => ({...l, idx: laskut.length + i, tapIdx: null}));
     laskut = [...laskut, ...uudet];
+
+    // Renderöi PDF-sivut kuviksi (sivu i+1 laskulle i, max numPages)
+    setStatus('Renderöidään esikatselukuvat…', 'PDF-sivut → JPEG', 90);
+    await Promise.all(uudet.map(async (l, i) => {
+      l.kuva_base64 = await pdfSivuKuvaksi(base64, i + 1);
+    }));
+
     LS.saveLaskut(laskut);
 
     setTimeout(() => {
@@ -3518,7 +3550,7 @@ Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa 
     }
 
     setStatus('Täsmäytetään aineistoa…', 'Yhdistetään laskut tiliotteen tapahtumiin', 95);
-    prosessoiAITulos(parsed, file.name);
+    await prosessoiAITulos(parsed, file.name, base64);
 
   } catch(err) {
     console.error('AI analyysi epäonnistui:', err);
@@ -3530,7 +3562,7 @@ Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa 
   }
 }
 
-function prosessoiAITulos(parsed, filename) {
+async function prosessoiAITulos(parsed, filename, base64) {
   document.getElementById('ai-analysing').style.display = 'none';
   const sl = document.getElementById('scan-loader');
   if (sl) sl.style.display = 'none';
@@ -3551,6 +3583,12 @@ function prosessoiAITulos(parsed, filename) {
 
   // 2. Lataa laskut
   laskut = (parsed.laskut || []).map((l, i) => ({...l, idx: i, tapIdx: null}));
+  // Renderöi PDF-sivut kuviksi jos base64 saatavilla
+  if (base64) {
+    await Promise.all(laskut.map(async (l, i) => {
+      l.kuva_base64 = await pdfSivuKuvaksi(base64, i + 1);
+    }));
+  }
 
   // 3. Käytä ensin Clauden omia täsmäytyksiä (paras tulos)
   const aiTasmaytyket = parsed.tasmaytyket || [];
