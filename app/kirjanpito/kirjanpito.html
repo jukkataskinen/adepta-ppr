@@ -3392,7 +3392,7 @@ function tositeRenderLista(rowIdx, q) {
   if (!tulokset.length) { lista.style.display = 'none'; return; }
   lista.style.display = 'block';
   lista.innerHTML = tulokset.map(t =>
-    '<div onmousedown="tositeValitseTili(' + rowIdx + ','' + t.nro + '','' + t.lbl.replace(/'/g,'') + '')" ' +
+    '<div onmousedown="tositeValitseTili(' + rowIdx + ',\"' + t.nro + '\",\"' + t.lbl.replace(/"/g,\'\') + '\")" ' +
     'style="padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:center" ' +
     'onmouseover="this.style.background='#f0f7f1'" onmouseout="this.style.background=''">' +
     '<span style="font-weight:600;color:#3d6b43;min-width:44px">' + t.nro + '</span>' +
