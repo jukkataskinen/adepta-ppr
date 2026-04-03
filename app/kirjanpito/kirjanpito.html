@@ -59,6 +59,9 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
 .nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
 .nav-item .ic{font-size:15px;opacity:.8}
+.nav-group-header{padding:9px 14px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.03em}
+.nav-group-header:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-sub{padding-left:24px !important}
 .sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
 .sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
 
@@ -289,14 +292,21 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
   <!-- SIDEBAR -->
   <div class="sb">
-    <div class="sb-sec">Näkymä</div>
-    <div class="nav-item" id="nav-tosite" onclick="showPanel('tosite')">Tositteen syöttö</div>
-    <div class="nav-item act" id="nav-pk" onclick="showPanel('paivak')">Päiväkirja</div>
-    <div class="nav-item" id="nav-pk2" onclick="showPanel('paakirja')">Pääkirja</div>
+    <div class="nav-group">
+      <div class="nav-group-header" onclick="toggleNavGroup('kirjanpito')">
+        Kirjanpito
+        <span id="arrow-kirjanpito" style="float:right;transition:transform .2s">▸</span>
+      </div>
+      <div id="group-kirjanpito" style="display:none">
+        <div class="nav-item nav-sub" id="nav-tosite" onclick="showPanel('tosite')">Tositteen syöttö</div>
+        <div class="nav-item nav-sub" id="nav-pk" onclick="showPanel('paivak')">Päiväkirja</div>
+        <div class="nav-item nav-sub" id="nav-pk2" onclick="showPanel('paakirja')">Pääkirja</div>
+        <div class="nav-item nav-sub" id="nav-tositteet" onclick="showPanel('tositteet')">Tositteet</div>
+        <div class="nav-item nav-sub" id="nav-tk" onclick="showPanel('tilikartta')">Tilikartta</div>
+      </div>
+    </div>
     <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')">Pankkituonti</div>
-    <div class="nav-item" id="nav-tositteet" onclick="showPanel('tositteet')">Tositteet</div>
     <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')">Raportit</div>
-    <div class="nav-item" id="nav-tk" onclick="showPanel('tilikartta')">Tilikartta</div>
     <div class="sb-div"></div>
     <div class="sb-sec">Hallinta</div>
     <a class="nav-item" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
@@ -1245,6 +1255,13 @@ function vaihdaAsiakas(id) {
 }
 
 // ── PANEL SWITCH ─────────────────────────────────────────────
+function toggleNavGroup(name) {
+  const group = document.getElementById('group-' + name);
+  const arrow = document.getElementById('arrow-' + name);
+  const open = group.style.display !== 'none';
+  group.style.display = open ? 'none' : 'block';
+  arrow.style.transform = open ? '' : 'rotate(90deg)';
+}
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('act'));
@@ -4186,6 +4203,7 @@ function toast(msg) {
 // ── START ────────────────────────────────────────────────────
 document.getElementById('sb-user-name').textContent = window._PPR?.email || '—';
 document.getElementById('sb-user-role').textContent = window._PPR?.rooli === 'paakayttaja' ? 'Pääkäyttäjä' : 'Kirjanpitäjä';
+toggleNavGroup('kirjanpito');
 lataaYritykset();
 
 // ── TOSITTEEN SYÖTTÖ ─────────────────────────────────────────
