@@ -1670,6 +1670,14 @@ function renderRpt(name) {
   else if (name === 'tase') el.innerHTML = rptTase();
   else if (name === 'alv') el.innerHTML = rptAlv();
 }
+function rptTiliRivi(nro, normaali) {
+  const db = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
+  const kb = rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+  const s = normaali==='D' ? db-kb : kb-db;
+  if (Math.abs(s) < 0.01) return '';
+  const nimi = TILIT.find(t=>t.nro===nro)?.lbl || nro;
+  return rptRow(nro + ' ' + nimi, s, '', true);
+}
 function rptRow(l, v, cls='', indent=false, sub='') {
   const vStr = v < -0.005 ? '-' + fmtE(Math.abs(v)) : fmtE(Math.abs(v));
   return `<div class="rpt-row${cls?' '+cls:''}${indent?' indent':''}">
@@ -1678,32 +1686,6 @@ function rptRow(l, v, cls='', indent=false, sub='') {
   </div>`;
 }
 function rptTulos() {
-  if (rptMode === 'pitka') {
-    const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
-    const nros = [...new Set([
-      ...rows.filter(r=>parseInt(r.k)>=3000&&parseInt(r.k)<=9999).map(r=>r.k),
-      ...rows.filter(r=>parseInt(r.d)>=3000&&parseInt(r.d)<=9999).map(r=>r.d)
-    ])].sort();
-    const sections = {};
-    nros.forEach(nro => {
-      const tili = TILIT.find(t=>t.nro===nro) || {lbl: nro, grp: 'Muut'};
-      const kb = rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
-      const db = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
-      const isKulu = parseInt(nro) >= 4000;
-      const saldo = isKulu ? -(db - kb) : (kb - db);
-      if (Math.abs(saldo) < 0.005) return;
-      const grp = tili.grp || 'Muut';
-      if (!sections[grp]) sections[grp] = [];
-      sections[grp].push({nro, lbl: tili.lbl || nro, saldo});
-    });
-    let html = '<div class="rpt-section"><div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma (tilikohtainen)</div></div>';
-    Object.entries(sections).forEach(([grp, items]) => {
-      html += hdr(grp);
-      items.forEach(({nro, lbl, saldo}) => { html += rptRow(nro + ' ' + lbl, saldo, '', true); });
-    });
-    html += '</div>';
-    return html;
-  }
   const lv = (nrot) => rows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
   const ku = (nrot) => rows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
   const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
@@ -1726,6 +1708,52 @@ function rptTulos() {
   const korot_t     = lv(['8650']);
   const korot_k     = ku(['8710','8790']);
   const tulos       = liikkulos + korot_t - korot_k;
+  const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
+  if (rptMode === 'pitka') {
+    // kulutili: näytetään negatiivisena kuten lyhyessä
+    const trd = (nro) => {
+      const v = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0) -
+                rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+      if (Math.abs(v) < 0.01) return '';
+      return rptRow(nro + ' ' + (TILIT.find(t=>t.nro===nro)?.lbl||nro), -v, '', true);
+    };
+    return '<div class="rpt-section">' +
+      '<div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma (tilikohtainen)</div></div>' +
+      hdr('Liikevaihto') +
+      ['3000','3001','3002','3003','3004','3344','3355','3450','3454'].map(n=>rptTiliRivi(n,'K')).join('') +
+      hdr('Muut liiketoiminnan tuotot') +
+      ['3750','3844','3990','3994'].map(n=>rptTiliRivi(n,'K')).join('') +
+      rptRow('LIIKEVAIHTO JA MUUT TUOTOT', liikevaihto+muuttuotot, 'total') +
+      hdr('Aineet, tarvikkeet ja ulkopuoliset palvelut') +
+      ['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490'].map(trd).join('') +
+      hdr('Palkat ja palkkiot') + trd('5000') +
+      hdr('Eläkekulut') +
+      ['6100','6130','6140','6240'].map(trd).join('') +
+      hdr('Muut henkilösivukulut') +
+      ['6300','6400'].map(trd).join('') +
+      hdr('Toimitilakulut') +
+      ['7204','7210','7214','7360','7370','7380','7390','7414','7430'].map(trd).join('') +
+      hdr('Ajoneuvokulut') +
+      ['7530','7540','7574'].map(trd).join('') +
+      hdr('IT-kulut') +
+      ['7650','7730'].map(trd).join('') +
+      hdr('Matkakulut') +
+      ['7800','7810','7820'].map(trd).join('') +
+      hdr('Myynti ja markkinointi') +
+      ['7910','7920','7930'].map(trd).join('') +
+      hdr('Hallintokulut') +
+      ['7950','7960','7970','8010','8060','8100','8200','8450'].map(trd).join('') +
+      hdr('Muut liiketoiminnan kulut') +
+      ['8500','8540'].map(trd).join('') +
+      hdr('Poistot') +
+      ['6820','6830','6870','6890'].map(trd).join('') +
+      rptRow('LIIKETOIMINNAN KULUT YHT.', -liiketkulut, 'total') +
+      rptRow('LIIKEVOITTO (-TAPPIO)', liikkulos, 'total') +
+      (korot_t>0 ? hdr('Rahoitustuotot') + rptTiliRivi('8650','K') : '') +
+      (korot_k>0 ? hdr('Rahoituskulut') + ['8710','8790'].map(trd).join('') : '') +
+      rptRow('TILIKAUDEN TULOS', tulos, 'total') +
+      '</div>';
+  }
   return `<div class="rpt-section">
     <div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma</div><div class="rpt-hdr-s">1.1.–30.4.2025</div></div>
     ${rptRow('Myynti 25,5%', lv(['3000','3001','3002','3003','3004']),   '', true)}
@@ -1752,35 +1780,6 @@ function rptTulos() {
   </div>`;
 }
 function rptTase() {
-  if (rptMode === 'pitka') {
-    const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
-    const nros = [...new Set([
-      ...rows.filter(r=>parseInt(r.d)>=1000&&parseInt(r.d)<=2999).map(r=>r.d),
-      ...rows.filter(r=>parseInt(r.k)>=1000&&parseInt(r.k)<=2999).map(r=>r.k)
-    ])].sort();
-    const vastaavaa = [], vastattavaa = [];
-    nros.forEach(nro => {
-      const tili = TILIT.find(t=>t.nro===nro) || {lbl: nro, grp: 'Muut'};
-      const db = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
-      const kb = rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
-      const n = parseInt(nro);
-      const saldo = n < 2000 ? (db - kb) : (kb - db);
-      if (Math.abs(saldo) < 0.005) return;
-      const item = {nro, lbl: tili.lbl || nro, grp: tili.grp || 'Muut', saldo};
-      if (n < 2000) vastaavaa.push(item); else vastattavaa.push(item);
-    });
-    const renderGroup = (items) => {
-      const groups = {};
-      items.forEach(it => { if (!groups[it.grp]) groups[it.grp] = []; groups[it.grp].push(it); });
-      return Object.entries(groups).map(([grp, its]) =>
-        hdr(grp) + its.map(({nro, lbl, saldo}) => rptRow(nro + ' ' + lbl, saldo, '', true)).join('')
-      ).join('');
-    };
-    return '<div class="rpt-section"><div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa (tilikohtainen)</div></div>' +
-      renderGroup(vastaavaa) + '</div>' +
-      '<div class="rpt-section"><div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa (tilikohtainen)</div></div>' +
-      renderGroup(vastattavaa) + '</div>';
-  }
   const db = (nro) => rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
   const kb = (nro) => rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
   const saldo = (nro, normaali) => normaali==='D' ? db(nro)-kb(nro) : kb(nro)-db(nro);
@@ -1821,6 +1820,40 @@ function rptTase() {
   const erotus = Math.abs(vastaavaaYht - vastattavaaYht);
 
   const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
+
+  if (rptMode === 'pitka') {
+    return '<div class="rpt-section">' +
+      '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa (tilikohtainen)</div></div>' +
+      hdr('Pysyvät vastaavat') +
+      ['1021','1049','1051'].map(n=>rptTiliRivi(n,'D')).join('') +
+      ['1161','1171'].map(n=>rptTiliRivi(n,'D')).join('') +
+      rptTiliRivi('1440','D') +
+      rptRow('Pysyvät vastaavat yhteensä', pysyvatYht, 'total') +
+      hdr('Vaihtuvat vastaavat') +
+      ['1501','1521'].map(n=>rptTiliRivi(n,'D')).join('') +
+      ['1701','1711'].map(n=>rptTiliRivi(n,'D')).join('') +
+      ['1759','1762','1763','1779','1800','1849'].map(n=>rptTiliRivi(n,'D')).join('') +
+      ['1900','1910','1920','1950','1970'].map(n=>rptTiliRivi(n,'D')).join('') +
+      rptRow('Vaihtuvat vastaavat yhteensä', vaihtuvatYht, 'total') +
+      rptRow('VASTAAVAA YHTEENSÄ', vastaavaaYht, 'total') +
+      '</div>' +
+      '<div class="rpt-section">' +
+      '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa (tilikohtainen)</div></div>' +
+      hdr('Oma pääoma') +
+      ['2001','2061','2171','2181','2201'].map(n=>rptTiliRivi(n,'K')).join('') +
+      rptTiliRivi('2251','K') +
+      rptTiliRivi('2350','K') +
+      rptRow('Tilikauden tulos', tulos, '', true) +
+      rptRow('Oma pääoma yhteensä', omaPaaoma, 'total') +
+      (tilinpaatossiirrot ? hdr('Tilinpäätössiirtojen kertymä') + rptTiliRivi('2481','K') : '') +
+      (pitkaVelat ? hdr('Pitkäaikainen vieras pääoma') +
+        ['2621','2631','2749'].map(n=>rptTiliRivi(n,'K')).join('') : '') +
+      hdr('Lyhytaikainen vieras pääoma') +
+      ['2821','2864','2871','2925','2939','29390','29391','29392','2947','2949','2963','2979'].map(n=>rptTiliRivi(n,'K')).join('') +
+      rptRow('VASTATTAVAA YHTEENSÄ', vastattavaaYht, 'total') +
+      '<div class="rpt-row total"><div class="rpt-row-l" style="font-weight:600">' + (erotus<1 ? '✓ Tase tasapainossa' : '⚠ Tase ei tasapainossa') + '</div><div class="rpt-row-v">' + fmtE(erotus) + '</div></div>' +
+      '</div>';
+  }
 
   return '<div class="rpt-section">' +
     '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa</div></div>' +
