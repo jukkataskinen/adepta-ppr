@@ -1076,14 +1076,16 @@ function showPanel(name) {
 
 // ── HELPERS ──────────────────────────────────────────────────
 function tiliLabel(nro) {
-  if (!nro) return '';
-  const t = TILIT.find(t => t.nro === nro);
-  return t ? `${nro} ${t.lbl}` : nro;
+  if (nro === undefined || nro === null || nro === '') return '';
+  const nroStr = String(nro);
+  const t = TILIT.find(t => String(t.nro) === nroStr);
+  return t ? `${t.nro} ${t.lbl}` : nroStr;
 }
 function tiliShort(nro) {
-  if (!nro) return '';
-  const t = TILIT.find(t => t.nro === nro);
-  return t ? `${nro} ${t.lbl}` : nro;
+  if (nro === undefined || nro === null || nro === '') return '';
+  const nroStr = String(nro);
+  const t = TILIT.find(t => String(t.nro) === nroStr);
+  return t ? `${t.nro} ${t.lbl}` : nroStr;
 }
 function alvE(netto, alvp) {
   return alvp > 0 ? +(netto * alvp / 100).toFixed(2) : 0;
