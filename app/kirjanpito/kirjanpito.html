@@ -3735,7 +3735,7 @@ function tyhjennaTositelomake() {
 }
 
 async function tallennaTositteet() {
-  if (!curYritys || tositeRivit.length === 0) return;
+  if (!curYritys || tositeRivit.length === 0) { console.log('STOP: ei yritystä tai rivejä'); return; }
   const btn = document.getElementById('tosite-save-btn');
   btn.disabled = true;
 
@@ -3745,10 +3745,11 @@ async function tallennaTositteet() {
   const tosite_nro = parseInt(nroEl.value) || seuraavaTositeNro || 1;
   const paivamaara = document.getElementById('ts-pvm').value;
 
-  if (!paivamaara) { toast('Syötä päiväys'); btn.disabled = false; return; }
+  if (!paivamaara) { console.log('STOP: ei päiväystä'); toast('Syötä päiväys'); btn.disabled = false; return; }
 
   // Check that all user rows have tili selected
   if (tositeRivit.some(r => !r.tili)) {
+    console.log('STOP: rivi ilman tiliä', tositeRivit);
     toast('Kaikille riveille on valittava tili');
     btn.disabled = false;
     return;
@@ -3756,6 +3757,7 @@ async function tallennaTositteet() {
 
   // Check that balancing row has tili if needed
   if (tositeBalancingRow && (tositeBalancingRow.debet || tositeBalancingRow.kredit) && !tositeBalancingRow.tili) {
+    console.log('STOP: tasausrivillä ei tiliä', tositeBalancingRow);
     toast('Tasausriville on valittava tili');
     btn.disabled = false;
     return;
