@@ -62,6 +62,14 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .nav-group-header{padding:9px 14px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.03em}
 .nav-group-header:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
 .nav-sub{padding-left:24px !important}
+.nav-item-home{font-weight:600;color:rgba(255,255,255,.7) !important}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi-card{background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:18px 16px}
+.kpi-val{font-size:22px;font-weight:300;font-family:var(--ffd);line-height:1.1}
+.kpi-lbl{font-size:11px;color:var(--inu);margin-top:6px}
+.kpi-chg{font-size:11px;margin-top:4px}
+.kpi-chg.pos{color:var(--fg3)}.kpi-chg.neg{color:var(--red)}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
 .sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
 .sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
 
@@ -292,6 +300,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
   <!-- SIDEBAR -->
   <div class="sb">
+    <div class="nav-item nav-item-home" id="nav-etusivu" onclick="showPanel('etusivu')">Yhteenveto</div>
     <div class="nav-group">
       <div class="nav-group-header" onclick="toggleNavGroup('kirjanpito')">
         Kirjanpito
@@ -323,6 +332,32 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
   <!-- MAIN -->
   <div class="main" id="main">
+
+    <!-- ─── ETUSIVU PANEL ─── -->
+    <div id="panel-etusivu" class="panel" style="display:block;overflow-y:auto;padding:28px 32px">
+      <div id="etusivu-header" style="margin-bottom:24px">
+        <h2 id="etusivu-nimi" style="font-size:22px;font-weight:600;margin:0">—</h2>
+        <div id="etusivu-tilikausi" style="font-size:13px;color:var(--inu);margin-top:4px"></div>
+      </div>
+      <div class="kpi-grid" id="etusivu-kpi"></div>
+      <div style="margin-bottom:24px">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Kuukausittainen liikevaihto</h3>
+        <div id="etusivu-chart" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px"></div>
+      </div>
+      <div>
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Viimeisimmät tositteet</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+            <th style="padding:8px;text-align:left">Tosite</th>
+            <th style="padding:8px;text-align:left">Päivämäärä</th>
+            <th style="padding:8px;text-align:left">Selite</th>
+            <th style="padding:8px;text-align:left">Tili</th>
+            <th style="padding:8px;text-align:right">Summa</th>
+          </tr></thead>
+          <tbody id="etusivu-tositteet"></tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- ─── PÄIVÄKIRJA PANEL ─── -->
     <div id="panel-tosite" class="panel">
@@ -1016,7 +1051,7 @@ async function lataaYritykset() {
     const found = savedId ? YRITYKSET.find(y => y.id === savedId) : null;
     curYritys = found || YRITYKSET[0];
     renderCo();
-    lataaRivit(curYritys.id);
+    lataaRivit(curYritys.id).then(() => { lataaEtusivu(); showPanel('etusivu'); });
   } else {
     renderCo();
   }
@@ -1248,7 +1283,7 @@ function vaihdaAsiakas(id) {
   curYritys = y;
   localStorage.setItem('ppr_last_asiakas', y.id);
   renderCo();
-  lataaRivit(y.id);
+  lataaRivit(y.id).then(() => { lataaEtusivu(); showPanel('etusivu'); });
   alustaTositeNro();
   checkImportQueue();
   toast(`${y.nimi} ladattu`);
@@ -1269,7 +1304,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {paivak:'pk',paakirja:'pk2',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -4198,6 +4233,95 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('sh');
   clearTimeout(toastT);
   toastT = setTimeout(() => t.classList.remove('sh'), 2800);
+}
+
+// ── ETUSIVU ──────────────────────────────────────────────────
+function lataaEtusivu() {
+  if (!curYritys) return;
+  const vuosi = curTilikausiVuosi || new Date().getFullYear();
+  document.getElementById('etusivu-nimi').textContent = curYritys.nimi;
+  document.getElementById('etusivu-tilikausi').textContent = 'Tilikausi ' + vuosi + ' (1.1.–31.12.)';
+
+  const ytd = rows.filter(r => r.pv && r.pv.startsWith(String(vuosi)));
+  const fmt = v => Math.abs(v).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const sumAlue = (rr, alku, loppu) => rr.filter(r => {
+    const n = parseInt((r.d||r.k)||'0'); return n>=alku&&n<=loppu;
+  }).reduce((s,r) => s + (r.d ? r.netto : -r.netto), 0);
+
+  const tiliSaldo = (nrot) => {
+    let s = 0;
+    nrot.forEach(nro => {
+      s += rows.filter(r=>r.d===nro).reduce((a,r)=>a+r.netto,0);
+      s -= rows.filter(r=>r.k===nro).reduce((a,r)=>a+r.netto,0);
+    });
+    return s;
+  };
+
+  const liikevaihto = -sumAlue(ytd, 3000, 3999);
+  const kulutYtd = sumAlue(ytd, 4000, 8899);
+  const tulosYtd = liikevaihto - kulutYtd + (-sumAlue(ytd, 8650, 8699)) - sumAlue(ytd, 8700, 8799) - sumAlue(ytd, 9000, 9099);
+  const kassa = tiliSaldo(['1910','1920']);
+  const myyntisaam = tiliSaldo(['1701','1711']);
+  const ostovelat = -(rows.filter(r=>r.k==='2871').reduce((s,r)=>s+r.netto,0) - rows.filter(r=>r.d==='2871').reduce((s,r)=>s+r.netto,0));
+  const alvVelka = -tiliSaldo(['29390','29391','29392']);
+  const omaPaaoma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0));
+
+  const kpiData = [
+    {lbl:'Liikevaihto YTD', val:liikevaihto, pos:liikevaihto>0},
+    {lbl:'Tilikauden tulos', val:tulosYtd, pos:tulosYtd>0},
+    {lbl:'Kassavarat', val:kassa, pos:kassa>0},
+    {lbl:'Myyntisaamiset', val:myyntisaam, pos:true},
+    {lbl:'Ostovelat', val:ostovelat, pos:false},
+    {lbl:'ALV-velka', val:alvVelka, pos:false},
+    {lbl:'Kulut YTD', val:kulutYtd, pos:false},
+    {lbl:'Oma pääoma', val:omaPaaoma, pos:omaPaaoma>0},
+  ];
+
+  document.getElementById('etusivu-kpi').innerHTML = kpiData.map(k => {
+    const neg = k.val < -0.005;
+    const valStr = (neg ? '-' : '') + fmt(k.val) + ' €';
+    const cls = k.pos && k.val > 0 ? 'pos' : (k.val < 0 ? 'neg' : '');
+    const arrow = k.val > 0.01 ? '↑' : (k.val < -0.01 ? '↓' : '');
+    return '<div class="kpi-card"><div class="kpi-val">' + valStr + '</div><div class="kpi-lbl">' + k.lbl + '</div>' +
+      (arrow ? '<div class="kpi-chg ' + cls + '">' + arrow + '</div>' : '') + '</div>';
+  }).join('');
+
+  // Kuukausittainen liikevaihto SVG
+  const kk = [];
+  for (let m = 1; m <= 12; m++) {
+    const mm = String(m).padStart(2,'0');
+    const prefix = vuosi + '-' + mm;
+    const mr = ytd.filter(r => r.pv && r.pv.startsWith(prefix));
+    kk.push(-sumAlue(mr, 3000, 3999));
+  }
+  const maxKk = Math.max(...kk, 1);
+  const barW = 48, gap = 8, chartH = 160, chartW = (barW + gap) * 12;
+  const kkNimet = ['T','H','M','H','T','K','H','E','S','L','M','J'];
+  let svg = '<svg width="100%" viewBox="0 0 ' + chartW + ' ' + (chartH + 28) + '" style="font-family:var(--ffd)">';
+  svg += '<line x1="0" y1="' + chartH + '" x2="' + chartW + '" y2="' + chartH + '" stroke="var(--bd)" stroke-width="1"/>';
+  kk.forEach((v, i) => {
+    const h = maxKk > 0 ? (v / maxKk) * (chartH - 10) : 0;
+    const x = i * (barW + gap);
+    if (h > 0) svg += '<rect x="' + x + '" y="' + (chartH - h) + '" width="' + barW + '" height="' + h + '" rx="4" fill="var(--fg)" opacity="0.8"/>';
+    svg += '<text x="' + (x + barW/2) + '" y="' + (chartH + 16) + '" text-anchor="middle" font-size="10" fill="var(--inu)">' + kkNimet[i] + '</text>';
+    if (v > 0) svg += '<text x="' + (x + barW/2) + '" y="' + (chartH - h - 4) + '" text-anchor="middle" font-size="9" fill="var(--inu)">' + (v/1000).toFixed(v>=10000?0:1) + 'k</text>';
+  });
+  svg += '</svg>';
+  document.getElementById('etusivu-chart').innerHTML = svg;
+
+  // Viimeiset 5 tositetta
+  const viimeiset = [...rows].sort((a,b) => (b.pv||'').localeCompare(a.pv||'') || (b.ts||'').localeCompare(a.ts||'')).slice(0, 5);
+  document.getElementById('etusivu-tositteet').innerHTML = viimeiset.map(r => {
+    const tili = r.d || r.k || '—';
+    const summa = r.d ? r.netto : -r.netto;
+    return '<tr style="border-bottom:1px solid var(--bd)">' +
+      '<td style="padding:7px 8px;font-weight:600;color:var(--fl)">' + (r.ts||'—') + '</td>' +
+      '<td style="padding:7px 8px">' + fmtPv(r.pv) + '</td>' +
+      '<td style="padding:7px 8px;color:var(--inu)">' + (r.sel||'') + '</td>' +
+      '<td style="padding:7px 8px;font-family:var(--ffm);font-size:11px">' + tili + '</td>' +
+      '<td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">' + fmtE(summa) + '</td></tr>';
+  }).join('');
 }
 
 // ── START ────────────────────────────────────────────────────
