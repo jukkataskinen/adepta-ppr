@@ -3741,6 +3741,8 @@ async function tallennaTositteet() {
   const btn = document.getElementById('tosite-save-btn');
   btn.disabled = true;
 
+  const parseFi = v => typeof v === 'string' ? parseFloat(v.replace(/\s/g,'').replace(',','.')) || 0 : parseFloat(v) || 0;
+
   const nroEl = document.getElementById('ts-nro');
   const tosite_nro = parseInt(nroEl.value) || seuraavaTositeNro || 1;
   const paivamaara = document.getElementById('ts-pvm').value;
@@ -3797,7 +3799,7 @@ async function tallennaTositteet() {
       rivit.push({
         tili: r.tili,
         selite: r.sel || null,
-        saldo: parseFloat(r.debet) ? parseFloat(r.debet) : -parseFloat(r.kredit),
+        saldo: parseFi(r.debet) > 0 ? parseFi(r.debet) : -parseFi(r.kredit),
         alv_prosentti: null
       });
     });
@@ -3808,7 +3810,7 @@ async function tallennaTositteet() {
     rivit.push({
       tili: tositeBalancingRow.tili,
       selite: null,
-      saldo: tositeBalancingRow.debet ? parseFloat(tositeBalancingRow.debet) : -parseFloat(tositeBalancingRow.kredit),
+      saldo: parseFi(tositeBalancingRow.debet) > 0 ? parseFi(tositeBalancingRow.debet) : -parseFi(tositeBalancingRow.kredit),
       alv_prosentti: null
     });
   }
