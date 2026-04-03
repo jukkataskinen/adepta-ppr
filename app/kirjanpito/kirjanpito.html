@@ -3211,8 +3211,8 @@ function tasmaytatLaskut() {
       if (t.laskuIdx !== undefined && t.laskuIdx !== null) return;
       let score = 0; const reasons = [];
       const tS = Math.abs(t.summa), lB = lasku.summa_brutto, lN = lasku.summa_netto;
-      if (lB && Math.abs(tS-lB) <= 0.01)       { score+=40; reasons.push('summa'); }
-      else if (lN && Math.abs(tS-lN) <= 0.01)  { score+=25; reasons.push('summa netto'); }
+      if (lB && Math.abs(tS-lB) <= 0.10)       { score+=40; reasons.push('summa'); }
+      else if (lN && Math.abs(tS-lN) <= 0.10)  { score+=25; reasons.push('summa netto'); }
       const tv=(t.viite||'').replace(/\s/g,''), lv=(lasku.viite||'').replace(/\s/g,'');
       if (tv&&lv) {
         if (tv===lv)                                              { score+=50; reasons.push('viite'); }
