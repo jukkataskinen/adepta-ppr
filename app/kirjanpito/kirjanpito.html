@@ -340,6 +340,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div id="etusivu-tilikausi" style="font-size:13px;color:var(--inu);margin-top:4px"></div>
       </div>
       <div class="kpi-grid" id="etusivu-kpi"></div>
+      <div id="etusivu-omavaraisuus" style="margin-bottom:24px"></div>
       <div style="margin-bottom:24px">
         <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Kuukausittainen liikevaihto</h3>
         <div id="etusivu-chart" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px"></div>
@@ -4286,6 +4287,39 @@ function lataaEtusivu() {
     return '<div class="kpi-card"><div class="kpi-val">' + valStr + '</div><div class="kpi-lbl">' + k.lbl + '</div>' +
       (arrow ? '<div class="kpi-chg ' + cls + '">' + arrow + '</div>' : '') + '</div>';
   }).join('');
+
+  // Omavaraisuusgraafi
+  const taseSum = rows.filter(r => r.d && parseInt(r.d)>=1000 && parseInt(r.d)<=1999).reduce((s,r)=>s+r.netto,0);
+  const opOma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0)) + tulosYtd;
+  const opVieras = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2500&&n<3000;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2500&&n<3000;}).reduce((s,r)=>s+r.netto,0));
+  const ovAste = taseSum > 0 ? (opOma / taseSum * 100) : 0;
+  const fmtK = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1).replace('.',',') + 'K' : fmt(v);
+  const omaH = taseSum > 0 ? Math.max(40, Math.round(opOma / taseSum * 196)) : 98;
+  const vierasH = 196 - omaH;
+  document.getElementById('etusivu-omavaraisuus').innerHTML =
+    '<h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Omavaraisuusaste</h3>' +
+    '<div style="font-size:24px;font-weight:300;font-family:var(--ffd);margin-bottom:12px;color:' + (ovAste>=40?'var(--fg3)':ovAste>=20?'var(--fl)':'var(--red)') + '">' + ovAste.toFixed(1).replace('.',',') + ' %</div>' +
+    '<div style="display:flex;gap:4px;align-items:flex-start;height:200px">' +
+      '<div style="background:var(--fg);width:80px;height:200px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
+        '<div style="font-size:18px;font-weight:700">' + fmtK(taseSum) + '</div>' +
+        '<div style="font-size:11px;opacity:.7">Tase</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px;width:80px">' +
+        '<div style="background:var(--fd);height:' + omaH + 'px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:40px">' +
+          '<div style="font-size:14px;font-weight:700">' + fmtK(opOma) + '</div>' +
+          '<div style="font-size:10px;opacity:.7">' + ovAste.toFixed(1).replace('.',',') + '%</div>' +
+        '</div>' +
+        (vierasH >= 30 ?
+          '<div style="background:rgba(255,255,255,.15);height:' + vierasH + 'px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:rgba(255,255,255,.7);min-height:30px">' +
+            '<div style="font-size:14px;font-weight:700">' + fmtK(opVieras) + '</div>' +
+            '<div style="font-size:10px;opacity:.7">' + (taseSum>0?(opVieras/taseSum*100).toFixed(1).replace('.',','):'0') + '%</div>' +
+          '</div>' : '') +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;justify-content:space-between;height:200px;font-size:10px;color:var(--inu);padding:2px 0 2px 8px">' +
+        '<div>Oma pääoma</div>' +
+        '<div>Vieras pääoma</div>' +
+      '</div>' +
+    '</div>';
 
   // Kuukausittainen liikevaihto SVG
   const kk = [];
