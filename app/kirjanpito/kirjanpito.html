@@ -583,6 +583,10 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           <div class="dz-t">Tiliote + laskut samassa PDF:ssä</div>
           <div class="dz-s">Claude erottelee automaattisesti · Max 100 sivua · Vaatii API-avaimen</div>
         </div>
+        <div id="scan-loader" style="display:none;padding:20px;text-align:center">
+          <div style="display:inline-block;width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--fg);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+          <div style="margin-top:12px;font-size:13px;color:var(--inu)" id="scan-loader-text">Analysoidaan PDF:ää...</div>
+        </div>
 
         <!-- Tulokset: split view (yhdistetty) -->
         <div id="ai-results" style="display:none">
@@ -3295,6 +3299,11 @@ async function analysePDF(file) {
   document.getElementById('dz').style.display = 'none';
   document.getElementById('ai-analysing').style.display = 'block';
   document.getElementById('vakio-info').style.display = 'none';
+  const scanLoader = document.getElementById('scan-loader');
+  if (scanLoader) {
+    scanLoader.style.display = 'block';
+    document.getElementById('scan-loader-text').textContent = 'Analysoidaan PDF:ää... Tämä voi kestää 10-30 sekuntia.';
+  }
 
   const setStatus = (msg, sub, pct) => {
     document.getElementById('ai-status').textContent = msg;
@@ -3308,6 +3317,8 @@ async function analysePDF(file) {
     document.getElementById('ai-progress-bar').style.background = 'var(--red)';
     setTimeout(() => {
       document.getElementById('ai-analysing').style.display = 'none';
+      const sl = document.getElementById('scan-loader');
+      if (sl) sl.style.display = 'none';
       document.getElementById('dz').style.display = 'block';
       document.getElementById('vakio-info').style.display = 'block';
       document.getElementById('ai-progress-bar').style.background = 'var(--fg2)';
@@ -3473,6 +3484,8 @@ Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa 
 
 function prosessoiAITulos(parsed, filename) {
   document.getElementById('ai-analysing').style.display = 'none';
+  const sl = document.getElementById('scan-loader');
+  if (sl) sl.style.display = 'none';
 
   // 1. Lataa tiliote
   const tiliote = parsed.tiliote;
