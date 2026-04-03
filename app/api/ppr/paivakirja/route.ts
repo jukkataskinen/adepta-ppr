@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin!
     .from('ppr_paivakirja')
-    .select('id, tosite_nro, paivamaara, tili, selite, saldo')
+    .select('id, tosite_nro, paivamaara, tili, selite, saldo, alv_prosentti')
     .eq('asiakas_id', asiakas_id)
     .order('paivamaara')
     .order('tosite_nro')
