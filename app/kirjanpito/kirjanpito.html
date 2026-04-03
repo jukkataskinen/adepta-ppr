@@ -1968,7 +1968,7 @@ function calcTulos(r) {
   const matkat     =  sumAlue(7800, 7899);
   const myyntimark =  sumAlue(7900, 7999);
   const hallinto   =  sumAlue(8000, 8499);
-  const muutkulut  =  sumAlue(8500, 8649);
+  const muutkulut  =  sumAlue(8500, 8899);
   const korot_t    = -sumAlue(8650, 8699);   // kredit-normal → käännetään
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
@@ -2120,7 +2120,7 @@ function rptTulos() {
   const matkat     =  sumAlue(7800, 7899);
   const myyntimark =  sumAlue(7900, 7999);
   const hallinto   =  sumAlue(8000, 8499);
-  const muutkulut  =  sumAlue(8500, 8649);
+  const muutkulut  =  sumAlue(8500, 8899);
   const korot_t    = -sumAlue(8650, 8699);
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
@@ -2172,7 +2172,7 @@ function rptTulos() {
       hdr('Hallintokulut') +
       tilitAlue(8000, 8499, 'd').map(riviD).join('') +
       hdr('Muut liiketoiminnan kulut') +
-      tilitAlue(8500, 8649, 'd').map(riviD).join('') +
+      tilitAlue(8500, 8899, 'd').map(riviD).join('') +
       rptRow('LIIKETOIMINNAN KULUT YHT.', -liiketkulut, 'total') +
       rptRow('LIIKEVOITTO (-TAPPIO)', liikkulos, 'total') +
       (korot_t > 0 ? hdr('Rahoitustuotot') + tilitAlue(8650, 8699, 'k').map(riviK).join('') : '') +
@@ -2243,7 +2243,7 @@ function rptTase() {
   const matkat     =  sumAlue(7800, 7899);
   const myyntimark =  sumAlue(7900, 7999);
   const hallinto   =  sumAlue(8000, 8499);
-  const muutkulut  =  sumAlue(8500, 8649);
+  const muutkulut  =  sumAlue(8500, 8899);
   const korot_t    = -sumAlue(8650, 8699);
   const korot_k    =  sumAlue(8700, 8799);
   const verot      =  sumAlue(9000, 9099);
