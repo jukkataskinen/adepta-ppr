@@ -771,10 +771,17 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
         <button class="rpt-tab" onclick="showRpt('alv',this)">ALV-laskelma</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--inu)">Näkymä:</span>
         <button class="rpt-tab act" id="rpt-lyhyt-btn" onclick="setRptMode('lyhyt',this)">Lyhyt</button>
         <button class="rpt-tab" id="rpt-pitka-btn" onclick="setRptMode('pitka',this)">Pitkä (tilikohtainen)</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--inu)">Aikaväli:</span>
+        <input type="date" id="rpt-alku" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--fg)" onchange="rptAlku=this.value;renderRpt(curRptName())">
+        <span style="font-size:12px;color:var(--inu)">–</span>
+        <input type="date" id="rpt-loppu" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--fg)" onchange="rptLoppu=this.value;renderRpt(curRptName())">
+        <button onclick="genTestidata()" style="font-size:11px;padding:4px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--inu);cursor:pointer">Luo testidataa</button>
       </div>
       <div id="rpt-content"></div>
     </div>
@@ -1073,6 +1080,12 @@ function showPanel(name) {
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') renderTositteet();
+  if (name === 'raportit') {
+    const alkuEl = document.getElementById('rpt-alku');
+    const loppuEl = document.getElementById('rpt-loppu');
+    if (alkuEl && !alkuEl.value) alkuEl.value = rptAlku;
+    if (loppuEl && !loppuEl.value) loppuEl.value = rptLoppu;
+  }
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -1652,6 +1665,9 @@ function lisaaTositeManual(rowId) {
 
 // ── REPORTS ──────────────────────────────────────────────────
 let rptMode = 'lyhyt';
+let rptAlku = new Date().getFullYear() + '-01-01';
+let rptLoppu = new Date().toISOString().slice(0,10);
+let rptRows = [];
 function setRptMode(mode, btn) {
   rptMode = mode;
   document.getElementById('rpt-lyhyt-btn').classList.toggle('act', mode==='lyhyt');
@@ -1664,15 +1680,22 @@ function showRpt(name, btn) {
   if (btn) btn.classList.add('act');
   renderRpt(name);
 }
+function curRptName() {
+  const act = document.querySelector('.rpt-tabs .rpt-tab.act');
+  if (!act) return 'tulos';
+  const t = act.textContent.toLowerCase();
+  return t.includes('tulos') ? 'tulos' : t.includes('tase') ? 'tase' : 'alv';
+}
 function renderRpt(name) {
+  rptRows = rows.filter(r => r.pv >= rptAlku && r.pv <= rptLoppu);
   const el = document.getElementById('rpt-content');
   if (name === 'tulos') el.innerHTML = rptTulos();
   else if (name === 'tase') el.innerHTML = rptTase();
   else if (name === 'alv') el.innerHTML = rptAlv();
 }
 function rptTiliRivi(nro, normaali) {
-  const db = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
-  const kb = rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+  const db = rptRows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
+  const kb = rptRows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
   const s = normaali==='D' ? db-kb : kb-db;
   if (Math.abs(s) < 0.01) return '';
   const nimi = TILIT.find(t=>t.nro===nro)?.lbl || nro;
@@ -1686,8 +1709,8 @@ function rptRow(l, v, cls='', indent=false, sub='') {
   </div>`;
 }
 function rptTulos() {
-  const lv = (nrot) => rows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
-  const ku = (nrot) => rows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
+  const lv = (nrot) => rptRows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
+  const ku = (nrot) => rptRows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
   const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
   const muuttuotot  = lv(['3750','3844','3990','3994']);
   const aineet      = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490']);
@@ -1712,8 +1735,8 @@ function rptTulos() {
   if (rptMode === 'pitka') {
     // kulutili: näytetään negatiivisena kuten lyhyessä
     const trd = (nro) => {
-      const v = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0) -
-                rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+      const v = rptRows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0) -
+                rptRows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
       if (Math.abs(v) < 0.01) return '';
       return rptRow(nro + ' ' + (TILIT.find(t=>t.nro===nro)?.lbl||nro), -v, '', true);
     };
@@ -1780,8 +1803,8 @@ function rptTulos() {
   </div>`;
 }
 function rptTase() {
-  const db = (nro) => rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
-  const kb = (nro) => rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+  const db = (nro) => rptRows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
+  const kb = (nro) => rptRows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
   const saldo = (nro, normaali) => normaali==='D' ? db(nro)-kb(nro) : kb(nro)-db(nro);
 
   // VASTAAVAA
@@ -1804,8 +1827,8 @@ function rptTase() {
   const yksityistili = saldo('2350','K');
 
   // Tilikauden tulos
-  const lv = (nrot) => rows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
-  const ku = (nrot) => rows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
+  const lv = (nrot) => rptRows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
+  const ku = (nrot) => rptRows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
   const tuotot = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454','3750','3844','3990','3994','8650']);
   const kulut = ku(['4000','4001','4002','4004','4110','4230','4290','4450','4454','4490','5000','6100','6130','6140','6240','6300','6400','6820','6830','6870','6890','7210','7214','7360','7370','7380','7390','7414','7430','7530','7540','7574','7650','7730','7800','7810','7820','7910','7920','7930','7950','7960','7970','8010','8060','8100','8200','8450','8500','8540','8710','8790','9000','9009']);
   const tulos = tuotot - kulut;
@@ -1888,10 +1911,10 @@ function rptTase() {
 }
 function rptAlv() {
   // Myynnin ALV = kredit-tilit 3000-3999 joilla alv > 0
-  const myyAlv = rows.filter(r => r.k.startsWith('3') && r.alvp > 0)
-                     .reduce((s,r) => s + alvE(r.netto, r.alvp), 0);
+  const myyAlv = rptRows.filter(r => r.k.startsWith('3') && r.alvp > 0)
+                        .reduce((s,r) => s + alvE(r.netto, r.alvp), 0);
   // Ostojen ALV = debet-tilit 4000-8999 joilla alv > 0
-  const ostAlv = rows.filter(r => {
+  const ostAlv = rptRows.filter(r => {
     const n = parseInt(r.d); return n >= 4000 && n <= 8999 && r.alvp > 0;
   }).reduce((s,r) => s + alvE(r.netto, r.alvp), 0);
   const netto = myyAlv - ostAlv;
@@ -1906,6 +1929,52 @@ function rptAlv() {
     Eräpäivä: <strong>12. päivä 2 kuukauden kuluttua ilmoitusjakson päättymisestä.</strong><br>
     <span style="color:var(--fl);font-weight:500">ALV-tilit: 29390 Myynnin ALV-velka · 1763 ALV-saamiset ostoista</span>
   </div>`;
+}
+
+async function genTestidata() {
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  const vuosi = curTilikausiVuosi || new Date().getFullYear();
+  const myynnit = [8000,12000,9500,11000,7500,13000,10000,14500,8500,11500,9000,15000];
+  let nro = 100;
+  for (let kk = 1; kk <= 12; kk++) {
+    const pv = `${vuosi}-${String(kk).padStart(2,'0')}-15`;
+    const netto = myynnit[kk-1];
+    // Myyntilasku
+    await fetch('/api/ppr/paivakirja', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        asiakas_id: curYritys.id,
+        tosite_nro: nro++,
+        paivamaara: pv,
+        rivit: [{
+          selite: 'Myyntilasku ' + kk + '/' + vuosi,
+          debet_tili: '1910', kredit_tili: '3000',
+          netto: netto, alv_prosentti: 25.5
+        }]
+      })
+    });
+    // Ostolasku joka toinen kuukausi
+    if (kk % 2 === 0) {
+      await fetch('/api/ppr/paivakirja', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          asiakas_id: curYritys.id,
+          tosite_nro: nro++,
+          paivamaara: pv,
+          rivit: [{
+            selite: 'Kirjanpitopalvelu ' + kk + '/' + vuosi,
+            debet_tili: '8060', kredit_tili: '1910',
+            netto: 500, alv_prosentti: 25.5
+          }]
+        })
+      });
+    }
+  }
+  await lataaRivit(curYritys.id);
+  renderRpt(curRptName());
+  toast('Testidata luotu ✓ — ' + (nro-100) + ' tositetta');
 }
 
 // ── BANK IMPORT ──────────────────────────────────────────────
