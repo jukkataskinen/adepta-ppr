@@ -2668,7 +2668,12 @@ function naytaLaskuPopup(event, tapIdx) {
       <button onclick="document.getElementById('lasku-popup').remove()"
         style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--inf);line-height:1;margin:-4px -4px 0 0">×</button>
     </div>
-    ${l.kuva_base64 ? `<img src="${l.kuva_base64}" style="width:100%;border-radius:6px;margin-bottom:8px;border:1px solid var(--bd)">` : ''}
+    ${pdfSivuKuvat.length > 0 ? `
+      <div style="max-height:300px;overflow-y:auto;margin-bottom:10px;border-radius:6px;border:1px solid var(--bd)">
+        ${pdfSivuKuvat.filter(Boolean).map((src, si) =>
+          `<img src="${src}" style="width:100%;display:block${si > 0 ? ';border-top:1px solid var(--bd)' : ''}">`
+        ).join('')}
+      </div>` : l.kuva_base64 ? `<img src="${l.kuva_base64}" style="width:100%;border-radius:6px;margin-bottom:8px;border:1px solid var(--bd)">` : ''}
     <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px">${l.toimittaja||'—'}</div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">
       ${l.nro ? `<span style="color:var(--inu)">Laskun nro</span><span style="font-family:var(--ffm);color:var(--ink)">${l.nro}</span>` : ''}
@@ -3005,27 +3010,36 @@ function dzDropCsv(e)    { e.preventDefault(); dzLeave(e,'dz-csv'); const f=e.da
 function dzDropLaskut(e) { e.preventDefault(); dzLeave(e,'dz-laskut'); const f=e.dataTransfer.files[0]; if(f) analyseLaskutPDF(f); }
 function dzDrop(e)       { e.preventDefault(); dzLeave(e,'dz'); const f=e.dataTransfer.files[0]; if(f){ f.name.toLowerCase().endsWith('.pdf')?analysePDF(f):parseFile(f); } }
 
-// ── PDF-SIVU KUVAKSI (PDF.js) ────────────────────────────────
-async function pdfSivuKuvaksi(base64, sivunro = 1) {
+// ── PDF KAIKKI SIVUT KUVIKSI (PDF.js) ───────────────────────
+let pdfSivuKuvat = [];
+
+async function pdfKaikkiSivutKuviksi(base64) {
   try {
-    if (typeof pdfjsLib === 'undefined') return null;
+    if (typeof pdfjsLib === 'undefined') return [];
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const data = atob(base64);
     const bytes = new Uint8Array(data.length);
     for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i);
     const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
-    const sivu = Math.min(sivunro, pdf.numPages);
-    const page = await pdf.getPage(sivu);
-    const viewport = page.getViewport({scale: 1.5});
-    const canvas = document.createElement('canvas');
-    canvas.width  = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
-    return canvas.toDataURL('image/jpeg', 0.7);
+    const kuvat = [];
+    for (let s = 1; s <= pdf.numPages; s++) {
+      try {
+        const page = await pdf.getPage(s);
+        const viewport = page.getViewport({scale: 1.5});
+        const canvas = document.createElement('canvas');
+        canvas.width  = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+        kuvat.push(canvas.toDataURL('image/jpeg', 0.7));
+      } catch(e) {
+        kuvat.push(null);
+      }
+    }
+    return kuvat;
   } catch(e) {
-    console.warn('pdfSivuKuvaksi virhe:', e);
-    return null;
+    console.warn('pdfKaikkiSivutKuviksi virhe:', e);
+    return [];
   }
 }
 
@@ -3154,11 +3168,12 @@ Jos et tiedä tiliä, jätä null. Tunnista kaikki laskut — älä jätä yhtä
     const uudet = (parsed.laskut || []).map((l, i) => ({...l, idx: laskut.length + i, tapIdx: null}));
     laskut = [...laskut, ...uudet];
 
-    // Renderöi PDF-sivut kuviksi (sivu i+1 laskulle i, max numPages)
+    // Renderöi kaikki PDF-sivut kuviksi
     setStatus('Renderöidään esikatselukuvat…', 'PDF-sivut → JPEG', 90);
-    await Promise.all(uudet.map(async (l, i) => {
-      l.kuva_base64 = await pdfSivuKuvaksi(base64, i + 1);
-    }));
+    pdfSivuKuvat = await pdfKaikkiSivutKuviksi(base64);
+    uudet.forEach((l, i) => {
+      l.kuva_base64 = pdfSivuKuvat[i] || pdfSivuKuvat[pdfSivuKuvat.length - 1] || null;
+    });
 
     LS.saveLaskut(laskut);
 
@@ -3584,11 +3599,12 @@ async function prosessoiAITulos(parsed, filename, base64) {
 
   // 2. Lataa laskut
   laskut = (parsed.laskut || []).map((l, i) => ({...l, idx: i, tapIdx: null}));
-  // Renderöi PDF-sivut kuviksi jos base64 saatavilla
+  // Renderöi kaikki PDF-sivut kuviksi
   if (base64) {
-    await Promise.all(laskut.map(async (l, i) => {
-      l.kuva_base64 = await pdfSivuKuvaksi(base64, i + 1);
-    }));
+    pdfSivuKuvat = await pdfKaikkiSivutKuviksi(base64);
+    laskut.forEach((l, i) => {
+      l.kuva_base64 = pdfSivuKuvat[i] || pdfSivuKuvat[pdfSivuKuvat.length - 1] || null;
+    });
   }
 
   // 3. Käytä ensin Clauden omia täsmäytyksiä (paras tulos)
