@@ -3292,7 +3292,7 @@ function renderTositeRivit() {
     '<tr style="border-bottom:1px solid var(--bd)">' +
     // Tili
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
-    '<input type="text" value="' + (r.tili ? r.tili + ' ' + r.tiliLbl : '') + '" placeholder="Tilinumero tai nimi..." ' +
+    '<input type="text" value="' + ((r.tili ? r.tili + ' ' + r.tiliLbl : '').replace(/"/g, '&quot;')) + '" placeholder="Tilinumero tai nimi..." ' +
     'data-row="' + i + '" data-col="0" ' +
     'oninput="tositeHakuTili(this,' + i + ')" ' +
     'onfocus="tositeAvaaLista(this,' + i + ')" ' +
@@ -3301,7 +3301,7 @@ function renderTositeRivit() {
     '<div id="ts-tili-lista-' + i + '" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
     '</div></td>' +
     // Selite
-    '<td style="padding:4px 6px"><input type="text" value="' + (r.sel||'') + '" placeholder="Selite..." ' +
+    '<td style="padding:4px 6px"><input type="text" value="' + ((r.sel||'').replace(/"/g, '&quot;')) + '" placeholder="Selite..." ' +
     'data-row="' + i + '" data-col="1" ' +
     'oninput="tositeUpdField(' + i + ','sel',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',1)" ' +
@@ -3392,7 +3392,7 @@ function tositeRenderLista(rowIdx, q) {
   if (!tulokset.length) { lista.style.display = 'none'; return; }
   lista.style.display = 'block';
   lista.innerHTML = tulokset.map(t =>
-    '<div onmousedown=\'tositeValitseTili(' + rowIdx + ',"' + t.nro + '","' + t.lbl.replace(/"/g,'') + '")\' ' +
+    '<div onmousedown=\'tositeValitseTili(' + rowIdx + ',"' + t.nro + '","' + t.lbl.replace(/"/g,'').replace(/'/g, '&apos;') + '")\' ' +
     'style="padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:center" ' +
     'onmouseover="this.style.background=\'#f0f7f1\'" onmouseout="this.style.background=\'\'">' +
     '<span style="font-weight:600;color:#3d6b43;min-width:44px">' + t.nro + '</span>' +
