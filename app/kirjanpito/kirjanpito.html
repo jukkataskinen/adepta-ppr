@@ -3259,6 +3259,8 @@ lataaYritykset();
 
 // ── TOSITTEEN SYÖTTÖ ─────────────────────────────────────────
 let tositeRivit = [];
+let tositeAlvRivit = [];
+let tositeBalancingRow = null;
 let tositeDirty = false;
 let seuraavaTositeNro = null;
 
@@ -3277,28 +3279,39 @@ function lisaaTositeRivi() {
   // Aseta päivämäärä automaattisesti jos tyhjä
   const pvmEl = document.getElementById('ts-pvm');
   if (!pvmEl.value) pvmEl.value = new Date().toISOString().slice(0,10);
-  const hasBalancing = tositeRivit.length > 0 && tositeRivit[tositeRivit.length-1].tasaus === true;
-  if (hasBalancing) {
-    tositeRivit.splice(tositeRivit.length - 1, 0, { id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: false });
-  } else {
-    tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: false });
-    tositeRivit.push({ id: Date.now() + 1, tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: true });
-  }
+  tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '' });
   tositeDirty = true;
   renderTositeRivit();
   setTimeout(() => {
     const rows = document.querySelectorAll('#tosite-tbody tr');
     if (rows.length) {
-      const input = rows[rows.length-2].querySelector('input');
+      const input = rows[tositeRivit.length - 1].querySelector('input');
       if (input) input.focus();
     }
   }, 30);
 }
 
 function renderTositeRivit() {
-  document.getElementById('tosite-tbody').innerHTML = tositeRivit.map((r, i) =>
-    '<tr style="border-bottom:1px solid var(--bd)' + (r.tasaus ? ';background:#f0f4ff' : '') + '">' +
-    // Tili
+  let html = '';
+  
+  // Käyttäjärivit
+  html += tositeRivit.map((r, i) => generateUserRow(r, i)).join('');
+  
+  // ALV-automaattirivit
+  if (tositeAlvRivit && tositeAlvRivit.length > 0) {
+    html += tositeAlvRivit.map(r => generateAutoRow(r)).join('');
+  }
+  
+  // Tasausrivi
+  if (tositeBalancingRow) {
+    html += generateBalancingRow(tositeBalancingRow);
+  }
+  
+  document.getElementById('tosite-tbody').innerHTML = html;
+}
+
+function generateUserRow(r, i) {
+  return '<tr style="border-bottom:1px solid var(--bd)">' +
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
     '<input type="text" value="' + ((r.tili ? r.tili + ' ' + r.tiliLbl : '').replace(/"/g, '&quot;')) + '" placeholder="Tilinumero tai nimi..." ' +
     'data-row="' + i + '" data-col="0" ' +
@@ -3309,25 +3322,21 @@ function renderTositeRivit() {
     'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
     '<div id="ts-tili-lista-' + i + '" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
     '</div></td>' +
-    // Selite
     '<td style="padding:4px 6px"><input type="text" value="' + ((r.sel||'').replace(/"/g, '&quot;')) + '" placeholder="Selite..." ' +
     'data-row="' + i + '" data-col="1" ' +
     'oninput="tositeUpdField(' + i + ',' + "'sel'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',1)" ' +
     'style="width:100%;min-width:180px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>' +
-    // Debet
     '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="2" ' +
     'oninput="tositeUpdField(' + i + ',' + "'debet'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',2)" ' +
     'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f"></td>' +
-    // Kredit
     '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" placeholder="0,00" ' +
     'data-row="' + i + '" data-col="3" ' +
     'oninput="tositeUpdField(' + i + ',' + "'kredit'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',3)" ' +
     'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#c0392b"></td>' +
-    // ALV
     '<td style="padding:4px 6px"><select value="' + (r.alvp||'') + '" ' +
     'data-row="' + i + '" data-col="4" ' +
     'oninput="tositeUpdField(' + i + ',' + "'alvp'" + ',this.value)" ' +
@@ -3339,51 +3348,129 @@ function renderTositeRivit() {
     '<option value="14">14%</option>' +
     '<option value="25.5">25.5%</option>' +
     '</select></td>' +
-    // Poista
     '<td style="padding:4px 6px"><button onclick="poistaTositeRivi(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
-    '</tr>'
-  ).join('');
-  paivitaTositeTotals();
+    '</tr>';
+}
+
+function generateAutoRow(r) {
+  return '<tr style="border-bottom:1px solid var(--bd);background:#f8f8f8">' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.tili||'') + ' ' + (r.tiliLbl||'') + '" ' +
+    'style="width:200px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px"><input type="text" value="' + (r.sel||'') + '" ' +
+    'style="width:100%;min-width:180px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#c0392b;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px;color:#999;font-size:12px">ALV</td>' +
+    '<td style="padding:4px 6px"></td>' +
+    '</tr>';
+}
+
+function generateBalancingRow(r) {
+  return '<tr style="border-bottom:1px solid var(--bd);background:#f0f4ff">' +
+    '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
+    '<input type="text" value="' + (r.tili||'') + '" placeholder="Tasaus..." ' +
+    'oninput="tositeBalancingRow.tili=this.value" ' +
+    'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
+    '</div></td>' +
+    '<td style="padding:4px 6px"><input type="text" value="" style="width:100%;min-width:180px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.debet||'') + '" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px"><input type="number" value="' + (r.kredit||'') + '" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#c0392b;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px;color:#4a90e2;font-size:12px">Tasaus</td>' +
+    '<td style="padding:4px 6px"></td>' +
+    '</tr>';
 }
 
 function paivitaTositeTotals() {
-  const nonBalancingRows = tositeRivit.filter(r => r.tasaus !== true);
-  const totD = nonBalancingRows.reduce((s,r) => s + (parseFloat(r.debet)||0), 0);
-  const totK = nonBalancingRows.reduce((s,r) => s + (parseFloat(r.kredit)||0), 0);
-  const erotus = totD - totK;
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   
-  // Auto-fit tasaus (balancing) row
-  if (tositeRivit.length > 0 && tositeRivit[tositeRivit.length-1].tasaus === true) {
-    const tasausRow = tositeRivit[tositeRivit.length-1];
-    if (Math.abs(erotus) < 0.01) {
-      tasausRow.debet = '';
-      tasausRow.kredit = '';
-    } else if (erotus > 0) {
-      tasausRow.kredit = erotus.toString();
-      tasausRow.debet = '';
+  // Calculate ALV rows
+  tositeAlvRivit = [];
+  const alvMap = {}; // Group by account and direction
+  
+  tositeRivit.forEach(r => {
+    if ((r.alvp || 0) > 0) {
+      const alvPct = parseFloat(r.alvp);
+      const gross = parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+      const net = gross / (1 + alvPct / 100);
+      const alvEuro = gross - net;
+      
+      // Determine ALV account and direction
+      const isKredit = r.kredit > 0;
+      const alvTili = isKredit ? '29390' : '1763';
+      const alvKey = alvTili + (isKredit ? 'K' : 'D');
+      
+      if (!alvMap[alvKey]) {
+        alvMap[alvKey] = {
+          tili: alvTili,
+          tiliLbl: isKredit ? 'Myynti-ALV' : 'Osto-ALV',
+          debet: 0,
+          kredit: 0,
+          sel: 'ALV ' + alvPct + '%'
+        };
+      }
+      if (isKredit) {
+        alvMap[alvKey].kredit += alvEuro;
+      } else {
+        alvMap[alvKey].debet += alvEuro;
+      }
+    }
+  });
+  
+  tositeAlvRivit = Object.values(alvMap).map(r => ({
+    ...r,
+    debet: r.debet > 0.01 ? r.debet : '',
+    kredit: r.kredit > 0.01 ? r.kredit : ''
+  }));
+  
+  // Calculate gross/net split and totals
+  let userTotD = 0, userTotK = 0;
+  tositeRivit.forEach(r => {
+    userTotD += parseFloat(r.debet) || 0;
+    userTotK += parseFloat(r.kredit) || 0;
+  });
+  
+  // ALV totals
+  let alvTotD = 0, alvTotK = 0;
+  tositeAlvRivit.forEach(r => {
+    alvTotD += parseFloat(r.debet) || 0;
+    alvTotK += parseFloat(r.kredit) || 0;
+  });
+  
+  // Calculate balancing row
+  const totalD = userTotD + alvTotD;
+  const totalK = userTotK + alvTotK;
+  const erotus = totalD - totalK;
+  
+  tositeBalancingRow = { tili: '', debet: '', kredit: '' };
+  if (Math.abs(erotus) > 0.01) {
+    if (erotus > 0) {
+      tositeBalancingRow.kredit = erotus.toFixed(2);
     } else {
-      tasausRow.debet = Math.abs(erotus).toString();
-      tasausRow.kredit = '';
+      tositeBalancingRow.debet = Math.abs(erotus).toFixed(2);
     }
   }
   
-  const totalD = tositeRivit.reduce((s,r) => s + (parseFloat(r.debet)||0), 0);
-  const totalK = tositeRivit.reduce((s,r) => s + (parseFloat(r.kredit)||0), 0);
-  const finalErotus = totalD - totalK;
-  
+  // Display totals
   document.getElementById('ts-tot-debet').textContent = fmt(totalD);
   document.getElementById('ts-tot-kredit').textContent = fmt(totalK);
   const tasaEl = document.getElementById('ts-tasapaino');
-  if (Math.abs(finalErotus) < 0.01) {
+  if (Math.abs(erotus) < 0.01) {
     tasaEl.textContent = '✓ Tosite täsmää';
     tasaEl.style.color = '#1D9E75';
   } else {
-    tasaEl.textContent = 'Erotus: ' + fmt(finalErotus) + ' €';
+    tasaEl.textContent = 'Erotus: ' + fmt(Math.abs(erotus)) + ' €';
     tasaEl.style.color = '#c0392b';
   }
+  
+  // Update button state
   const btn = document.getElementById('tosite-save-btn');
-  const voidaan = tositeDirty && nonBalancingRows.length >= 1 && Math.abs(finalErotus) < 0.01;
+  const hasUserRows = tositeRivit.some(r => r.tili);
+  const isBlanaced = Math.abs(erotus) < 0.01;
+  const voidaan = tositeDirty && hasUserRows && isBlanaced;
   btn.disabled = !voidaan;
   btn.style.opacity = voidaan ? '1' : '0.4';
 }
@@ -3408,13 +3495,9 @@ function tsKey(e, rowIdx, col) {
 }
 
 function tositeUpdField(i, f, v) {
-  // Handle edit of balancing row
-  if (tositeRivit[i].tasaus === true && (f === 'debet' || f === 'kredit')) {
-    tositeRivit[i].tasaus = false;
-    tositeRivit.push({ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: true });
-  }
   tositeRivit[i][f] = v;
   tositeDirty = true;
+  renderTositeRivit();
   paivitaTositeTotals();
 }
 
@@ -3427,6 +3510,8 @@ function tositeHakuTili(input, rowIdx) {
   tositeRivit[rowIdx].tiliLbl = '';
   tositeRenderLista(rowIdx, input.value);
   tositeDirty = true;
+  renderTositeRivit();
+  paivitaTositeTotals();
 }
 
 function tositeRenderLista(rowIdx, q) {
@@ -3455,6 +3540,8 @@ function tositeValitseTili(rowIdx, nro, lbl) {
   if (input) input.value = nro + ' ' + lbl;
   tositeSubjatLista(rowIdx);
   tositeDirty = true;
+  renderTositeRivit();
+  paivitaTositeTotals();
   setTimeout(() => {
     const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="1"]');
     if (next) next.focus();
@@ -3494,11 +3581,15 @@ function tositeSubjatLista(rowIdx) {
 
 function poistaTositeRivi(i) {
   tositeRivit.splice(i, 1);
+  tositeDirty = true;
   renderTositeRivit();
+  paivitaTositeTotals();
 }
 
 function tyhjennaTositelomake() {
-  tositeRivit = [{ id: Date.now(), tili: '', tiliLbl: '', sel: '', debet: '', kredit: '', alvp: '', tasaus: true }];
+  tositeRivit = [];
+  tositeAlvRivit = [];
+  tositeBalancingRow = null;
   tositeDirty = false;
   document.getElementById('ts-nro').value = '';
   document.getElementById('ts-pvm').value = '';
@@ -3517,21 +3608,71 @@ async function tallennaTositteet() {
 
   if (!paivamaara) { toast('Syötä päiväys'); btn.disabled = false; return; }
 
-  // Check that all rows have tili selected
+  // Check that all user rows have tili selected
   if (tositeRivit.some(r => !r.tili)) {
     toast('Kaikille riveille on valittava tili');
     btn.disabled = false;
     return;
   }
 
-  // Muunna: debet = positiivinen saldo, kredit = negatiivinen
-  const rivit = tositeRivit
-    .map(r => ({
+  // Check that balancing row has tili if needed
+  if (tositeBalancingRow && (tositeBalancingRow.debet || tositeBalancingRow.kredit) && !tositeBalancingRow.tili) {
+    toast('Tasausriville on valittava tili');
+    btn.disabled = false;
+    return;
+  }
+
+  // Build rivit array with:
+  // 1. User rows with NET amounts (if ALV > 0: calculate net)
+  // 2. ALV auto rows
+  // 3. Balancing row (if has debet/kredit)
+  
+  const rivit = [];
+  
+  // User rows with NET amounts
+  tositeRivit.forEach(r => {
+    const alvPct = parseFloat(r.alvp) || 0;
+    let debet = parseFloat(r.debet) || 0;
+    let kredit = parseFloat(r.kredit) || 0;
+    
+    // If ALV: convert gross to net
+    if (alvPct > 0) {
+      if (debet > 0) {
+        debet = debet / (1 + alvPct / 100);
+      } else if (kredit > 0) {
+        kredit = kredit / (1 + alvPct / 100);
+      }
+    }
+    
+    rivit.push({
       tili: r.tili,
       selite: r.sel || null,
-      saldo: r.debet ? parseFloat(r.debet) : -(parseFloat(r.kredit)||0),
-      alv_prosentti: r.alvp ? parseFloat(r.alvp) : null,
-    }));
+      saldo: debet > 0 ? debet : -kredit,
+      alv_prosentti: alvPct || null
+    });
+  });
+  
+  // ALV rows
+  if (tositeAlvRivit && tositeAlvRivit.length > 0) {
+    tositeAlvRivit.forEach(r => {
+      rivit.push({
+        tili: r.tili,
+        selite: r.sel || null,
+        saldo: parseFloat(r.debet) ? parseFloat(r.debet) : -parseFloat(r.kredit),
+        alv_prosentti: null
+      });
+    });
+  }
+  
+  // Balancing row
+  if (tositeBalancingRow && tositeBalancingRow.tili && (tositeBalancingRow.debet || tositeBalancingRow.kredit)) {
+    rivit.push({
+      tili: tositeBalancingRow.tili,
+      selite: null,
+      saldo: tositeBalancingRow.debet ? parseFloat(tositeBalancingRow.debet) : -parseFloat(tositeBalancingRow.kredit),
+      alv_prosentti: null
+    });
+  }
 
   try {
     const res = await fetch('/api/ppr/paivakirja', {
