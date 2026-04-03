@@ -3384,6 +3384,17 @@ function generateBalancingRow(r) {
     '</tr>';
 }
 
+function getNetAmount(r) {
+  const alvp = parseFloat(r.alvp) || 0;
+  const debet = parseFloat(r.debet) || 0;
+  const kredit = parseFloat(r.kredit) || 0;
+  const gross = debet || kredit;
+  if (alvp > 0 && gross > 0) {
+    return gross / (1 + alvp / 100);
+  }
+  return gross;
+}
+
 function paivitaTositeTotals() {
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   
@@ -3422,41 +3433,49 @@ function paivitaTositeTotals() {
   
   tositeAlvRivit = Object.values(alvMap).map(r => ({
     ...r,
-    debet: r.debet > 0.01 ? r.debet : '',
-    kredit: r.kredit > 0.01 ? r.kredit : ''
+    debet: r.debet > 0.01 ? fmt(r.debet) : '',
+    kredit: r.kredit > 0.01 ? fmt(r.kredit) : ''
   }));
   
-  // Calculate gross/net split and totals
-  let userTotD = 0, userTotK = 0;
+  // Calculate NET totals from user rows and ALV rows
+  let userNetD = 0, userNetK = 0;
   tositeRivit.forEach(r => {
-    userTotD += parseFloat(r.debet) || 0;
-    userTotK += parseFloat(r.kredit) || 0;
+    const net = getNetAmount(r);
+    if (r.debet > 0) {
+      userNetD += net;
+    } else if (r.kredit > 0) {
+      userNetK += net;
+    }
   });
   
-  // ALV totals
+  // ALV totals (parse formatted strings for calculation)
   let alvTotD = 0, alvTotK = 0;
   tositeAlvRivit.forEach(r => {
-    alvTotD += parseFloat(r.debet) || 0;
-    alvTotK += parseFloat(r.kredit) || 0;
+    const debet = r.debet ? parseFloat(r.debet.replace(/\s/g, '').replace(',', '.')) : 0;
+    const kredit = r.kredit ? parseFloat(r.kredit.replace(/\s/g, '').replace(',', '.')) : 0;
+    alvTotD += debet;
+    alvTotK += kredit;
   });
   
-  // Calculate balancing row
-  const totalD = userTotD + alvTotD;
-  const totalK = userTotK + alvTotK;
-  const erotus = totalD - totalK;
+  // Calculate balancing row based on net totals
+  const totalNetD = userNetD + alvTotD;
+  const totalNetK = userNetK + alvTotK;
+  const erotus = totalNetD - totalNetK;
   
   tositeBalancingRow = { tili: '', debet: '', kredit: '' };
   if (Math.abs(erotus) > 0.01) {
-    if (erotus > 0) {
-      tositeBalancingRow.kredit = erotus.toFixed(2);
+    if (erotus < 0) {
+      tositeBalancingRow.debet = fmt(Math.abs(erotus));
     } else {
-      tositeBalancingRow.debet = Math.abs(erotus).toFixed(2);
+      tositeBalancingRow.kredit = fmt(erotus);
     }
   }
   
   // Display totals
-  document.getElementById('ts-tot-debet').textContent = fmt(totalD);
-  document.getElementById('ts-tot-kredit').textContent = fmt(totalK);
+  const dispTotD = tositeRivit.reduce((s, r) => s + (parseFloat(r.debet) || 0), 0) + alvTotD;
+  const dispTotK = tositeRivit.reduce((s, r) => s + (parseFloat(r.kredit) || 0), 0) + alvTotK;
+  document.getElementById('ts-tot-debet').textContent = fmt(dispTotD);
+  document.getElementById('ts-tot-kredit').textContent = fmt(dispTotK);
   const tasaEl = document.getElementById('ts-tasapaino');
   if (Math.abs(erotus) < 0.01) {
     tasaEl.textContent = '✓ Tosite täsmää';
@@ -3479,8 +3498,33 @@ function paivitaTositeTotals() {
 }
 
 function updateAutoRowsInDOM() {
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   const tbody = document.getElementById('tosite-tbody');
   const userRowCount = tositeRivit.length;
+  
+  // Update user row display to show net amounts when ALV is selected
+  tositeRivit.forEach((r, i) => {
+    const alvp = parseFloat(r.alvp) || 0;
+    if (alvp > 0) {
+      const debet = parseFloat(r.debet) || 0;
+      const kredit = parseFloat(r.kredit) || 0;
+      const gross = debet || kredit;
+      if (gross > 0) {
+        const net = gross / (1 + alvp / 100);
+        // Update the display values in user row inputs, leaving data unchanged
+        const debInput = document.querySelector('[data-row="' + i + '"][data-col="2"]');
+        const kredInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
+        if (debet > 0 && debInput) {
+          debInput.value = fmt(net);
+          debInput.style.fontStyle = 'italic';
+        }
+        if (kredit > 0 && kredInput) {
+          kredInput.value = fmt(net);
+          kredInput.style.fontStyle = 'italic';
+        }
+      }
+    }
+  });
   
   // Remove all existing auto/balancing rows
   const allRows = tbody.querySelectorAll('tr');
