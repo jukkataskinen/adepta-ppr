@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
   if (kayttaja.rooli === 'kirjanpitaja') {
     query = query.eq('vastuukirjanpitaja_id', kayttaja.id)
   }
+  // paakayttaja näkee kaikki - ei suodatusta
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
