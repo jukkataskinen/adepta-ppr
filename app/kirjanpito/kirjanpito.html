@@ -3815,6 +3815,8 @@ async function tallennaTositteet() {
     });
   }
 
+  console.log('Lähetettävä data:', JSON.stringify({asiakas_id: curYritys.id, tosite_nro, paivamaara, rivit}, null, 2));
+
   try {
     const res = await fetch('/api/ppr/paivakirja', {
       method: 'POST',
