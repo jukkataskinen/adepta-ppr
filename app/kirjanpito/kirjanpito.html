@@ -478,6 +478,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button id="tab-csv" onclick="switchUploadTab('csv')" style="padding:8px 18px;font-size:12px;font-weight:600;border:none;background:var(--fd);color:#fff;cursor:pointer">📊 1. Tiliote CSV</button>
         <button id="tab-laskut" onclick="switchUploadTab('laskut')" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-left:1px solid var(--bd);background:var(--pp);color:var(--inu);cursor:pointer">🧾 2. Laskut PDF</button>
         <button id="tab-pdf" onclick="switchUploadTab('pdf')" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-left:1px solid var(--bd);background:var(--pp);color:var(--inu);cursor:pointer">📄 Yhdistetty PDF</button>
+        <button id="tab-alkusaldot" onclick="switchUploadTab('alkusaldot')" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-left:1px solid var(--bd);background:var(--pp);color:var(--inu);cursor:pointer">🏁 Alkusaldot</button>
       </div>
 
       <!-- ── TAB 1: CSV-tiliote ── -->
@@ -627,6 +628,42 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               <tbody id="imp-tbody-pdf"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- ── TAB 4: Alkusaldot ── -->
+      <div id="upload-alkusaldot" style="display:none">
+        <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--inu);line-height:1.6">
+          Fennoa / muun järjestelmän pääkirja CSV-muodossa.<br>
+          <span style="font-family:var(--ffm);font-size:11px">Account number;Account name;Date;Debit;Credit;Vat code;Description;Statement series;Statement number;Start balance;End balance</span>
+        </div>
+        <div class="drop-zone" id="dz-alkusaldot" onclick="document.getElementById('file-alkusaldot').click()"
+             ondragover="dzOver(event,'dz-alkusaldot')" ondragleave="dzLeave(event,'dz-alkusaldot')"
+             ondrop="event.preventDefault();dzLeave(event,'dz-alkusaldot');const f=event.dataTransfer.files[0];if(f)parseAlkusaldoCsv(f)">
+          <input type="file" id="file-alkusaldot" accept=".csv,.txt" style="display:none" onchange="if(event.target.files[0])parseAlkusaldoCsv(event.target.files[0])">
+          <div class="dz-ic">🏁</div>
+          <div class="dz-t">Vedä alkusaldo-CSV tähän tai klikkaa</div>
+          <div class="dz-s">Fennoa · Procountor · muu järjestelmä · ISO-8859-1 / Windows-1252</div>
+        </div>
+        <div id="alkusaldo-preview" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+            <label style="font-size:12px;color:var(--inu)">Kirjauspäivä:</label>
+            <input type="date" id="alkusaldo-pvm" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--fg)">
+            <div id="alkusaldo-tasmays" style="font-size:12px;font-weight:500"></div>
+          </div>
+          <div style="overflow-x:auto;margin-bottom:12px">
+            <table class="import-table" id="alkusaldo-table">
+              <thead><tr>
+                <th>Tili</th><th>Tilin nimi</th><th style="text-align:right">Debet</th>
+                <th style="text-align:right">Kredit</th><th style="text-align:right">Saldo</th>
+              </tr></thead>
+              <tbody id="alkusaldo-tbody"></tbody>
+              <tfoot id="alkusaldo-tfoot"></tfoot>
+            </table>
+          </div>
+          <button onclick="tallennaAlkusaldot()" style="width:100%;padding:10px;font-family:var(--ffb);font-size:13px;font-weight:600;border:none;border-radius:8px;background:var(--fl);color:#fff;cursor:pointer">
+            💾 Tallenna alkusaldot tositteena 0
+          </button>
         </div>
       </div>
 
@@ -2467,6 +2504,123 @@ function lataaDemoTiliote() {
   ladattuTiliote(OP_DEMO_TAPAHTUMAT, 'FI90 5232 0240 0242 15', '1.5.–30.6.2025');
 }
 
+// ── ALKUSALDOT CSV ────────────────────────────────────────────
+let alkusaldoRivit = [];
+
+function parseAlkusaldoCsv(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const parseFi = s => {
+      if (!s || !s.trim()) return 0;
+      return parseFloat(s.replace(/\s/g,'').replace(',','.')) || 0;
+    };
+    const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
+    alkusaldoRivit = [];
+    lines.forEach((line, idx) => {
+      if (idx === 0) return; // ohita otsikkorivi
+      const cols = line.split(';').map(c => c.replace(/^"|"$/g,'').trim());
+      if (cols.length < 5) return;
+      const tili  = cols[0];
+      const nimi  = cols[1];
+      const pvm   = pvToIso(cols[2] || '');
+      const debet  = parseFi(cols[3]);
+      const kredit = parseFi(cols[4]);
+      const selite = cols[6] || '';
+      if (!tili) return;
+      const saldo = debet > 0 ? debet : -kredit;
+      alkusaldoRivit.push({tili, nimi, pvm, debet, kredit, saldo, selite});
+    });
+    renderAlkusaldoPreview();
+  };
+  reader.readAsText(file, 'windows-1252');
+}
+
+function renderAlkusaldoPreview() {
+  if (!alkusaldoRivit.length) return;
+  const fv = v => v ? v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
+
+  // Aseta oletuspäivämäärä: kuluvan vuoden 1.1.
+  const pvEl = document.getElementById('alkusaldo-pvm');
+  if (pvEl && !pvEl.value) {
+    const vuosi = (alkusaldoRivit[0]?.pvm || '').slice(0,4) || new Date().getFullYear();
+    pvEl.value = vuosi + '-01-01';
+  }
+
+  const tbody = document.getElementById('alkusaldo-tbody');
+  tbody.innerHTML = alkusaldoRivit.map(r => `<tr style="border-bottom:1px solid var(--bd)">
+    <td style="padding:6px 10px;font-size:12px;font-family:var(--ffm);color:var(--fl)">${r.tili}</td>
+    <td style="padding:6px 10px;font-size:12px;color:var(--inu)">${r.nimi}</td>
+    <td style="padding:6px 10px;font-size:12px;text-align:right;color:#2a7a4f">${r.debet>0.005?fv(r.debet):''}</td>
+    <td style="padding:6px 10px;font-size:12px;text-align:right;color:#c0392b">${r.kredit>0.005?fv(r.kredit):''}</td>
+    <td style="padding:6px 10px;font-size:12px;text-align:right;font-family:var(--ffm);color:${r.saldo<-0.005?'#c0392b':'var(--ink)'}">${fv(Math.abs(r.saldo))}</td>
+  </tr>`).join('');
+
+  const totD = alkusaldoRivit.reduce((s,r)=>s+r.debet,0);
+  const totK = alkusaldoRivit.reduce((s,r)=>s+r.kredit,0);
+  const erotus = totD - totK;
+  const tasmaa = Math.abs(erotus) < 0.02;
+  document.getElementById('alkusaldo-tfoot').innerHTML = `<tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+    <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä — ${alkusaldoRivit.length} tiliä</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${fv(totD)}</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${fv(totK)}</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right"></td>
+  </tr>`;
+
+  const tasmEl = document.getElementById('alkusaldo-tasmays');
+  if (tasmaa) {
+    tasmEl.innerHTML = '<span style="color:#2a7a4f">✓ Debet = Kredit</span>';
+  } else {
+    tasmEl.innerHTML = `<span style="color:#c0392b">⚠ Erotus: ${fv(Math.abs(erotus))} — tarkista data</span>`;
+  }
+
+  document.getElementById('alkusaldo-preview').style.display = 'block';
+}
+
+async function tallennaAlkusaldot() {
+  if (!alkusaldoRivit.length) { toast('Ei dataa tallennettavaksi'); return; }
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+
+  const pvEl = document.getElementById('alkusaldo-pvm');
+  const pvm = pvEl?.value || new Date().getFullYear() + '-01-01';
+
+  const totD = alkusaldoRivit.reduce((s,r)=>s+r.debet,0);
+  const totK = alkusaldoRivit.reduce((s,r)=>s+r.kredit,0);
+  const tasmaa = Math.abs(totD - totK) < 0.02;
+  if (!tasmaa) {
+    if (!confirm(`Varoitus: Debet (${totD.toFixed(2)}) ≠ Kredit (${totK.toFixed(2)}).\nErotus: ${(totD-totK).toFixed(2)}€\n\nHaluatko silti tallentaa?`)) return;
+  }
+
+  const rivit = alkusaldoRivit.map(r => ({
+    tili:   r.tili,
+    selite: r.selite || r.nimi || 'Alkusaldo',
+    saldo:  r.saldo,
+  }));
+
+  try {
+    const res = await fetch('/api/ppr/paivakirja', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        asiakas_id: curYritys.id,
+        tosite_nro: 0,
+        paivamaara: pvm,
+        rivit
+      })
+    });
+    const json = await res.json();
+    if (res.ok) {
+      await lataaRivit(curYritys.id);
+      toast(`✓ ${alkusaldoRivit.length} alkusaldon tiliä kirjattu tositteena 0`);
+      document.getElementById('alkusaldo-preview').style.display = 'none';
+      alkusaldoRivit = [];
+    } else {
+      toast('Virhe: ' + (json.error || res.status));
+    }
+  } catch(e) {
+    toast('Verkkovirhe');
+  }
+}
+
 // Generoi tositenumero: T{tiliotenro}/{tapnro}  esim. T6/1, T5/6
 function genTosite(t) {
   const nro = t.tiliotenro || parseInt((t.arvopv||t.kirjpv||'').slice(5,7)) || '?';
@@ -2985,7 +3139,7 @@ function vtSulje() {
 
 // ── UPLOAD TABS ───────────────────────────────────────────────
 function switchUploadTab(tab) {
-  ['csv','laskut','pdf'].forEach(t => {
+  ['csv','laskut','pdf','alkusaldot'].forEach(t => {
     const el = document.getElementById('upload-'+t);
     if (el) el.style.display = t===tab ? 'block' : 'none';
     const btn = document.getElementById('tab-'+t);
