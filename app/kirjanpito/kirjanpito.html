@@ -3298,7 +3298,7 @@ function renderTositeRivit() {
     'data-row="' + i + '" data-col="0" ' +
     'oninput="tositeHakuTili(this,' + i + ')" ' +
     'onfocus="tositeAvaaLista(this,' + i + ')" ' +
-    'onblur="setTimeout(()=>tositeSubjatLista(' + i + '),150)" ' +
+    'onblur="setTimeout(()=>tositeSubjatLista(' + i + '),300)" ' +
     'onkeydown="if(event.key===\'ArrowDown\'){event.preventDefault();var l=document.getElementById(\'ts-tili-lista-' + i + '\');if(l&&l.firstElementChild){l.firstElementChild.focus();}}" ' +
     'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
     '<div id="ts-tili-lista-' + i + '" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
