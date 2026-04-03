@@ -1000,7 +1000,9 @@ async function lataaYritykset() {
     ytunnus: a.y_tunnus || '',
   }));
   if (YRITYKSET.length > 0) {
-    curYritys = YRITYKSET[0];
+    const savedId = localStorage.getItem('ppr_last_asiakas');
+    const found = savedId ? YRITYKSET.find(y => y.id === savedId) : null;
+    curYritys = found || YRITYKSET[0];
     renderCo();
     lataaRivit(curYritys.id);
   } else {
@@ -1232,6 +1234,7 @@ function vaihdaAsiakas(id) {
   if (!y) return;
   if (dirty && !confirm('Tallentamattomat muutokset menetetään. Jatketaanko?')) return;
   curYritys = y;
+  localStorage.setItem('ppr_last_asiakas', y.id);
   renderCo();
   lataaRivit(y.id);
   alustaTositeNro();
