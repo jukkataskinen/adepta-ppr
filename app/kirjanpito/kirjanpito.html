@@ -305,7 +305,10 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="sb-sec">Kirjanpidon työkalut</div>
     <div class="nav-item" id="nav-tyokalut" onclick="showPanel('tyokalut')"><span class="ic">🔧</span>Tuo aineisto</div>
     <div class="sb-div"></div>
-    <div class="sb-foot">Kirjautunut:<br><strong>Merja Korhonen</strong> · Pääkäyttäjä</div>
+    <a href="/auth/logout" style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,.5);font-size:12px;text-decoration:none;cursor:pointer;border-left:3px solid transparent" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+      <span>🚪</span>Kirjaudu ulos
+    </a>
+    <div class="sb-foot">Kirjautunut:<br><strong id="sb-user-name">—</strong> · <span id="sb-user-role">—</span></div>
   </div>
 
   <!-- MAIN -->
@@ -4126,6 +4129,8 @@ function toast(msg) {
 }
 
 // ── START ────────────────────────────────────────────────────
+document.getElementById('sb-user-name').textContent = window._PPR?.email || '—';
+document.getElementById('sb-user-role').textContent = window._PPR?.rooli === 'paakayttaja' ? 'Pääkäyttäjä' : 'Kirjanpitäjä';
 lataaYritykset();
 
 // ── TOSITTEEN SYÖTTÖ ─────────────────────────────────────────
