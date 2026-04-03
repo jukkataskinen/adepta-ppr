@@ -1504,12 +1504,12 @@ async function lataaRivit(asiakas_id) {
     rows = data.map(d => ({
       id: nextId++,
       pv: d.paivamaara?.slice(0,10) ?? '',
-      ts: d.tositenro || '',
+      ts: String(d.tosite_nro || ''),
       sel: d.selite || '',
-      d: d.debet_tili || '',
-      k: d.kredit_tili || '',
-      netto: Number(d.netto),
-      alvp: Number(d.alv_prosentti),
+      d: Number(d.saldo) > 0 ? d.tili : '',
+      k: Number(d.saldo) < 0 ? d.tili : '',
+      netto: Math.abs(Number(d.saldo)),
+      alvp: Number(d.alv_prosentti) || 0,
     }));
   } else {
     rows = [];
@@ -3747,7 +3747,9 @@ async function tallennaTositteet() {
 
   if (!paivamaara) { console.log('STOP: ei päiväystä'); toast('Syötä päiväys'); btn.disabled = false; return; }
 
-  // Check that all user rows have tili selected
+  // Suodata pois täysin tyhjät rivit
+  tositeRivit = tositeRivit.filter(r => r.tili || parseFloat(r.debet) > 0 || parseFloat(r.kredit) > 0);
+  // Tarkista että jäljellä olevilla riveillä on tili
   if (tositeRivit.some(r => !r.tili)) {
     console.log('STOP: rivi ilman tiliä', tositeRivit);
     toast('Kaikille riveille on valittava tili');
