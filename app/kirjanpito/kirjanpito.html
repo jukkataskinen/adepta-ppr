@@ -4820,7 +4820,7 @@ async function tuoJournalData() {
           paivamaara: t.pvm,
           rivit: t.rivit.map(r => ({
             tili: r.tili,
-            selite: r.selite || t.selite || null,
+            selite: (r.selite || t.selite || '') + (r.selite || t.selite ? ' - saldojen nouto' : 'saldojen nouto'),
             saldo: r.saldo,
             alv_prosentti: r.alv || null
           }))
