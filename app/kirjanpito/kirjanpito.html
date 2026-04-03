@@ -1950,9 +1950,9 @@ function calcTulos(r) {
   const aineet     =  sumAlue(4000, 4999);
   const henk       =  sumAlue(5000, 6499);   // palkat + eläke + sivukulut
   const poistot    =  sumAlue(6800, 6899);
-  const toimitila  =  sumAlue(7200, 7499);
+  const toimitila  =  sumAlue(7200, 7499) + sumAlue(7700, 7799);
   const ajoneuvot  =  sumAlue(7500, 7599);
-  const it         =  sumAlue(7600, 7799);
+  const it         =  sumAlue(7600, 7699);
   const matkat     =  sumAlue(7800, 7899);
   const myyntimark =  sumAlue(7900, 7999);
   const hallinto   =  sumAlue(8000, 8499);
@@ -2041,11 +2041,11 @@ function rptTulosTablePitka(cols) {
     ${shdr('Muut henkilösivukulut')}
     ${['6300','6400'].map(n=>acctRow(n,'D')).join('')}
     ${shdr('Toimitilakulut')}
-    ${['7204','7210','7214','7360','7370','7380','7390','7414','7430'].map(n=>acctRow(n,'D')).join('')}
+    ${['7204','7210','7214','7360','7370','7380','7390','7414','7430','7710','7730'].map(n=>acctRow(n,'D')).join('')}
     ${shdr('Ajoneuvokulut')}
     ${['7530','7540','7574'].map(n=>acctRow(n,'D')).join('')}
     ${shdr('IT-kulut')}
-    ${['7650','7730'].map(n=>acctRow(n,'D')).join('')}
+    ${['7650'].map(n=>acctRow(n,'D')).join('')}
     ${shdr('Matkakulut')}
     ${['7800','7810','7820'].map(n=>acctRow(n,'D')).join('')}
     ${shdr('Myynti ja markkinointi')}
@@ -2101,9 +2101,9 @@ function rptTulos() {
   const aineet     =  sumAlue(4000, 4999);
   const henk       =  sumAlue(5000, 6499);
   const poistot    =  sumAlue(6800, 6899);
-  const toimitila  =  sumAlue(7200, 7499);
+  const toimitila  =  sumAlue(7200, 7499) + sumAlue(7700, 7799);
   const ajoneuvot  =  sumAlue(7500, 7599);
-  const it         =  sumAlue(7600, 7799);
+  const it         =  sumAlue(7600, 7699);
   const matkat     =  sumAlue(7800, 7899);
   const myyntimark =  sumAlue(7900, 7999);
   const hallinto   =  sumAlue(8000, 8499);
@@ -2146,10 +2146,11 @@ function rptTulos() {
       tilitAlue(6800, 6899, 'd').map(riviD).join('') +
       hdr('Toimitilakulut') +
       tilitAlue(7200, 7499, 'd').map(riviD).join('') +
+      tilitAlue(7700, 7799, 'd').map(riviD).join('') +
       hdr('Ajoneuvokulut') +
       tilitAlue(7500, 7599, 'd').map(riviD).join('') +
       hdr('IT-kulut') +
-      tilitAlue(7600, 7799, 'd').map(riviD).join('') +
+      tilitAlue(7600, 7699, 'd').map(riviD).join('') +
       hdr('Matkakulut') +
       tilitAlue(7800, 7899, 'd').map(riviD).join('') +
       hdr('Myynti ja markkinointi') +
@@ -2210,10 +2211,28 @@ function rptTase() {
   const vaihtuvatYht = vaihtuvatTilit.reduce((s,t) => s + saldoD(t), 0);
   const vastaavaaYht = pysyvatYht + vaihtuvatYht;
 
-  // Tilikauden tulos (3xxx tuotot, 4xxx-9xxx kulut)
-  const tuotot = rptRows.filter(r => { const n=parseInt(r.k); return n>=3000&&n<4000; }).reduce((s,r)=>s+r.netto,0);
-  const kulut  = rptRows.filter(r => { const n=parseInt(r.d); return n>=4000&&n<=9999; }).reduce((s,r)=>s+r.netto,0);
-  const tulos  = tuotot - kulut;
+  // Tilikauden tulos — sama sumAlue-kaava kuin rptTulos
+  const sumAlue = (alku, loppu) => rptRows.filter(r => {
+    const n = parseInt((r.d||r.k)||'0');
+    return n >= alku && n <= loppu;
+  }).reduce((s,r) => s + (r.d ? r.netto : -r.netto), 0);
+  const tuotot     = -sumAlue(3000, 3999);
+  const aineet     =  sumAlue(4000, 4999);
+  const henk       =  sumAlue(5000, 6499);
+  const poistot    =  sumAlue(6800, 6899);
+  const toimitila  =  sumAlue(7200, 7499);
+  const ajoneuvot  =  sumAlue(7500, 7599);
+  const itkulut    =  sumAlue(7600, 7699);
+  const konekulut  =  sumAlue(7700, 7799);
+  const matkat     =  sumAlue(7800, 7899);
+  const myyntimark =  sumAlue(7900, 7999);
+  const hallinto   =  sumAlue(8000, 8499);
+  const muutkulut  =  sumAlue(8500, 8649);
+  const korot_t    = -sumAlue(8650, 8699);
+  const korot_k    =  sumAlue(8700, 8799);
+  const verot      =  sumAlue(9000, 9099);
+  const liiketkulut = aineet + henk + poistot + toimitila + konekulut + ajoneuvot + itkulut + matkat + myyntimark + hallinto + muutkulut;
+  const tulos = tuotot - liiketkulut + korot_t - korot_k - verot;
 
   // VASTATTAVAA: tilit 2000-2999 joilla positiivinen kredit-saldo
   const vastattavaaTilit = kaikkiTilit.filter(t => {
