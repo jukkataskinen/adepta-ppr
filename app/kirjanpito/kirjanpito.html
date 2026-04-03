@@ -3454,7 +3454,10 @@ function handleListKey(e, rowIdx, el) {
 
 function tositeSubjatLista(rowIdx) {
   const lista = document.getElementById('ts-tili-lista-' + rowIdx);
-  if (lista) lista.style.display = 'none';
+  if (!lista) return;
+  // Älä sulje listaa jos fokus on listan sisällä
+  if (lista.contains(document.activeElement)) return;
+  lista.style.display = 'none';
 }
 
 function poistaTositeRivi(i) {
