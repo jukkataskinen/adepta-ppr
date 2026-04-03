@@ -3366,7 +3366,10 @@ function tsKey(e, rowIdx, col) {
     const lista = document.getElementById('ts-tili-lista-' + rowIdx);
     if (lista && lista.style.display !== 'none') {
       const first = lista.querySelector('div');
-      if (first) first.focus();
+      if (first) {
+        first.focus();
+        first.style.background = '#f0f7f1';
+      }
     }
     return;
   }
@@ -3438,24 +3441,38 @@ function tositeValitseTili(rowIdx, nro, lbl) {
 }
 
 function handleListKey(e, rowIdx, div) {
+  const lista = div.parentElement;
+  const allDivs = lista.querySelectorAll('div');
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     const next = div.nextElementSibling;
-    if (next) next.focus();
+    if (next) {
+      allDivs.forEach(d => d.style.background = '');
+      next.style.background = '#f0f7f1';
+      next.focus();
+    }
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
     const prev = div.previousElementSibling;
-    if (prev) prev.focus();
-    else {
+    if (prev) {
+      allDivs.forEach(d => d.style.background = '');
+      prev.style.background = '#f0f7f1';
+      prev.focus();
+    } else {
+      allDivs.forEach(d => d.style.background = '');
       const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="0"]');
       if (input) input.focus();
     }
-  } else if (e.key === 'Enter') {
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault();
+    allDivs.forEach(d => d.style.background = '');
     const spans = div.querySelectorAll('span');
     const nro = spans[0].textContent;
     const lbl = spans[1].textContent;
     tositeValitseTili(rowIdx, nro, lbl);
+  } else if (e.key === 'Escape') {
+    allDivs.forEach(d => d.style.background = '');
+    tositeSubjatLista(rowIdx);
   }
 }
 
