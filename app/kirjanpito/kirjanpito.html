@@ -2452,6 +2452,7 @@ async function ladattuTiliote(tapahtumat, iban, period) {
     ...t,
     idx: i,
     tila: 'odottaa',
+    summa: Number(t.summa) || 0,
     arvopv: t.arvopv || t.kirjpv || t.pv || '',
     kirjpv: t.kirjpv || t.pv || '',
     iban,   // tallenna IBAN jokaiseen riviin jonoa varten
@@ -2656,9 +2657,10 @@ async function impTuoRivi(i) {
   if (!curYritys) { toast('Valitse ensin yritys'); return; }
   console.log('impTuoRivi', i, 'curYritys:', curYritys?.id, 'vak:', vak);
 
-  const pos = t.summa > 0;
+  const summa = Number(t.summa) || 0;
+  const pos = summa > 0;
   const alvp = vak.alv || 0;
-  const brutto = Math.abs(t.summa);
+  const brutto = Math.abs(summa);
   const netto = alvp > 0 ? brutto / (1 + alvp/100) : brutto;
   const alv = brutto - netto;
   const selite = (t.maksu && t.maksu !== t.sel) ? t.sel + ' — ' + t.maksu : t.sel;
