@@ -60,13 +60,14 @@ export async function POST(request: NextRequest) {
     .eq('asiakas_id', asiakas_id)
     .eq('tosite_nro', tosite_nro)
 
-  const insert = rivit.map((r: { tili: string; selite?: string; saldo: number }) => ({
+  const insert = rivit.map((r: { tili: string; selite?: string; saldo: number; alv_prosentti?: number }) => ({
     asiakas_id,
     tosite_nro,
     paivamaara,
     tili:     r.tili,
     selite:   r.selite ?? null,
     saldo:    r.saldo,
+    alv_prosentti: r.alv_prosentti ?? null,
     luonut_kayttaja_id: kayttaja?.id ?? null,
   }))
 
