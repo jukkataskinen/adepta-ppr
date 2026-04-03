@@ -326,6 +326,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Selite</th>
         <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#2a7a4f;width:110px">Debet €</th>
         <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#c0392b;width:110px">Kredit €</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);width:80px">ALV %</th>
         <th style="width:36px"></th>
       </tr>
     </thead>
@@ -335,6 +336,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inu)">Tositteen erotus</td>
         <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#2a7a4f" id="ts-tot-debet">0,00</td>
         <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#c0392b" id="ts-tot-kredit">0,00</td>
+        <td></td>
         <td></td>
       </tr>
       <tr>
@@ -3318,6 +3320,18 @@ function renderTositeRivit() {
     'oninput="tositeUpdField(' + i + ',' + "'kredit'" + ',this.value)" ' +
     'onkeydown="tsKey(event,' + i + ',3)" ' +
     'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#c0392b"></td>' +
+    // ALV
+    '<td style="padding:4px 6px"><select value="' + (r.alvp||'') + '" ' +
+    'data-row="' + i + '" data-col="4" ' +
+    'oninput="tositeUpdField(' + i + ',' + "'alvp'" + ',this.value)" ' +
+    'onkeydown="tsKey(event,' + i + ',4)" ' +
+    'style="width:70px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
+    '<option value="">--</option>' +
+    '<option value="0">0%</option>' +
+    '<option value="10">10%</option>' +
+    '<option value="14">14%</option>' +
+    '<option value="25.5">25.5%</option>' +
+    '</select></td>' +
     // Poista
     '<td style="padding:4px 6px"><button onclick="poistaTositeRivi(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
     '</tr>'
@@ -3347,9 +3361,18 @@ function paivitaTositeTotals() {
 }
 
 function tsKey(e, rowIdx, col) {
+  if (e.key === 'ArrowDown' && col === 0) {
+    e.preventDefault();
+    const lista = document.getElementById('ts-tili-lista-' + rowIdx);
+    if (lista && lista.style.display !== 'none') {
+      const first = lista.querySelector('div');
+      if (first) first.focus();
+    }
+    return;
+  }
   if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
     e.preventDefault();
-    if (col < 3) {
+    if (col < 4) {
       const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col+1) + '"]');
       if (next) next.focus();
     } else {
@@ -3392,7 +3415,7 @@ function tositeRenderLista(rowIdx, q) {
   if (!tulokset.length) { lista.style.display = 'none'; return; }
   lista.style.display = 'block';
   lista.innerHTML = tulokset.map(t =>
-    '<div onmousedown=\'tositeValitseTili(' + rowIdx + ',"' + t.nro + '","' + t.lbl.replace(/"/g,'').replace(/'/g, '&apos;') + '")\' ' +
+    '<div tabindex="0" onkeydown="handleListKey(event,' + rowIdx + ',this)" onmousedown=\'tositeValitseTili(' + rowIdx + ',"' + t.nro + '","' + t.lbl.replace(/"/g,'').replace(/'/g, '&apos;') + '")\' ' +
     'style="padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:center" ' +
     'onmouseover="this.style.background=\'#f0f7f1\'" onmouseout="this.style.background=\'\'">' +
     '<span style="font-weight:600;color:#3d6b43;min-width:44px">' + t.nro + '</span>' +
@@ -3412,6 +3435,28 @@ function tositeValitseTili(rowIdx, nro, lbl) {
     const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="1"]');
     if (next) next.focus();
   }, 50);
+}
+
+function handleListKey(e, rowIdx, div) {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const next = div.nextElementSibling;
+    if (next) next.focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prev = div.previousElementSibling;
+    if (prev) prev.focus();
+    else {
+      const input = document.querySelector('[data-row="' + rowIdx + '"][data-col="0"]');
+      if (input) input.focus();
+    }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const spans = div.querySelectorAll('span');
+    const nro = spans[0].textContent;
+    const lbl = spans[1].textContent;
+    tositeValitseTili(rowIdx, nro, lbl);
+  }
 }
 
 function tositeSubjatLista(rowIdx) {
@@ -3451,6 +3496,7 @@ async function tallennaTositteet() {
       tili: r.tili,
       selite: r.sel || null,
       saldo: r.debet ? parseFloat(r.debet) : -(parseFloat(r.kredit)||0),
+      alv_prosentti: r.alvp ? parseFloat(r.alvp) : null,
     }));
 
   try {
