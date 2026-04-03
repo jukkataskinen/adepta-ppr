@@ -2668,6 +2668,7 @@ function naytaLaskuPopup(event, tapIdx) {
       <button onclick="document.getElementById('lasku-popup').remove()"
         style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--inf);line-height:1;margin:-4px -4px 0 0">×</button>
     </div>
+    ${l.kuva_base64 ? `<img src="${l.kuva_base64}" style="width:100%;border-radius:6px;margin-bottom:8px;border:1px solid var(--bd)">` : ''}
     <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px">${l.toimittaja||'—'}</div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">
       ${l.nro ? `<span style="color:var(--inu)">Laskun nro</span><span style="font-family:var(--ffm);color:var(--ink)">${l.nro}</span>` : ''}
