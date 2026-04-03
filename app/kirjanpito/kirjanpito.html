@@ -2201,7 +2201,7 @@ function rptTase() {
 
   // VASTATTAVAA
   const opaaoma = saldo('2001','K') + saldo('2061','K') + saldo('2171','K') + saldo('2181','K') + saldo('2201','K');
-  const edVoitto = saldo('2251','K');
+  const edVoitto = saldo('2250','K');
   const yksityistili = saldo('2350','K');
 
   // Tilikauden tulos
@@ -2242,7 +2242,7 @@ function rptTase() {
       '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa (tilikohtainen)</div></div>' +
       hdr('Oma pääoma') +
       ['2001','2061','2171','2181','2201'].map(n=>rptTiliRivi(n,'K')).join('') +
-      rptTiliRivi('2251','K') +
+      rptTiliRivi('2250','K') +
       rptTiliRivi('2350','K') +
       rptRow('Tilikauden tulos', tulos, '', true) +
       rptRow('Oma pääoma yhteensä', omaPaaoma, 'total') +
