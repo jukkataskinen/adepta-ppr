@@ -629,7 +629,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
                 <th style="width:150px">Vastatili</th><th style="width:48px;text-align:center">ALV%</th>
                 <th style="width:90px">Lasku</th><th style="width:90px"></th>
               </tr></thead>
-              <tbody id="imp-tbody"></tbody>
+              <tbody id="imp-tbody-pdf"></tbody>
             </table>
           </div>
         </div>
@@ -2481,14 +2481,16 @@ function ladattuTiliote(tapahtumat, iban, period) {
      &nbsp;·&nbsp; <span style="color:#e8a86a">${impTapahtumat.length - auto} vaatii vastatilin</span>`;
 
   renderImpTable();
-  document.getElementById('import-preview').style.display = 'block';
+  document.getElementById('import-preview-csv').style.display = 'block';
   document.getElementById('vakio-info').style.display = 'none';
   toast(`${tapahtumat.length} tapahtumaa tiliotteelta`);
 }
 
 function renderImpTable() {
-  const tbody = document.getElementById('imp-tbody');
-  tbody.innerHTML = '';
+  const tbody    = document.getElementById('imp-tbody');
+  const tbodyPdf = document.getElementById('imp-tbody-pdf');
+  if (tbody)    tbody.innerHTML = '';
+  if (tbodyPdf) tbodyPdf.innerHTML = '';
   impTapahtumat.forEach((t, i) => {
     const pos = t.summa > 0;
     const debetTili  = pos ? '1910' : (t.vak ? t.vak.vt : (t.vtNro || '?'));
@@ -2563,7 +2565,8 @@ function renderImpTable() {
       </td>
       <td style="white-space:nowrap;padding:6px 10px">${toimintaCell}</td>
     `;
-    tbody.appendChild(tr);
+    if (tbody)    tbody.appendChild(tr);
+    if (tbodyPdf) tbodyPdf.appendChild(tr.cloneNode(true));
   });
 }
 
