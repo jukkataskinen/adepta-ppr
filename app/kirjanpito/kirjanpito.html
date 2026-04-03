@@ -389,37 +389,26 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         </select>
         <button onclick="document.getElementById('pk-filter-alku').value='';document.getElementById('pk-filter-loppu').value='';document.getElementById('pk-filter-tili').value='';render()" style="font-size:11px;padding:3px 8px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inu);cursor:pointer">Tyhjennä</button>
       </div>
-      <!-- Import notification bar — näkyy kun jonossa on tapahtumia -->
-      <div id="import-notify-bar" style="display:none;background:#fffbf0;border-bottom:1px solid #f0e0a0;padding:7px 18px;flex-shrink:0;align-items:center;gap:10px">
-        <span style="font-size:15px">🏦</span>
-        <span style="font-size:12px;font-weight:500;color:var(--amber)"><span id="notify-count">0</span> pankkitapahtumaa odottaa kirjausta</span>
-        <button onclick="naytaJono()" style="margin-left:4px;padding:3px 12px;font-size:11px;font-weight:600;border:1px solid rgba(160,92,26,.3);border-radius:5px;background:var(--ambl);color:var(--amber);cursor:pointer">Avaa aineisto →</button>
-        <button onclick="siirryPankki()" style="padding:3px 10px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--inu);cursor:pointer">Pankkituonti</button>
-        <button onclick="LS.clearQueue();checkImportQueue();toast('Jono tyhjennetty')" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:var(--inf)" title="Hylkää jono">×</button>
-      </div>
 
       <!-- Balance alert -->
       <div class="bal-alert" id="bal-alert"></div>
       <!-- Table -->
       <div class="tw" id="tw">
-        <table class="jt" id="jt">
+        <table class="jt" id="jt" style="table-layout:fixed">
           <colgroup>
-            <col class="cn"><col class="cd"><col class="ct">
-            <col class="csel"><col class="cdt"><col class="ckt">
-            <col class="cne"><col class="calvp"><col class="calve"><col class="cbr">
-            <col class="cdel">
+            <col style="width:90px"><col style="width:70px"><col>
+            <col style="width:80px"><col style="width:160px">
+            <col style="width:110px"><col style="width:110px">
           </colgroup>
           <thead class="jh">
             <tr>
-              <th class="c">#</th>
-              <th>Päivä</th>
-              <th>Tosite</th>
-              <th>Selite</th>
-              <th>Tili</th>
-              <th>Tilin nimi</th>
-              <th>ALV %</th>
-              <th class="r">Debet €</th>
-              <th class="r">Kredit €</th>
+              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Päivä</th>
+              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tosite</th>
+              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Selite</th>
+              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tili</th>
+              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tilin nimi</th>
+              <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Debet</th>
+              <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Kredit</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -1192,48 +1181,52 @@ const NC = 7;
 // ── RENDER TABLE ─────────────────────────────────────────────
 function render() {
   const tbody = document.getElementById('tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
-  const alku = document.getElementById('pk-filter-alku')?.value || '';
+  const alku  = document.getElementById('pk-filter-alku')?.value  || '';
   const loppu = document.getElementById('pk-filter-loppu')?.value || '';
-  const tili = document.getElementById('pk-filter-tili')?.value || '';
-  const displayRows = rows.filter(r =>
-    (!alku || r.pv >= alku) &&
-    (!loppu || r.pv <= loppu) &&
-    (!tili || r.d === tili || r.k === tili)
-  );
-  displayRows.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    tr.className = 'jr';
-    const debet = r.netto > 0 && !r.k ? r.netto : 0;
-    const kredit = r.netto > 0 && r.k ? r.netto : 0;
-    const tili = r.d || r.k || '';
+  const tiliF = document.getElementById('pk-filter-tili')?.value  || '';
+  const displayRows = rows
+    .filter(r =>
+      (!alku  || r.pv >= alku) &&
+      (!loppu || r.pv <= loppu) &&
+      (!tiliF || r.d === tiliF || r.k === tiliF)
+    )
+    .sort((a, b) => (a.pv || '').localeCompare(b.pv || '') || (a.ts || '').localeCompare(b.ts || ''));
+
+  const fv = v => v.toLocaleString('fi-FI', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  let totDebet = 0, totKredit = 0;
+  displayRows.forEach(r => {
+    const tili     = r.d || r.k || '';
     const tiliNimi = TILIT.find(t => t.nro === tili)?.lbl || '';
+    const debet    = r.d ? r.netto : 0;
+    const kredit   = r.k ? r.netto : 0;
+    totDebet  += debet;
+    totKredit += kredit;
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
     tr.innerHTML =
-      '<td class="rn">' + (i+1) + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px">' + (r.pv || '') + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px">' + (r.ts || '') + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px">' + (r.sel || '') + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px;font-weight:600">' + tili + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px;color:var(--inu)">' + tiliNimi + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px;text-align:center;color:var(--inu)">' + (r.alvp > 0 ? r.alvp + '%' : '') + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#2a7a4f">' + (debet ? debet.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px;text-align:right;color:#c0392b">' + (kredit ? kredit.toLocaleString('fi-FI',{minimumFractionDigits:2}) : '') + '</td>';
+      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm)">${r.pv||''}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${r.ts||''}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;color:var(--ink)">${r.sel||''}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${tili}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;color:var(--inu)">${tiliNimi}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${debet>0.005?fv(debet):''}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#c0392b">${kredit>0.005?fv(kredit):''}</td>`;
     tbody.appendChild(tr);
   });
-  // Yhteensä-rivi taulukon loppuun
+
+  // Yhteensä-rivi
   const table = document.getElementById('jt');
   const oldFoot = table.querySelector('tfoot.filter-total');
   if (oldFoot) oldFoot.remove();
-  // Käytä samaa logiikkaa kuin kehon rivit: debet = netto kun !r.k, kredit = netto kun r.k
-  const totDebet  = displayRows.reduce((s,r) => s + (r.netto>0 && !r.k  ? r.netto : 0), 0);
-  const totKredit = displayRows.reduce((s,r) => s + (r.netto>0 &&  r.k  ? r.netto : 0), 0);
   const tfoot = document.createElement('tfoot');
   tfoot.className = 'filter-total';
-  // Sarakkeet: #(1) Päivä(2) Tosite(3) Selite(4) Tili(5) TiliNimi(6) ALV%(7) Debet(8) Kredit(9)
   tfoot.innerHTML = `<tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
-    <td colspan="7" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä — ${displayRows.length} vientiä</td>
-    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${totDebet>0?fmtE(totDebet):''}</td>
-    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${totKredit>0?fmtE(totKredit):''}</td>
+    <td colspan="5" style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä — ${displayRows.length} vientiä</td>
+    <td style="padding:8px 12px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${totDebet>0.005?fv(totDebet):''}</td>
+    <td style="padding:8px 12px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${totKredit>0.005?fv(totKredit):''}</td>
   </tr>`;
   table.appendChild(tfoot);
   updateTotals();
@@ -1580,8 +1573,7 @@ async function tallenna() {
 }
 
 async function lataaRivit(asiakas_id) {
-  const vuosi = curTilikausiVuosi || new Date().getFullYear();
-  const res = await fetch('/api/ppr/paivakirja?asiakas_id=' + asiakas_id + '&vuosi=' + vuosi);
+  const res = await fetch('/api/ppr/paivakirja?asiakas_id=' + asiakas_id);
   const data = await res.json();
   if (data && data.length > 0) {
     rows = data.map(d => ({
