@@ -1224,14 +1224,16 @@ function render() {
   const table = document.getElementById('jt');
   const oldFoot = table.querySelector('tfoot.filter-total');
   if (oldFoot) oldFoot.remove();
-  const totDebet  = displayRows.filter(r=>r.d).reduce((s,r)=>s+r.netto,0);
-  const totKredit = displayRows.filter(r=>r.k).reduce((s,r)=>s+r.netto,0);
+  // Käytä samaa logiikkaa kuin kehon rivit: debet = netto kun !r.k, kredit = netto kun r.k
+  const totDebet  = displayRows.reduce((s,r) => s + (r.netto>0 && !r.k  ? r.netto : 0), 0);
+  const totKredit = displayRows.reduce((s,r) => s + (r.netto>0 &&  r.k  ? r.netto : 0), 0);
   const tfoot = document.createElement('tfoot');
   tfoot.className = 'filter-total';
+  // Sarakkeet: #(1) Päivä(2) Tosite(3) Selite(4) Tili(5) TiliNimi(6) ALV%(7) Debet(8) Kredit(9)
   tfoot.innerHTML = `<tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
     <td colspan="7" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä — ${displayRows.length} vientiä</td>
-    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${fmtE(totDebet)}</td>
-    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${fmtE(totKredit)}</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${totDebet>0?fmtE(totDebet):''}</td>
+    <td style="padding:8px 10px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${totKredit>0?fmtE(totKredit):''}</td>
   </tr>`;
   table.appendChild(tfoot);
   updateTotals();
@@ -2226,7 +2228,8 @@ function renderPaakirja() {
         <div class="rpt-hdr-t">${tili}${tiliInfo?' '+tiliInfo.lbl:''}</div>
         <div class="rpt-hdr-s">${tiliRows.length} vientiä</div>
       </div>
-      <table style="width:100%;border-collapse:collapse">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:90px"><col style="width:80px"><col><col style="width:110px"><col style="width:110px"><col style="width:110px"></colgroup>
         <thead><tr style="background:var(--ppw)">
           <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Päivä</th>
           <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tosite</th>
@@ -2243,7 +2246,8 @@ function renderPaakirja() {
   if (grandD > 0.005 || grandK > 0.005) {
     html += `<div class="rpt-section">
       <div class="rpt-hdr"><div class="rpt-hdr-t">Kaikki tilit yhteensä</div></div>
-      <table style="width:100%;border-collapse:collapse">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:90px"><col style="width:80px"><col><col style="width:110px"><col style="width:110px"><col style="width:110px"></colgroup>
         <tr style="background:var(--ppw)">
           <td colspan="3" style="padding:10px 14px;font-size:13px;font-weight:600;color:var(--inm)">Yhteensä</td>
           <td style="padding:10px 14px;font-size:13px;font-weight:600;text-align:right;color:#2a7a4f">${fv(grandD)}</td>
