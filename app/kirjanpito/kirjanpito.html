@@ -402,7 +402,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           </colgroup>
           <thead class="jh">
             <tr>
-              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Päivä</th>
+              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500;white-space:nowrap;width:90px">Päivä</th>
               <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tosite</th>
               <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Selite</th>
               <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tili</th>
@@ -1165,6 +1165,11 @@ function alvE(netto, alvp) {
 function brutto(netto, alvp) {
   return +(netto + alvE(netto, alvp)).toFixed(2);
 }
+function fmtPv(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return d + '.' + m + '.' + y;
+}
 function fmtE(n) {
   return n.toLocaleString('fi-FI', {minimumFractionDigits:2,maximumFractionDigits:2});
 }
@@ -1207,7 +1212,7 @@ function render() {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid var(--bd)';
     tr.innerHTML =
-      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm)">${r.pv||''}</td>` +
+      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);white-space:nowrap">${fmtPv(r.pv)}</td>` +
       `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${r.ts||''}</td>` +
       `<td style="padding:7px 12px;font-size:12px;color:var(--ink)">${r.sel||''}</td>` +
       `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${tili}</td>` +
@@ -2200,7 +2205,7 @@ function renderPaakirja() {
       saldo += dNorm ? (dAmt - kAmt) : (kAmt - dAmt);
       const saldoColor = saldo < -0.005 ? 'color:#c0392b' : '';
       return `<tr style="border-bottom:1px solid var(--bd)">
-        <td style="padding:7px 12px;font-size:12px">${r.pv||''}</td>
+        <td style="padding:7px 12px;font-size:12px;white-space:nowrap">${fmtPv(r.pv)}</td>
         <td style="padding:7px 12px;font-size:12px">${r.ts||''}</td>
         <td style="padding:7px 12px;font-size:12px;color:var(--inu)">${r.sel||''}</td>
         <td style="padding:7px 12px;font-size:12px;text-align:right;color:#2a7a4f">${dAmt>0.005?fv(dAmt):''}</td>
@@ -2223,7 +2228,7 @@ function renderPaakirja() {
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
         <colgroup><col style="width:90px"><col style="width:80px"><col><col style="width:110px"><col style="width:110px"><col style="width:110px"></colgroup>
         <thead><tr style="background:var(--ppw)">
-          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Päivä</th>
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500;white-space:nowrap;width:90px">Päivä</th>
           <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tosite</th>
           <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Selite</th>
           <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Debet</th>
