@@ -3682,7 +3682,7 @@ function tositeValitseBalancingTili(nro, lbl) {
   if (input) input.value = nro + ' ' + lbl;
   tositeSubjatBalancingLista();
   tositeDirty = true;
-  updateAutoRowsInDOM();
+  paivitaTositeTotals();
 }
 
 function handleBalancingListKey(e, el) {
