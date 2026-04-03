@@ -771,6 +771,11 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
         <button class="rpt-tab" onclick="showRpt('alv',this)">ALV-laskelma</button>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <span style="font-size:12px;color:var(--inu)">Näkymä:</span>
+        <button class="rpt-tab act" id="rpt-lyhyt-btn" onclick="setRptMode('lyhyt',this)">Lyhyt</button>
+        <button class="rpt-tab" id="rpt-pitka-btn" onclick="setRptMode('pitka',this)">Pitkä (tilikohtainen)</button>
+      </div>
       <div id="rpt-content"></div>
     </div>
 
@@ -1646,6 +1651,14 @@ function lisaaTositeManual(rowId) {
 }
 
 // ── REPORTS ──────────────────────────────────────────────────
+let rptMode = 'lyhyt';
+function setRptMode(mode, btn) {
+  rptMode = mode;
+  document.getElementById('rpt-lyhyt-btn').classList.toggle('act', mode==='lyhyt');
+  document.getElementById('rpt-pitka-btn').classList.toggle('act', mode==='pitka');
+  renderRpt(document.querySelector('.rpt-tab.act')?.textContent?.toLowerCase().includes('tulos') ? 'tulos' :
+            document.querySelector('.rpt-tab.act')?.textContent?.toLowerCase().includes('tase') ? 'tase' : 'alv');
+}
 function showRpt(name, btn) {
   document.querySelectorAll('.rpt-tab').forEach(b => b.classList.remove('act'));
   if (btn) btn.classList.add('act');
@@ -1665,6 +1678,32 @@ function rptRow(l, v, cls='', indent=false, sub='') {
   </div>`;
 }
 function rptTulos() {
+  if (rptMode === 'pitka') {
+    const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
+    const nros = [...new Set([
+      ...rows.filter(r=>parseInt(r.k)>=3000&&parseInt(r.k)<=9999).map(r=>r.k),
+      ...rows.filter(r=>parseInt(r.d)>=3000&&parseInt(r.d)<=9999).map(r=>r.d)
+    ])].sort();
+    const sections = {};
+    nros.forEach(nro => {
+      const tili = TILIT.find(t=>t.nro===nro) || {lbl: nro, grp: 'Muut'};
+      const kb = rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+      const db = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
+      const isKulu = parseInt(nro) >= 4000;
+      const saldo = isKulu ? -(db - kb) : (kb - db);
+      if (Math.abs(saldo) < 0.005) return;
+      const grp = tili.grp || 'Muut';
+      if (!sections[grp]) sections[grp] = [];
+      sections[grp].push({nro, lbl: tili.lbl || nro, saldo});
+    });
+    let html = '<div class="rpt-section"><div class="rpt-hdr"><div class="rpt-hdr-t">Tuloslaskelma (tilikohtainen)</div></div>';
+    Object.entries(sections).forEach(([grp, items]) => {
+      html += hdr(grp);
+      items.forEach(({nro, lbl, saldo}) => { html += rptRow(nro + ' ' + lbl, saldo, '', true); });
+    });
+    html += '</div>';
+    return html;
+  }
   const lv = (nrot) => rows.filter(r=>nrot.includes(r.k)).reduce((s,r)=>s+r.netto,0);
   const ku = (nrot) => rows.filter(r=>nrot.includes(r.d)).reduce((s,r)=>s+r.netto,0);
   const liikevaihto = lv(['3000','3001','3002','3003','3004','3344','3355','3450','3454']);
@@ -1713,6 +1752,35 @@ function rptTulos() {
   </div>`;
 }
 function rptTase() {
+  if (rptMode === 'pitka') {
+    const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
+    const nros = [...new Set([
+      ...rows.filter(r=>parseInt(r.d)>=1000&&parseInt(r.d)<=2999).map(r=>r.d),
+      ...rows.filter(r=>parseInt(r.k)>=1000&&parseInt(r.k)<=2999).map(r=>r.k)
+    ])].sort();
+    const vastaavaa = [], vastattavaa = [];
+    nros.forEach(nro => {
+      const tili = TILIT.find(t=>t.nro===nro) || {lbl: nro, grp: 'Muut'};
+      const db = rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
+      const kb = rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
+      const n = parseInt(nro);
+      const saldo = n < 2000 ? (db - kb) : (kb - db);
+      if (Math.abs(saldo) < 0.005) return;
+      const item = {nro, lbl: tili.lbl || nro, grp: tili.grp || 'Muut', saldo};
+      if (n < 2000) vastaavaa.push(item); else vastattavaa.push(item);
+    });
+    const renderGroup = (items) => {
+      const groups = {};
+      items.forEach(it => { if (!groups[it.grp]) groups[it.grp] = []; groups[it.grp].push(it); });
+      return Object.entries(groups).map(([grp, its]) =>
+        hdr(grp) + its.map(({nro, lbl, saldo}) => rptRow(nro + ' ' + lbl, saldo, '', true)).join('')
+      ).join('');
+    };
+    return '<div class="rpt-section"><div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa (tilikohtainen)</div></div>' +
+      renderGroup(vastaavaa) + '</div>' +
+      '<div class="rpt-section"><div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa (tilikohtainen)</div></div>' +
+      renderGroup(vastattavaa) + '</div>';
+  }
   const db = (nro) => rows.filter(r=>r.d===nro).reduce((s,r)=>s+r.netto,0);
   const kb = (nro) => rows.filter(r=>r.k===nro).reduce((s,r)=>s+r.netto,0);
   const saldo = (nro, normaali) => normaali==='D' ? db(nro)-kb(nro) : kb(nro)-db(nro);
