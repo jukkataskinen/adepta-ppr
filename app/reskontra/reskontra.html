@@ -244,8 +244,13 @@ async function reskLuePdf() {
       const sm = koko.match(/Maksettava:\s*([\d\s,]+)\s*\u20ac/i);
       if (sm) summa = parseFloat(sm[1].replace(/\s/g,'').replace(',','.')) || 0;
 
+      // Parsii postinro ja kaupunki erikseen: "19650 JOUTSA" → postinro=19650, kaupunki=JOUTSA
+      let postinro = '', kaupunkiParsed = kaupunki;
+      const pkM = kaupunki.match(/^(\d{5})\s+(.+)/);
+      if (pkM) { postinro = pkM[1]; kaupunkiParsed = pkM[2].trim(); }
+
       if (lasku_nro && summa > 0) {
-        reskLuetut.push({ lasku_nro, asiakas, osoite, kaupunki, pvm, erapv, viite, summa });
+        reskLuetut.push({ lasku_nro, asiakas, osoite, postinro, kaupunki: kaupunkiParsed, pvm, erapv, viite, summa });
       }
     }
 
@@ -277,6 +282,10 @@ async function reskKirjaaAvoimet() {
   try {
     const payload = reskLuetut.map(l => ({
       lasku_nro: l.lasku_nro,
+      asiakas: l.asiakas,
+      osoite: l.osoite,
+      postinro: l.postinro,
+      kaupunki: l.kaupunki,
       pvm: l.pvm,
       erapv: l.erapv,
       viite: l.viite || null,

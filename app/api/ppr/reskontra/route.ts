@@ -53,38 +53,98 @@ export async function POST(request: NextRequest) {
     console.log('reskontra POST:', rivit.length, 'riviä, org:', kayttaja.organisaatio_id)
     if (rivit.length > 0) console.log('reskontra POST esimerkki:', JSON.stringify(rivit[0]))
 
+    const orgId = kayttaja.organisaatio_id
     const tulokset = []
     let virheet = 0
+    const asiakasCache: Record<string, string> = {} // nimi → id
+
     for (const r of rivit) {
-      const rivi = {
-        organisaatio_id: kayttaja.organisaatio_id,
-        asiakas_id: r.asiakas_id || null,
-        lasku_nro: r.lasku_nro || null,
-        pvm: r.pvm || null,
-        erapv: r.erapv || null,
-        viite: r.viite || null,
-        summa: r.summa || 0,
-        tila: r.tila || 'avoin',
-      }
       try {
+        // 1. Luo/päivitä asiakas ja hae id
+        let asiakas_id = r.asiakas_id || null
+        const nimi = (r.asiakas || '').trim()
+        if (nimi && !asiakas_id) {
+          // Tarkista cache
+          if (asiakasCache[nimi]) {
+            asiakas_id = asiakasCache[nimi]
+          } else {
+            // Etsi ensin olemassaoleva
+            const { data: existing } = await supabaseAdmin!
+              .from('ppr_asiakkaat')
+              .select('id')
+              .eq('organisaatio_id', orgId)
+              .eq('nimi', nimi)
+              .is('poistettu_at', null)
+              .maybeSingle()
+
+            if (existing) {
+              asiakas_id = existing.id
+              // Päivitä osoitetiedot
+              await supabaseAdmin!
+                .from('ppr_asiakkaat')
+                .update({
+                  katuosoite: r.osoite || null,
+                  postinro: r.postinro || null,
+                  kaupunki: r.kaupunki || null,
+                })
+                .eq('id', existing.id)
+            } else {
+              // Luo uusi
+              const { data: uusi, error: asiakasErr } = await supabaseAdmin!
+                .from('ppr_asiakkaat')
+                .insert({
+                  organisaatio_id: orgId,
+                  nimi,
+                  katuosoite: r.osoite || null,
+                  postinro: r.postinro || null,
+                  kaupunki: r.kaupunki || null,
+                })
+                .select('id')
+                .single()
+              if (asiakasErr) {
+                console.warn('asiakas insert:', asiakasErr.code, asiakasErr.message, nimi)
+              } else {
+                asiakas_id = uusi.id
+              }
+            }
+            if (asiakas_id) asiakasCache[nimi] = asiakas_id
+          }
+        }
+
+        // 2. Tallenna reskontra-rivi
+        const rivi = {
+          organisaatio_id: orgId,
+          asiakas_id,
+          lasku_nro: r.lasku_nro || null,
+          pvm: r.pvm || null,
+          erapv: r.erapv || null,
+          viite: r.viite || null,
+          summa: r.summa || 0,
+          tila: r.tila || 'avoin',
+        }
         const { data, error } = await supabaseAdmin!
           .from('ppr_reskontra')
           .insert(rivi)
           .select()
           .single()
         if (error) {
-          console.error('reskontra insert error:', error.code, error.message, 'lasku:', r.lasku_nro, 'viite:', r.viite)
+          // Duplikaattiviite → ohita hiljaa
+          if (error.code === '23505') {
+            console.log('reskontra duplikaatti:', r.lasku_nro, r.viite)
+          } else {
+            console.error('reskontra insert:', error.code, error.message, 'lasku:', r.lasku_nro)
+          }
           virheet++
         } else {
           tulokset.push(data)
         }
       } catch(e: any) {
-        console.error('reskontra insert catch:', e.message, 'lasku:', r.lasku_nro)
+        console.error('reskontra rivi catch:', e.message, 'lasku:', r.lasku_nro)
         virheet++
       }
     }
-    console.log('reskontra POST tulos:', tulokset.length, 'ok,', virheet, 'virheitä')
-    return NextResponse.json({ ok: true, tallennettu: tulokset.length, virheet }, { status: 201 })
+    console.log('reskontra POST:', tulokset.length, 'ok,', virheet, 'virheitä,', Object.keys(asiakasCache).length, 'asiakasta')
+    return NextResponse.json({ ok: true, tallennettu: tulokset.length, virheet, asiakkaita: Object.keys(asiakasCache).length }, { status: 201 })
   } catch (e: any) {
     console.error('reskontra POST:', e)
     return NextResponse.json({ error: e.message }, { status: 500 })
