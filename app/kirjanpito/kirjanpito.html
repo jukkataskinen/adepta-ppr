@@ -4821,8 +4821,12 @@ async function paloitteleAineisto(pdfBytesUint8) {
   const { PDFDocument } = PDFLib;
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const alkupDoc = await PDFDocument.load(pdfBytesUint8);
-  const pdf = await pdfjsLib.getDocument({data: pdfBytesUint8}).promise;
+  // Kopioi buffer kahdesti — pdf-lib ja PDF.js eivät saa jakaa samaa ArrayBufferia
+  const pdfLibBytes = pdfBytesUint8.slice(0);
+  const pdfJsBytes = pdfBytesUint8.slice(0);
+
+  const alkupDoc = await PDFDocument.load(pdfLibBytes);
+  const pdf = await pdfjsLib.getDocument({data: pdfJsBytes}).promise;
 
   // 1. Tunnista VÄLILEHTI-sivut
   const valilehtiSivut = new Set();
