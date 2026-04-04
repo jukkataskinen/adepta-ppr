@@ -4603,14 +4603,29 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
 SÄÄNNÖT:
 - summa AINA positiivinen numero (float), EI KOSKAAN teksti
 - suunta: "kredit" = raha poistuu tililtä, "debet" = raha tulee tilille
-- OP: miinusmerkki = kredit, plusmerkki = debet
-- Nordea: sama logiikka, sarakkeet voivat olla eri järjestyksessä
 - Jätä pois: SALDO-rivit, yhteenvetorivit, otsikkorivit, NOSTOVARA, PANOT/KAUSI, OTOT/KAUSI
 - Sisällytä: alkusaldo ja loppusaldo erikseen (numerot, ei riveinä tapahtumat-listaan)
 - ÄLÄ SEKOITA: summa: "debet" on VÄÄRIN — oikein: summa: 150.00, suunta: "debet"
 - Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti.
 - page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.
-- Jos dokumentissa on sekä tiliote että laskuja, täsmäytä ne (viite, summa, nimi, pvm).`;
+- Jos dokumentissa on sekä tiliote että laskuja, täsmäytä ne (viite, summa, nimi, pvm).
+
+NORDEA-TILIOTE (erittelymuoto):
+Jos pankki on Nordea, tiliote on erittelymuotoinen:
+- Poimi VAIN rivit joissa on TAP.NRO-sarakkeessa numero (1, 2, 3...) JA oikeanpuoleisimmassa sarakkeessa on eurosumma
+- Erittely- ja seliterivit (ilman tap.nro:a) JÄTETÄÄN POIS — ne ovat lisätietoja, eivät tapahtumia
+- Summan miinusmerkki (esim. "22,70-") tarkoittaa kredit (maksettu tililtä)
+- Summan plusmerkki tai ei merkkiä tarkoittaa debet (saatu tilille)
+- Saldo-rivit tunnistaa tekstistä "Saldo" — lue niistä alkusaldo ja loppusaldo
+- Päivämäärä: tiliotteen alussa oleva kuukausi + tapahtumarivin alun 4 numeroa (PPKK)
+Esimerkki Nordean rivistä:
+  "0402NORDEA Palvelumaksu /J 1    22,70-" → tapnro:1, sel:"NORDEA Palvelumaksu", summa:22.70, suunta:"kredit"
+  "0602Mobilhiken oy /A 2    418,80-" → tapnro:2, sel:"Mobilhiken oy", summa:418.80, suunta:"kredit"
+  "1002KORHONEN KARI OLAVI /A 3    800,00" → tapnro:3, sel:"KORHONEN KARI OLAVI", summa:800.00, suunta:"debet"
+
+OP-TILIOTE:
+- OP:n tiliotteessa miinusmerkki = kredit, plusmerkki = debet
+- Sarakkeet: kirjauspäivä, arvopäivä, summa, saldo, nimi, viite, viesti, korttinumero, tapahtumanumero`;
 
   try {
     setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
