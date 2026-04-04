@@ -3778,6 +3778,17 @@ async function analysePDF(file) {
 1. Pankkitiliote (suomalainen OP, Nordea, Handelsbanken tai muu)
 2. Ostolaskuja tai myyntilaskuja
 
+TILIOTTEEN SUODATUS — jätä kokonaan pois rivit joiden selite:
+- alkaa sanalla "SALDO" (esim. "SALDO 31.12.2025")
+- sisältää "NOSTOVARA OTOT YHTEENSÄ", "NOSTOVARA PANOT YHTEENSÄ", "PANOT/KAUSI", "OTOT/KAUSI"
+Nämä ovat yhteenvetorivejä, eivät yksittäisiä tapahtumia.
+
+TILIOTTEEN SUMMAT:
+- Palauta "summa" AINA positiivisena lukuna (desimaalipiste, ei valuuttasymbolia)
+- Erota suunta kenttään "suunta": "kredit" = raha tilille (pano), "debet" = raha tililtä (otto/maksu)
+- Esim. 150 € maksu → summa: 150.00, suunta: "debet"
+- Esim. 3000 € myyntisuoritus → summa: 3000.00, suunta: "kredit"
+
 TÄRKEÄÄ: Jos dokumentissa on sekä tiliote että laskuja, yritä täsmäyttää laskut tiliotteen tapahtumiin.
 Täsmäytysperusteet tärkeysjärjestyksessä:
 - Viitenumero (laskun viite = tiliotteen viite, jopa osittainen osuma riittää)
@@ -3799,7 +3810,8 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
         "tapnro": 1,
         "sel": "Tapahtuman selite",
         "maksu": "Maksajan/saajan nimi tai null",
-        "summa": -150.00,
+        "summa": 150.00,
+        "suunta": "debet",
         "viite": "viitenumero tai null"
       }
     ]
@@ -3831,7 +3843,8 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
 Täsmäytykset-kentässä tapnro viittaa tiliotteen Tap.nro-sarakkeeseen ja lasku_nro laskun numeroon.
 Varmuus: "korkea" (viite tai summa+nimi täsmää), "kohtalainen" (nimi+päivä tai summa lähellä), "heikko" (vain summa tai vain nimi).
 Tiliotteen tapahtumanumero (tapnro) on Tap.nro-sarakkeessa. Tiliotenro on juokseva numero sivun yläreunasta.
-Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa kuin liian vähän.`;
+Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa kuin liian vähän.
+MUISTA: summa aina positiivinen luku, suunta kertoo kredit/debet.`;
 
   try {
     setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
@@ -3921,15 +3934,20 @@ async function prosessoiAITulos(parsed, filename, base64) {
   const sl = document.getElementById('scan-loader');
   if (sl) sl.style.display = 'none';
 
-  // 1. Lataa tiliote
+  // 1. Lataa tiliote — muunna suunta etumerkiksi (kredit=+, debet=-)
   const tiliote = parsed.tiliote;
   if (tiliote && tiliote.loydetty && tiliote.tapahtumat?.length) {
     ladattuTiliote(
-      tiliote.tapahtumat.map(t => ({
-        ...t,
-        arvopv: t.arvopv || t.kirjpv,
-        kirjpv: t.kirjpv || t.arvopv,
-      })),
+      tiliote.tapahtumat.map(t => {
+        const abs = Math.abs(Number(t.summa) || 0);
+        const summa = t.suunta === 'debet' ? -abs : abs;
+        return {
+          ...t,
+          summa,
+          arvopv: t.arvopv || t.kirjpv,
+          kirjpv: t.kirjpv || t.arvopv,
+        };
+      }),
       tiliote.iban || filename,
       tiliote.kausi || ''
     );
