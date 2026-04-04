@@ -4433,6 +4433,7 @@ LASKUJEN SIVU: Palauta jokaisen laskun kohdalla page_number (1-indeksoitu) jolta
 
   try {
     setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
+    console.log('analysePDF: apiKey alkaa:', apiKey.slice(0,12) + '...', 'pituus:', apiKey.length);
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
