@@ -4693,6 +4693,9 @@ async function analyseTilioteErillinen() {
           impTiliote = nordeaResult;
           statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${nordeaResult.tapahtumat.length} tapahtumaa (regex)</span>`;
           paivitaJatkaBtn();
+          console.log('impTiliote tapahtumat:', impTiliote?.tapahtumat?.map(t => t.kirjpv+' '+t.sel+' '+t.summa));
+          console.log('laskut määrä:', laskut?.length);
+          console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
           return;
         }
       }
@@ -4779,6 +4782,9 @@ summa AINA positiivinen numero. suunta: "kredit"=tililtä, "debet"=tilille. Jät
     };
     statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${suodatetut.length} tapahtumaa</span>`;
     paivitaJatkaBtn();
+    console.log('impTiliote tapahtumat:', impTiliote?.tapahtumat?.map(t => t.kirjpv+' '+t.sel+' '+t.summa));
+    console.log('laskut määrä:', laskut?.length);
+    console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
   } catch(e) {
     console.error('Tiliote-analyysi:', e);
     statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
