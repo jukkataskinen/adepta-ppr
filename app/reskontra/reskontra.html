@@ -278,9 +278,10 @@ async function reskKirjaaAvoimet() {
   progEl.style.display = 'block';
 
   let ok = 0, fail = 0;
-  // Lähetetään kaikki kerralla yhtenä POST:na
-  try {
-    const payload = reskLuetut.map(l => ({
+  // Lähetetään 10 kerrallaan (välttää serverless timeout)
+  const BATCH = 10;
+  for (let i = 0; i < reskLuetut.length; i += BATCH) {
+    const erä = reskLuetut.slice(i, i + BATCH).map(l => ({
       lasku_nro: l.lasku_nro,
       asiakas: l.asiakas,
       osoite: l.osoite,
@@ -292,28 +293,29 @@ async function reskKirjaaAvoimet() {
       summa: l.summa,
       tila: 'avoin',
     }));
-    console.log('Reskontra POST payload:', payload.length, 'riviä, esim:', JSON.stringify(payload[0]));
-    bar.style.width = '50%';
-    barText.textContent = `Lähetetään ${payload.length} laskua...`;
-    const res = await fetch('/api/ppr/reskontra', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    bar.style.width = '100%';
-    if (res.ok) {
-      const result = await res.json();
-      ok = result.tallennettu || payload.length;
-      fail = result.virheet || 0;
-      console.log('Reskontra vastaus:', result);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      console.error('Reskontra POST virhe:', res.status, err);
-      fail = payload.length;
+    const pct = Math.round(Math.min(i + BATCH, reskLuetut.length) / reskLuetut.length * 100);
+    bar.style.width = pct + '%';
+    barText.textContent = `${Math.min(i + BATCH, reskLuetut.length)}/${reskLuetut.length} laskua...`;
+    try {
+      const res = await fetch('/api/ppr/reskontra', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(erä)
+      });
+      if (res.ok) {
+        const result = await res.json();
+        ok += result.tallennettu || 0;
+        fail += result.virheet || 0;
+        console.log(`Erä ${i/BATCH+1}:`, result);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error(`Erä ${i/BATCH+1} virhe:`, res.status, err);
+        fail += erä.length;
+      }
+    } catch(e) {
+      console.error(`Erä ${i/BATCH+1} catch:`, e);
+      fail += erä.length;
     }
-  } catch(e) {
-    console.error('Reskontra POST catch:', e);
-    fail = reskLuetut.length;
   }
 
   btn.disabled = false; btn.textContent = 'Kirjaa paivakirjaan';
