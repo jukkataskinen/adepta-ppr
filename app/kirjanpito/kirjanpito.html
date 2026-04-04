@@ -633,6 +633,16 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div style="background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
           ⚠ Yhdistetty PDF on epätarkempi kuin erillinen CSV + laskut. Käytä vain jos pankilta ei saa CSV-vientiä.
         </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:12px">
+          <span style="color:var(--inu)">Pankki:</span>
+          <select id="pankki-select" style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink);cursor:pointer">
+            <option value="auto">Tunnista automaattisesti</option>
+            <option value="nordea">Nordea</option>
+            <option value="op">OP</option>
+            <option value="danske">Danske Bank</option>
+            <option value="muu">Muu pankki</option>
+          </select>
+        </div>
         <div class="drop-zone" id="dz" onclick="document.getElementById('file-in').click()"
              ondragover="dzOver(event,'dz')" ondragleave="dzLeave(event,'dz')" ondrop="dzDrop(event)">
           <input type="file" id="file-in" accept=".pdf,.csv,.txt" style="display:none" onchange="handleFile(event)">
@@ -4702,39 +4712,74 @@ async function analysePDF(file) {
     return;
   }
 
-  setStatus('Luetaan PDF-teksti…', 'Tunnistetaan pankin formaatti', 20);
-
-  // Tunnista Nordea x-koordinaattiparserilla ENNEN AI-kutsua
-  try {
-    const { rivit: xyRivit, raakaTeksti } = await extractPdfRivitXY(base64);
-    console.log('PDF teksti:', raakaTeksti.length, 'riviä. Nordea:', isNordeaPdf(raakaTeksti));
-    if (isNordeaPdf(raakaTeksti)) {
-      setStatus('Nordea tunnistettu', 'Parsitaan x-koordinaattiparserilla...', 50);
-      const nordeaResult = parseNordeaPDF(xyRivit, raakaTeksti);
-      if (nordeaResult.tapahtumat.length > 0) {
-        setStatus('Valmis!', `${nordeaResult.tapahtumat.length} tapahtumaa parsittu`, 100);
-        impPdfBase64 = base64;
-        const parsed = { ...nordeaResult, tiliote: nordeaResult, laskut: [], tasmaytyket: [] };
-        await prosessoiAITulos(parsed, file.name, base64);
-        return;
+  // Tunnista pankki: 1) käyttäjän valinta 2) PDF-teksti 3) tiedostonimi
+  const pankkiSelect = document.getElementById('pankki-select')?.value || 'auto';
+  let tunnistettuPankki = pankkiSelect;
+  if (tunnistettuPankki === 'auto') {
+    // Yritä tunnistaa PDF-tekstistä
+    setStatus('Tunnistetaan pankkia…', 'Luetaan PDF-teksti', 20);
+    try {
+      const { rivit: xyRivit, raakaTeksti } = await extractPdfRivitXY(base64);
+      console.log('PDF teksti:', raakaTeksti.length, 'riviä');
+      if (isNordeaPdf(raakaTeksti)) tunnistettuPankki = 'nordea';
+      else if (raakaTeksti.some(r => /osuuspankki|op\s/i.test(r))) tunnistettuPankki = 'op';
+      else if (raakaTeksti.some(r => /danske/i.test(r))) tunnistettuPankki = 'danske';
+      // Fallback: tiedostonimi
+      if (tunnistettuPankki === 'auto') {
+        const fn = file.name.toLowerCase();
+        if (fn.includes('nordea')) tunnistettuPankki = 'nordea';
+        else if (fn.includes('op') || fn.includes('osuuspankki')) tunnistettuPankki = 'op';
+        else tunnistettuPankki = 'muu';
       }
-      console.log('Nordea regex-parseri ei löytänyt tapahtumia, jatketaan AI:lla');
-    }
-  } catch(e) { console.warn('Nordea-tunnistus epäonnistui:', e); }
+      // Nordea: yritä regex-parseria jos tekstiä löytyi
+      if (tunnistettuPankki === 'nordea' && xyRivit.length > 0) {
+        setStatus('Nordea tunnistettu', 'Parsitaan x-koordinaattiparserilla...', 50);
+        const nordeaResult = parseNordeaPDF(xyRivit, raakaTeksti);
+        if (nordeaResult.tapahtumat.length > 0) {
+          setStatus('Valmis!', `${nordeaResult.tapahtumat.length} tapahtumaa parsittu`, 100);
+          impPdfBase64 = base64;
+          const parsed = { ...nordeaResult, tiliote: nordeaResult, laskut: [], tasmaytyket: [] };
+          await prosessoiAITulos(parsed, file.name, base64);
+          return;
+        }
+        console.log('Nordea regex ei löytänyt tapahtumia (kuva-PDF?), jatketaan AI:lla');
+      }
+    } catch(e) { console.warn('Pankkitunnistus epäonnistui:', e); tunnistettuPankki = 'muu'; }
+  }
+  console.log('Tunnistettu pankki:', tunnistettuPankki);
 
-  setStatus('Claude analysoi…', 'Etsitään tiliote- ja laskuaineisto (voi kestää 10–30 s)', 30);
+  setStatus('Claude analysoi…', `${tunnistettuPankki.toUpperCase()} tiliote · voi kestää 10–30 s`, 30);
 
-  const prompt = `Analysoi tämä suomalainen pankkitiliote (OP, Nordea tai muu pankki).
+  // Pankkikohtainen prompt
+  const nordeaOhje = tunnistettuPankki === 'nordea' ? `
+TÄMÄ ON NORDEAN TILIOTE. Nordean tiliotteessa on 4 saraketta:
+- Arkistotunnus/päivämäärä (vasen)
+- Selitys/Maksaja (keskivasen)
+- Tap.nro (keskioikea) — numero 1, 2, 3...
+- Tiliöinti/summa (OIKEA REUNA) — TÄMÄ ON AINOA SARAKE JOSTA LUET SUMMAN
+
+Jokaisella tapahtumarivillä on tap.nro (numero) JA oikeassa reunassa summa.
+Miinusmerkki luvun perässä (esim. "22,70-") = kredit (maksettu tililtä).
+Ilman merkkiä (esim. "800,00") = debet (saatu tilille).
+
+Erittelyn välirivit (ALV-laskelmat, kpl-määrät, erittelyt) eivät ole tapahtumia —
+niillä EI ole tap.nro:a. JÄTÄ NE POIS.
+
+Saldo-rivit: lue alkusaldo (ensimmäinen "Saldo"-rivi) ja loppusaldo (viimeinen "Saldo"-rivi).
+TÄRKEÄÄ: Rivillä voi olla USEITA lukuja. Poimi AINOASTAAN OIKEAN REUNAN luku summaksi.` : '';
+
+  const prompt = `Analysoi tämä suomalainen pankkitiliote (${tunnistettuPankki}).
+${nordeaOhje}
 
 Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
 {
-  "pankki": "OP/Nordea/muu",
+  "pankki": "${tunnistettuPankki}",
   "iban": "FI...",
   "kausi": "1.5.–30.6.2025 tai null",
   "alkusaldo": 1240.55,
   "loppusaldo": 312.45,
   "tapahtumat": [
-    { "kirjpv": "YYYY-MM-DD", "arvopv": "YYYY-MM-DD", "tiliotenro": 6, "tapnro": 1,
+    { "kirjpv": "YYYY-MM-DD", "arvopv": "YYYY-MM-DD", "tapnro": 1,
       "sel": "Tapahtuman selite", "maksu": "Maksajan/saajan nimi tai null",
       "summa": 103.21, "suunta": "kredit", "viite": "viitenumero tai null" }
   ],
@@ -4753,30 +4798,11 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
 SÄÄNNÖT:
 - summa AINA positiivinen numero (float), EI KOSKAAN teksti
 - suunta: "kredit" = raha poistuu tililtä, "debet" = raha tulee tilille
-- Jätä pois: SALDO-rivit, yhteenvetorivit, otsikkorivit, NOSTOVARA, PANOT/KAUSI, OTOT/KAUSI
-- Sisällytä: alkusaldo ja loppusaldo erikseen (numerot, ei riveinä tapahtumat-listaan)
+- Jätä pois: SALDO-rivit, yhteenvetorivit, otsikkorivit
+- Sisällytä: alkusaldo ja loppusaldo erikseen (numerot)
 - ÄLÄ SEKOITA: summa: "debet" on VÄÄRIN — oikein: summa: 150.00, suunta: "debet"
-- Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti.
-- page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.
-- Jos dokumentissa on sekä tiliote että laskuja, täsmäytä ne (viite, summa, nimi, pvm).
-
-NORDEA-TILIOTE (erittelymuoto):
-Jos pankki on Nordea, tiliote on erittelymuotoinen:
-- Poimi VAIN rivit joissa on TAP.NRO-sarakkeessa numero (1, 2, 3...) JA oikeanpuoleisimmassa sarakkeessa on eurosumma
-- Erittely- ja seliterivit (ilman tap.nro:a) JÄTETÄÄN POIS — ne ovat lisätietoja, eivät tapahtumia
-- TÄRKEÄÄ: Jokaisella rivillä voi olla USEITA lukuja (erittely, ALV, kappalemäärät). Poimi AINOASTAAN se luku joka on rivin OIKEASSA REUNASSA (viimeinen sarake). Kaikki muut luvut JÄTETÄÄN POIS.
-- Summan miinusmerkki (esim. "22,70-") tarkoittaa kredit (maksettu tililtä)
-- Summan plusmerkki tai ei merkkiä tarkoittaa debet (saatu tilille)
-- Saldo-rivit tunnistaa tekstistä "Saldo" — lue niistä alkusaldo ja loppusaldo
-- Päivämäärä: tiliotteen alussa oleva kuukausi + tapahtumarivin alun 4 numeroa (PPKK)
-Esimerkki Nordean rivistä:
-  "0402NORDEA Palvelumaksu /J 1    22,70-" → tapnro:1, sel:"NORDEA Palvelumaksu", summa:22.70, suunta:"kredit"
-  "0602Mobilhiken oy /A 2    418,80-" → tapnro:2, sel:"Mobilhiken oy", summa:418.80, suunta:"kredit"
-  "1002KORHONEN KARI OLAVI /A 3    800,00" → tapnro:3, sel:"KORHONEN KARI OLAVI", summa:800.00, suunta:"debet"
-
-OP-TILIOTE:
-- OP:n tiliotteessa miinusmerkki = kredit, plusmerkki = debet
-- Sarakkeet: kirjauspäivä, arvopäivä, summa, saldo, nimi, viite, viesti, korttinumero, tapahtumanumero`;
+- page_number: PDF:n sivunumero jolta lasku löytyy
+- Jos dokumentissa on sekä tiliote että laskuja, täsmäytä ne.`;
 
   try {
     setStatus('Renderöidään PDF-sivut…', 'Muunnetaan sivut kuviksi AI-analyysiä varten', 40);
