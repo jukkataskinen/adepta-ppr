@@ -4522,6 +4522,17 @@ async function extractPdfRivitXY(base64) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
   const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+
+  // Debug: tulosta kaikki sivu 1 tekstialkiot
+  try {
+    const dbgPage = await pdf.getPage(1);
+    const dbgContent = await dbgPage.getTextContent();
+    console.log('=== NORDEA PDF TEKSTIALKIOT (sivu 1) ===');
+    dbgContent.items.forEach((item, i) => {
+      console.log(i, 'x:', Math.round(item.transform[4]), 'y:', Math.round(item.transform[5]), 'teksti:', JSON.stringify(item.str));
+    });
+  } catch(e) { console.warn('Debug dump epäonnistui:', e); }
+
   const kaikkirivit = [];
   const raakaTeksti = [];
   for (let p = 1; p <= pdf.numPages; p++) {
