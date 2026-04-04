@@ -636,10 +636,8 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:12px">
           <span style="color:var(--inu)">Pankki:</span>
           <select id="pankki-select" style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink);cursor:pointer">
-            <option value="auto">Tunnista automaattisesti</option>
-            <option value="nordea">Nordea</option>
             <option value="op">OP</option>
-            <option value="danske">Danske Bank</option>
+            <option value="nordea">Nordea</option>
             <option value="muu">Muu pankki</option>
           </select>
         </div>
@@ -4713,27 +4711,16 @@ async function analysePDF(file) {
   }
 
   // Tunnista pankki: 1) käyttäjän valinta 2) PDF-teksti 3) tiedostonimi
-  const pankkiSelect = document.getElementById('pankki-select')?.value || 'auto';
-  let tunnistettuPankki = pankkiSelect;
-  if (tunnistettuPankki === 'auto') {
-    // Yritä tunnistaa PDF-tekstistä
-    setStatus('Tunnistetaan pankkia…', 'Luetaan PDF-teksti', 20);
+  // Lue pankki dropdownista (ei automaattitunnistusta)
+  const tunnistettuPankki = document.getElementById('pankki-select')?.value || 'op';
+  console.log('Valittu pankki:', tunnistettuPankki);
+
+  // Nordea: yritä regex-parseria ensin (toimii teksti-PDF:ille)
+  if (tunnistettuPankki === 'nordea') {
+    setStatus('Nordea valittu', 'Yritetään x-koordinaattiparsintaa...', 25);
     try {
       const { rivit: xyRivit, raakaTeksti } = await extractPdfRivitXY(base64);
-      console.log('PDF teksti:', raakaTeksti.length, 'riviä');
-      if (isNordeaPdf(raakaTeksti)) tunnistettuPankki = 'nordea';
-      else if (raakaTeksti.some(r => /osuuspankki|op\s/i.test(r))) tunnistettuPankki = 'op';
-      else if (raakaTeksti.some(r => /danske/i.test(r))) tunnistettuPankki = 'danske';
-      // Fallback: tiedostonimi
-      if (tunnistettuPankki === 'auto') {
-        const fn = file.name.toLowerCase();
-        if (fn.includes('nordea')) tunnistettuPankki = 'nordea';
-        else if (fn.includes('op') || fn.includes('osuuspankki')) tunnistettuPankki = 'op';
-        else tunnistettuPankki = 'muu';
-      }
-      // Nordea: yritä regex-parseria jos tekstiä löytyi
-      if (tunnistettuPankki === 'nordea' && xyRivit.length > 0) {
-        setStatus('Nordea tunnistettu', 'Parsitaan x-koordinaattiparserilla...', 50);
+      if (xyRivit.length > 0) {
         const nordeaResult = parseNordeaPDF(xyRivit, raakaTeksti);
         if (nordeaResult.tapahtumat.length > 0) {
           setStatus('Valmis!', `${nordeaResult.tapahtumat.length} tapahtumaa parsittu`, 100);
@@ -4742,11 +4729,10 @@ async function analysePDF(file) {
           await prosessoiAITulos(parsed, file.name, base64);
           return;
         }
-        console.log('Nordea regex ei löytänyt tapahtumia (kuva-PDF?), jatketaan AI:lla');
       }
-    } catch(e) { console.warn('Pankkitunnistus epäonnistui:', e); tunnistettuPankki = 'muu'; }
+      console.log('Nordea regex ei löytänyt tapahtumia (kuva-PDF?), jatketaan AI:lla');
+    } catch(e) { console.warn('Nordea parsinta epäonnistui:', e); }
   }
-  console.log('Tunnistettu pankki:', tunnistettuPankki);
 
   setStatus('Claude analysoi…', `${tunnistettuPankki.toUpperCase()} tiliote · voi kestää 10–30 s`, 30);
 
@@ -4883,6 +4869,7 @@ SÄÄNNÖT:
     }
 
     const txt = (data.content||[]).map(c=>c.text||'').join('');
+    console.log('AI RAW VASTAUS (500 merkkiä):', txt.substring(0, 500));
     if (!txt.trim()) {
       showError('Tyhjä vastaus', 'Claude ei palauttanut sisältöä — yritä uudelleen');
       return;
@@ -4893,10 +4880,11 @@ SÄÄNNÖT:
     try {
       parsed = JSON.parse(clean);
     } catch(e) {
-      console.error('JSON parse failed:', clean.slice(0,200));
+      console.error('JSON parse failed:', clean.slice(0,500));
       showError('JSON-jäsennysvirhe', 'Claude palautti odottamattoman muodon — yritä uudelleen');
       return;
     }
+    console.log('AI parsed avaimet:', Object.keys(parsed), 'tiliote:', !!parsed.tiliote, 'tapahtumat:', parsed.tapahtumat?.length || parsed.tiliote?.tapahtumat?.length || 0);
 
     console.log('AI vastaus tiliote:', JSON.stringify(parsed.tiliote?.tapahtumat?.length), 'laskut:', parsed.laskut?.length, 'täsmäytykset:', parsed.tasmaytyket?.length);
     console.log('Tiliote loydetty:', parsed.tiliote?.loydetty, 'IBAN:', parsed.tiliote?.iban);
@@ -4958,7 +4946,12 @@ async function prosessoiAITulos(parsed, filename, base64) {
         kirjpv: t.kirjpv || t.arvopv,
       });
     });
-    console.log('Tiliote validoitu:', validoidut.length, '/', raakaTapahtumat.length);
+    // Suodata pois saldo-rivit joita AI saattoi sisällyttää tapahtumiin
+    const suodatetut = validoidut.filter(t => {
+      const s = (t.sel||'').toLowerCase();
+      return !s.includes('saldo') && !s.includes('alkusaldo') && !s.includes('loppusaldo') && !s.includes('balance');
+    });
+    console.log('Tiliote validoitu:', suodatetut.length, '/', raakaTapahtumat.length, '(suodatettu', validoidut.length - suodatetut.length, 'saldoriviä)');
 
     // Tallenna impTiliote pipeline-tilaan
     impTiliote = {
@@ -4967,12 +4960,12 @@ async function prosessoiAITulos(parsed, filename, base64) {
       kausi: parsed.kausi || tiliote.kausi || '',
       alkusaldo: Number(parsed.alkusaldo ?? tiliote.alkusaldo ?? 0),
       loppusaldo: Number(parsed.loppusaldo ?? tiliote.loppusaldo ?? 0),
-      tapahtumat: validoidut,
+      tapahtumat: suodatetut,
     };
     impVaihe = 2;
 
     // Lataa myös impTapahtumat (yhteensopivuus vanhan koodin kanssa)
-    ladattuTiliote(validoidut, impTiliote.iban, impTiliote.kausi);
+    ladattuTiliote(suodatetut, impTiliote.iban, impTiliote.kausi);
   }
 
   // 2. Lataa laskut — tallenna pageNumber ja pdfBase64 per lasku
