@@ -4821,51 +4821,52 @@ async function paloitteleAineisto(pdfBytesUint8) {
   const { PDFDocument } = PDFLib;
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  // Kopioi buffer kahdesti — pdf-lib ja PDF.js eivät saa jakaa samaa ArrayBufferia
-  const pdfLibBytes = pdfBytesUint8.slice(0);
-  const pdfJsBytes = pdfBytesUint8.slice(0);
+  // Kopioi bufferit — pdf-lib ja PDF.js eivät saa jakaa samaa ArrayBufferia
+  const pdfLibBytes = new Uint8Array(pdfBytesUint8);
+  const pdfJsBytes = new Uint8Array(pdfBytesUint8);
 
   const alkupDoc = await PDFDocument.load(pdfLibBytes);
   const pdf = await pdfjsLib.getDocument({data: pdfJsBytes}).promise;
+  const sivuMaara = pdf.numPages;
 
-  // 1. Tunnista VÄLILEHTI-sivut
-  const valilehtiSivut = new Set();
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const teksti = content.items.map(it => it.str).join(' ').trim();
-    if (teksti.replace(/\s+/g, '').toUpperCase().includes('VÄLILEHTI')) {
-      valilehtiSivut.add(i);
-    }
-  }
-  console.log('VÄLILEHTI-sivut:', [...valilehtiSivut], '/', pdf.numPages, 'sivua');
-  if (valilehtiSivut.size === 0) return null; // ei välilehtiä → ei paloitella
+  // 1. Hae kaikki sivutekstit rinnakkain
+  const tekstit = await Promise.all(
+    Array.from({length: sivuMaara}, async (_, i) => {
+      const page = await pdf.getPage(i + 1);
+      const content = await page.getTextContent();
+      return content.items.map(it => it.str).join(' ');
+    })
+  );
 
-  // 2. Ryhmittele sivut laskuittain
-  const laskuRyhmat = [];
+  // 2. Tunnista VÄLILEHTI-sivut (0-indeksoitu)
+  const valilehtiSivut = new Set(
+    tekstit.map((t, i) => t.replace(/\s+/g, '').toUpperCase().includes('VÄLILEHTI') ? i : -1).filter(i => i >= 0)
+  );
+  console.log('VÄLILEHTI-sivut (0-ind):', [...valilehtiSivut], '/', sivuMaara, 'sivua');
+  if (valilehtiSivut.size === 0) return null;
+
+  // 3. Ryhmittele sivut (0-indeksoitu)
+  const ryhmat = [];
   let nykyinen = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
+  for (let i = 0; i < sivuMaara; i++) {
     if (valilehtiSivut.has(i)) {
-      if (nykyinen.length > 0) { laskuRyhmat.push(nykyinen); nykyinen = []; }
-      // Välilehtisivu ohitetaan
+      if (nykyinen.length > 0) { ryhmat.push(nykyinen); nykyinen = []; }
     } else {
       nykyinen.push(i);
     }
   }
-  if (nykyinen.length > 0) laskuRyhmat.push(nykyinen);
-  console.log('Laskuryhmiä:', laskuRyhmat.length, laskuRyhmat);
+  if (nykyinen.length > 0) ryhmat.push(nykyinen);
+  console.log('Laskuryhmiä:', ryhmat.length, ryhmat);
 
-  // 3. Luo jokaisesta ryhmästä oma PDF
-  const laskuPdft = [];
-  for (const sivut of laskuRyhmat) {
-    const uusiDoc = await PDFDocument.create();
-    const kopiot = await uusiDoc.copyPages(alkupDoc, sivut.map(s => s - 1));
-    kopiot.forEach(s => uusiDoc.addPage(s));
-    const bytes = await uusiDoc.save();
-    laskuPdft.push({ bytes, sivut });
+  // 4. Luo jokaisesta ryhmästä oma PDF
+  const tulokset = [];
+  for (const sivut of ryhmat) {
+    const uusi = await PDFDocument.create();
+    const kopiot = await uusi.copyPages(alkupDoc, sivut);
+    kopiot.forEach(s => uusi.addPage(s));
+    tulokset.push(await uusi.save());
   }
-
-  return laskuPdft; // [{bytes: Uint8Array, sivut: [1,2]}, ...]
+  return tulokset; // Uint8Array[]
 }
 
 async function analyseLaskutErillinen() {
@@ -4899,13 +4900,19 @@ Ehdota tili: puhelin→7950, vuokra→7210, sähkö→7390, markkinointi→7910,
 page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
 
   try {
-    const pdfOsat = palat || [{bytes: pdfBytesAll, sivut: null}];
+    const pdfOsat = palat || [pdfBytesAll];
     const kayttaaYksiPromptia = palat && palat.length > 1;
     laskut = [];
 
     for (let pi = 0; pi < pdfOsat.length; pi++) {
-      const osa = pdfOsat[pi];
-      const osaBase64 = btoa(String.fromCharCode(...osa.bytes));
+      const osaBytes = pdfOsat[pi];
+      // btoa chunked — välttää Maximum call stack size exceeded isoilla tiedostoilla
+      let osaBase64 = '';
+      const chunk = 8192;
+      for (let off = 0; off < osaBytes.length; off += chunk) {
+        osaBase64 += String.fromCharCode.apply(null, osaBytes.subarray(off, off + chunk));
+      }
+      osaBase64 = btoa(osaBase64);
       if (kayttaaYksiPromptia) {
         statusEl.innerHTML = `<span style="color:var(--amber)">⏳ Lasku ${pi+1}/${pdfOsat.length}...</span>`;
       }
@@ -4913,7 +4920,7 @@ page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
       // Renderöi sivut kuviksi
       let sivuKuvat = [];
       try {
-        const pdf = await pdfjsLib.getDocument({data: osa.bytes}).promise;
+        const pdf = await pdfjsLib.getDocument({data: new Uint8Array(osaBytes)}).promise;
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const vp = page.getViewport({scale: 1.5});
