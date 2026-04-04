@@ -2977,12 +2977,7 @@ function naytaLaskuPopup(event, tapIdx) {
       <button onclick="document.getElementById('lasku-popup').remove()"
         style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--inf);line-height:1;margin:-4px -4px 0 0">×</button>
     </div>
-    ${pdfSivuKuvat.length > 0 ? `
-      <div style="max-height:300px;overflow-y:auto;margin-bottom:10px;border-radius:6px;border:1px solid var(--bd)">
-        ${pdfSivuKuvat.filter(Boolean).map((src, si) =>
-          `<img src="${src}" style="width:100%;display:block${si > 0 ? ';border-top:1px solid var(--bd)' : ''}">`
-        ).join('')}
-      </div>` : l.kuva_base64 ? `<img src="${l.kuva_base64}" style="width:100%;border-radius:6px;margin-bottom:8px;border:1px solid var(--bd)">` : ''}
+    ${l.pdfBase64 ? `<div style="max-height:300px;overflow-y:auto;margin-bottom:10px;border-radius:6px;border:1px solid var(--bd)"><canvas id="lasku-popup-canvas" style="width:100%;display:block"></canvas></div>` : ''}
     <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px">${l.toimittaja||'—'}</div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">
       ${l.nro ? `<span style="color:var(--inu)">Laskun nro</span><span style="font-family:var(--ffm);color:var(--ink)">${l.nro}</span>` : ''}
@@ -3009,6 +3004,12 @@ function naytaLaskuPopup(event, tapIdx) {
 
   document.body.appendChild(pop);
   _popupEl = pop;
+
+  // Renderöi laskun PDF-sivu canvasiin
+  if (l.pdfBase64) {
+    const canvas = document.getElementById('lasku-popup-canvas');
+    if (canvas) renderLaskuSivu(l.pdfBase64, l.pageNumber || 1, canvas);
+  }
 
   // Sulje klikkaamalla muualle
   setTimeout(() => {
@@ -3352,7 +3353,25 @@ async function pdfKaikkiSivutKuviksi(base64) {
   }
 }
 
-// ── TAB 2: LASKUT PDF ────────────────────────────────────────
+async function renderLaskuSivu(base64pdf, pageNum, canvasEl) {
+  try {
+    if (typeof pdfjsLib === 'undefined') return;
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const data = atob(base64pdf);
+    const bytes = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i);
+    const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+    const pn = Math.min(Math.max(pageNum, 1), pdf.numPages);
+    const page = await pdf.getPage(pn);
+    const viewport = page.getViewport({scale: 1.5});
+    canvasEl.width = viewport.width;
+    canvasEl.height = viewport.height;
+    await page.render({canvasContext: canvasEl.getContext('2d'), viewport}).promise;
+  } catch(e) { console.warn('renderLaskuSivu virhe:', e); }
+}
+
+// ── TAB 2: LASKUT PDF ─��──────────────────────────────────────
 async function handleLaskutFile(e) {
   const f = e.target.files[0];
   if (f) analyseLaskutPDF(f);
@@ -3421,7 +3440,8 @@ Tunnista jokainen lasku erikseen. Palauta VAIN JSON ilman markdown-koodilohkoja:
       "viite": "viitenumero tai null",
       "iban": "tilinumero tai null",
       "kuvaus": "laskun sisältö 1–2 lauseella",
-      "ehdotettu_tili": "suomalainen Liikekirjuri 2025 -tilinumero esim. 7950 tai null"
+      "ehdotettu_tili": "suomalainen Liikekirjuri 2025 -tilinumero esim. 7950 tai null",
+      "page_number": 1
     }
   ]
 }
@@ -3429,7 +3449,8 @@ Tunnista jokainen lasku erikseen. Palauta VAIN JSON ilman markdown-koodilohkoja:
 Ehdota tili näin: puhelin/internet → 7950, vuokra → 7210, sähkö → 7390,
 markkinointi → 7910, palkka → 5000, vakuutus → 7414, kirjanpito → 8060,
 ajoneuvo → 7530, it-palvelut → 7650, siivous → 7360, toimistotarvikkeet → 8010.
-Jos et tiedä tiliä, jätä null. Tunnista kaikki laskut — älä jätä yhtään väliin.`;
+Jos et tiedä tiliä, jätä null. Tunnista kaikki laskut — älä jätä yhtään väliin.
+page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
 
   try {
     setStatus('Claude lukee laskuja…', 'Tunnistetaan toimittajat, summat, viitteet', 55);
@@ -3473,16 +3494,15 @@ Jos et tiedä tiliä, jätä null. Tunnista kaikki laskut — älä jätä yhtä
 
     setStatus('Valmis!', `${(parsed.laskut||[]).length} laskua tunnistettu`, 100);
 
-    // Tallenna laskut
-    const uudet = (parsed.laskut || []).map((l, i) => ({...l, idx: laskut.length + i, tapIdx: null}));
+    // Tallenna laskut — pageNumber ja pdfBase64 per lasku
+    const uudet = (parsed.laskut || []).map((l, i) => ({
+      ...l,
+      idx: laskut.length + i,
+      tapIdx: null,
+      pageNumber: l.page_number || (i + 1),
+      pdfBase64: base64 || null,
+    }));
     laskut = [...laskut, ...uudet];
-
-    // Renderöi kaikki PDF-sivut kuviksi
-    setStatus('Renderöidään esikatselukuvat…', 'PDF-sivut → JPEG', 90);
-    pdfSivuKuvat = await pdfKaikkiSivutKuviksi(base64);
-    uudet.forEach((l, i) => {
-      l.kuva_base64 = pdfSivuKuvat[i] || pdfSivuKuvat[pdfSivuKuvat.length - 1] || null;
-    });
 
     LS.saveLaskut(laskut);
 
@@ -3833,7 +3853,8 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
       "alv_prosentti": 25.5,
       "viite": "viitenumero tai null",
       "kuvaus": "laskun sisältö lyhyesti",
-      "ehdotettu_tili": "LK2025-tilinumero esim. 7950 tai null"
+      "ehdotettu_tili": "LK2025-tilinumero esim. 7950 tai null",
+      "page_number": 3
     }
   ],
   "tasmaytyket": [
@@ -3850,7 +3871,8 @@ Täsmäytykset-kentässä tapnro viittaa tiliotteen Tap.nro-sarakkeeseen ja lask
 Varmuus: "korkea" (viite tai summa+nimi täsmää), "kohtalainen" (nimi+päivä tai summa lähellä), "heikko" (vain summa tai vain nimi).
 Tiliotteen tapahtumanumero (tapnro) on Tap.nro-sarakkeessa. Tiliotenro on juokseva numero sivun yläreunasta.
 Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa kuin liian vähän.
-MUISTA: summa aina positiivinen luku, suunta kertoo kredit/debet.`;
+MUISTA: summa aina positiivinen luku, suunta kertoo kredit/debet.
+LASKUJEN SIVU: Palauta jokaisen laskun kohdalla page_number (1-indeksoitu) jolta lasku löytyy PDF:stä.`;
 
   try {
     setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
@@ -3959,15 +3981,14 @@ async function prosessoiAITulos(parsed, filename, base64) {
     );
   }
 
-  // 2. Lataa laskut
-  laskut = (parsed.laskut || []).map((l, i) => ({...l, idx: i, tapIdx: null}));
-  // Renderöi kaikki PDF-sivut kuviksi
-  if (base64) {
-    pdfSivuKuvat = await pdfKaikkiSivutKuviksi(base64);
-    laskut.forEach((l, i) => {
-      l.kuva_base64 = pdfSivuKuvat[i] || pdfSivuKuvat[pdfSivuKuvat.length - 1] || null;
-    });
-  }
+  // 2. Lataa laskut — tallenna pageNumber ja pdfBase64 per lasku
+  laskut = (parsed.laskut || []).map((l, i) => ({
+    ...l,
+    idx: i,
+    tapIdx: null,
+    pageNumber: l.page_number || (i + 1),
+    pdfBase64: base64 || null,
+  }));
 
   // 3. Käytä ensin Clauden omia täsmäytyksiä (paras tulos)
   const aiTasmaytyket = parsed.tasmaytyket || [];
