@@ -4707,13 +4707,15 @@ async function analyseTilioteErillinen() {
 Tämä on Nordean pankkitiliote. Lue tapahtumat AINOASTAAN oikeanpuoleisimmasta sarakkeesta (Määrä/Tiliöinti).
 
 TÄRKEÄÄ:
-- Maksuerittely-rivit (ALV, kpl, erittely) EIVÄT ole tapahtumia — jätä pois
 - Jokaisella oikealla tapahtumalla on tap.nro (numero 1,2,3...)
 - Miinusmerkki = kredit (maksettu tililtä)
 - Ilman merkkiä tai plusmerkki = debet (saatu tilille)
 - Lue alkusaldo ensimmäiseltä Saldo-riviltä
 - Lue loppusaldo viimeiseltä Saldo-riviltä
 - Laske itse: alkusaldo + tapahtumat = pitää täsmätä loppusaldoon
+
+KIELLETTY: Älä lue Maksuerittely-rivien lukuja (esim. "22,70 koostuu seuraavista: 0,58 + 6,50 + ...") — nämä ovat YHDEN tapahtuman erittelyä, eivät erillisiä tapahtumia.
+SÄÄNTÖ: Yksi tap.nro = yksi tapahtuma. Jos tap.nro on 1, siihen liittyy täsmälleen yksi summa oikeasta sarakkeesta. Maksuerittelyn osasumat JÄTETÄÄN TÄYSIN POIS.
 ` : '';
 
   const prompt = `${nordeaOhje}Analysoi tämä suomalainen pankkitiliote (${pankki}). Palauta VAIN pelkkä JSON:
@@ -4982,13 +4984,15 @@ async function analysePDF(file) {
 Tämä on Nordean pankkitiliote. Lue tapahtumat AINOASTAAN oikeanpuoleisimmasta sarakkeesta (Määrä/Tiliöinti).
 
 TÄRKEÄÄ:
-- Maksuerittely-rivit (ALV, kpl, erittely) EIVÄT ole tapahtumia — jätä pois
 - Jokaisella oikealla tapahtumalla on tap.nro (numero 1,2,3...)
 - Miinusmerkki = kredit (maksettu tililtä)
 - Ilman merkkiä tai plusmerkki = debet (saatu tilille)
 - Lue alkusaldo ensimmäiseltä Saldo-riviltä
 - Lue loppusaldo viimeiseltä Saldo-riviltä
 - Laske itse: alkusaldo + tapahtumat = pitää täsmätä loppusaldoon
+
+KIELLETTY: Älä lue Maksuerittely-rivien lukuja (esim. "22,70 koostuu seuraavista: 0,58 + 6,50 + ...") — nämä ovat YHDEN tapahtuman erittelyä, eivät erillisiä tapahtumia.
+SÄÄNTÖ: Yksi tap.nro = yksi tapahtuma. Jos tap.nro on 1, siihen liittyy täsmälleen yksi summa oikeasta sarakkeesta. Maksuerittelyn osasumat JÄTETÄÄN TÄYSIN POIS.
 ` : '';
 
   const prompt = `Analysoi tämä suomalainen pankkitiliote (${tunnistettuPankki}).
