@@ -4505,6 +4505,137 @@ function handleFile(e) {
   }
 }
 
+// ── NORDEA REGEX-PARSERI ─────────────────────────────────────
+async function extractPdfText(base64) {
+  if (typeof pdfjsLib === 'undefined') return [];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+  const rivit = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    // Ryhmitä teksti riveiksi y-koordinaatin mukaan
+    const yRivit = {};
+    tc.items.forEach(item => {
+      const y = Math.round(item.transform[5]); // y-koordinaatti
+      if (!yRivit[y]) yRivit[y] = [];
+      yRivit[y].push({x: item.transform[4], text: item.str});
+    });
+    // Järjestä rivit ylhäältä alas, teksti vasemmalta oikealle
+    Object.keys(yRivit).sort((a,b) => b-a).forEach(y => {
+      const rivi = yRivit[y].sort((a,b) => a.x - b.x).map(i => i.text).join(' ').trim();
+      if (rivi) rivit.push(rivi);
+    });
+  }
+  return rivit;
+}
+
+function isNordeaPdf(tekstiRivit) {
+  return tekstiRivit.some(r => /nordea/i.test(r) && (/tiliote|erittelytiliote|kontoutdrag/i.test(r) || /IBAN/i.test(r)));
+}
+
+function parseNordeaTiliote(tekstiRivit) {
+  const tapahtumat = [];
+  let alkusaldo = 0, loppusaldo = 0;
+  let iban = '';
+  let kausi = '';
+  let vuosi = new Date().getFullYear();
+
+  // Etsi IBAN
+  tekstiRivit.forEach(r => {
+    const ibanM = r.match(/FI\s*\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{2}/);
+    if (ibanM) iban = ibanM[0].replace(/\s/g,'');
+  });
+
+  // Etsi vuosi ja kausi
+  tekstiRivit.forEach(r => {
+    const vuosiM = r.match(/\b(20\d{2})\b/);
+    if (vuosiM) vuosi = parseInt(vuosiM[1]);
+    const kausiM = r.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s*[-–]\s*(\d{1,2}\.\d{1,2}\.\d{4})/);
+    if (kausiM) kausi = kausiM[0];
+  });
+
+  // Suomalainen summa-parseri: "1 234,56" → 1234.56
+  const parseSumma = s => {
+    if (!s) return 0;
+    return parseFloat(s.replace(/\s/g,'').replace(',','.')) || 0;
+  };
+
+  // Saldot: "Saldo 31.12.25 1 234,56" tai "Saldo 1 234,56"
+  const saldoRegex = /[Ss]aldo\s+(?:\d{1,2}\.\d{1,2}\.\d{2,4}\s+)?([\d\s]+,\d{2})/;
+  const saldoRivit = tekstiRivit.filter(r => saldoRegex.test(r));
+  if (saldoRivit.length >= 1) alkusaldo = parseSumma(saldoRivit[0].match(saldoRegex)[1]);
+  if (saldoRivit.length >= 2) loppusaldo = parseSumma(saldoRivit[saldoRivit.length-1].match(saldoRegex)[1]);
+
+  // Tapahtumarivit: etsitään summa rivin lopusta
+  // Formaatti: "DDKKSelite.../X N  1 234,56-" tai "DD.KK.VV selite /X N 1 234,56"
+  // Tunnistus: rivin lopussa numero muodossa N NNN,NN mahdollisesti miinus perässä
+  const tapahtumaRegex = /([\d\s]+,\d{2})(-?)\s*$/;
+  // Tapahtumanumero: /X N tai /XX N (kirjain + numero välilyönnillä)
+  const tapNroRegex = /\/[A-Z0-9]{1,2}\s+(\d+)/;
+  // Päivämäärä rivin alusta: PPKK tai PP.KK tai PP.KK.VV
+  const pvmRegex = /^(\d{2})\.?(\d{2})\.?(\d{2,4})?/;
+
+  tekstiRivit.forEach(rivi => {
+    // Ohita saldo-rivit
+    if (/[Ss]aldo/i.test(rivi)) return;
+    // Ohita yhteenveto/otsikkorivit
+    if (/yhteensä|panot|otot|nostovara|tilinumero|tiliote|IBAN/i.test(rivi)) return;
+
+    const summaMatch = rivi.match(tapahtumaRegex);
+    if (!summaMatch) return;
+
+    const tapNroMatch = rivi.match(tapNroRegex);
+    if (!tapNroMatch) return; // ei tap.nro → ei tapahtuma
+
+    const tapNro = parseInt(tapNroMatch[1]);
+    const summaRaw = parseSumma(summaMatch[1]);
+    const miinus = summaMatch[2] === '-';
+    if (summaRaw === 0) return;
+
+    // Päivämäärä
+    const pvmMatch = rivi.match(pvmRegex);
+    let kirjpv = '';
+    if (pvmMatch) {
+      const pp = pvmMatch[1];
+      const kk = pvmMatch[2];
+      const vv = pvmMatch[3] ? (pvmMatch[3].length === 2 ? '20' + pvmMatch[3] : pvmMatch[3]) : String(vuosi);
+      kirjpv = vv + '-' + kk + '-' + pp;
+    }
+
+    // Selite: teksti tapNro:n jälkeen ennen summaa
+    let selite = rivi;
+    // Poista pvm alusta
+    selite = selite.replace(pvmRegex, '').trim();
+    // Poista summa lopusta
+    selite = selite.replace(tapahtumaRegex, '').trim();
+    // Poista /X N tunniste
+    selite = selite.replace(/\/[A-Z0-9]{1,2}\s+\d+\s*$/, '').trim();
+    // Siistitään
+    selite = selite.replace(/\s+/g, ' ').trim();
+
+    tapahtumat.push({
+      kirjpv,
+      arvopv: kirjpv,
+      tapnro: tapNro,
+      sel: selite,
+      maksu: selite.split(/\s{2,}/)[0] || selite, // ensimmäinen osa = maksajan nimi
+      summa: summaRaw,
+      suunta: miinus ? 'kredit' : 'debet',
+      viite: null,
+    });
+  });
+
+  // Järjestä tapahtumanumeron mukaan
+  tapahtumat.sort((a,b) => a.tapnro - b.tapnro);
+
+  console.log('parseNordeaTiliote:', tapahtumat.length, 'tapahtumaa, alkusaldo:', alkusaldo, 'loppusaldo:', loppusaldo);
+  console.table(tapahtumat.map((t,i) => ({i, tapnro:t.tapnro, sel:t.sel.slice(0,30), summa:t.summa, suunta:t.suunta})));
+
+  return { pankki: 'Nordea', iban, kausi, alkusaldo, loppusaldo, tapahtumat };
+}
+
 async function analysePDF(file) {
   // Hae API-avain — ensin kentästä, sitten sessionista
   apiKey = document.getElementById('api-key-input').value.trim()
@@ -4571,6 +4702,26 @@ async function analysePDF(file) {
     showError('Tiedoston lukuvirhe', e.message);
     return;
   }
+
+  setStatus('Luetaan PDF-teksti…', 'Tunnistetaan pankin formaatti', 20);
+
+  // Tunnista Nordea regex-parserilla ENNEN AI-kutsua
+  try {
+    const tekstiRivit = await extractPdfText(base64);
+    console.log('PDF teksti:', tekstiRivit.length, 'riviä. Nordea:', isNordeaPdf(tekstiRivit));
+    if (isNordeaPdf(tekstiRivit)) {
+      setStatus('Nordea tunnistettu', 'Parsitaan regex-pohjaisella parserilla...', 50);
+      const nordeaResult = parseNordeaTiliote(tekstiRivit);
+      if (nordeaResult.tapahtumat.length > 0) {
+        setStatus('Valmis!', `${nordeaResult.tapahtumat.length} tapahtumaa parsittu`, 100);
+        impPdfBase64 = base64;
+        const parsed = { ...nordeaResult, tiliote: nordeaResult, laskut: [], tasmaytyket: [] };
+        await prosessoiAITulos(parsed, file.name, base64);
+        return;
+      }
+      console.log('Nordea regex-parseri ei löytänyt tapahtumia, jatketaan AI:lla');
+    }
+  } catch(e) { console.warn('Nordea-tunnistus epäonnistui:', e); }
 
   setStatus('Claude analysoi…', 'Etsitään tiliote- ja laskuaineisto (voi kestää 10–30 s)', 30);
 
