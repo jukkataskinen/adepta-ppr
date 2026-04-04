@@ -2856,7 +2856,7 @@ async function ladattuTiliote(tapahtumat, iban, period, tasmays) {
   const vakioInfo = document.getElementById('vakio-info');
   if (vakioInfo) vakioInfo.style.display = 'none';
   toast(`${tapahtumat.length} tapahtumaa tiliotteelta`);
-  console.log('impTapahtumat:', impTapahtumat);
+  console.log('impTapahtumat (ensimmäiset 3):', impTapahtumat.slice(0,3).map(t => ({sel:t.sel, summa:t.summa, suunta:t.suunta, arvopv:t.arvopv})));
 }
 
 function renderImpTable() {
@@ -3939,6 +3939,9 @@ LASKUJEN SIVU: Palauta jokaisen laskun kohdalla page_number (1-indeksoitu) jolta
 
     console.log('AI vastaus tiliote:', JSON.stringify(parsed.tiliote?.tapahtumat?.length), 'laskut:', parsed.laskut?.length, 'täsmäytykset:', parsed.tasmaytyket?.length);
     console.log('Tiliote loydetty:', parsed.tiliote?.loydetty, 'IBAN:', parsed.tiliote?.iban);
+    if (parsed.tiliote?.tapahtumat?.length) {
+      console.log('Ensimmäiset 3 tiliotetapahtumaa (raakadata):', JSON.stringify(parsed.tiliote.tapahtumat.slice(0,3)));
+    }
 
     setStatus('Täsmäytetään aineistoa…', 'Yhdistetään laskut tiliotteen tapahtumiin', 95);
     await prosessoiAITulos(parsed, file.name, base64);
@@ -3963,8 +3966,16 @@ async function prosessoiAITulos(parsed, filename, base64) {
   if (tiliote && tiliote.loydetty && tiliote.tapahtumat?.length) {
     ladattuTiliote(
       tiliote.tapahtumat.map(t => {
-        const abs = Math.abs(Number(t.summa) || 0);
-        const summa = t.suunta === 'debet' ? -abs : abs;
+        const raw = Number(t.summa) || 0;
+        let summa;
+        if (t.suunta) {
+          // Uusi formaatti: summa aina positiivinen, suunta kertoo etumerkin
+          const abs = Math.abs(raw);
+          summa = t.suunta === 'debet' ? -abs : abs;
+        } else {
+          // Vanha formaatti: summa voi olla negatiivinen suoraan
+          summa = raw;
+        }
         return {
           ...t,
           summa,
