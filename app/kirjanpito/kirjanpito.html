@@ -3938,6 +3938,12 @@ async function analyseLaskutPDF(file) {
     return;
   }
 
+  if (file.size > 5 * 1024 * 1024) {
+    alert('PDF on liian suuri (' + (file.size/1024/1024).toFixed(1) + ' MB). Pidä tiedostokoko alle 5 MB — skannaa matalammalla resoluutiolla (150 dpi riittää).');
+    document.getElementById('file-laskut').value = '';
+    return;
+  }
+
   // Piilota drop zone, näytä spinner
   document.getElementById('dz-laskut').style.display = 'none';
   const aiBox = document.getElementById('ai-analysing');
@@ -4301,6 +4307,12 @@ async function analysePDF(file) {
         + 'Avain alkaa sk-ant-api03-…\n'
         + 'Hae osoitteesta: console.anthropic.com/settings/keys\n\n'
         + 'CSV-tiliote (pankin export) toimii ilman avainta.');
+    document.getElementById('file-in').value = '';
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('PDF on liian suuri (' + (file.size/1024/1024).toFixed(1) + ' MB). Pidä tiedostokoko alle 5 MB — skannaa matalammalla resoluutiolla (150 dpi riittää).');
     document.getElementById('file-in').value = '';
     return;
   }
