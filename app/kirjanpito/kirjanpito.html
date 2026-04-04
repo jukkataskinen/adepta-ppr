@@ -4815,6 +4815,55 @@ summa AINA positiivinen numero. suunta: "kredit"=tililtä, "debet"=tilille. Jät
 }
 
 // ── ERILLINEN LASKU-ANALYYSI ────────────────────────────────
+// ── LASKU-PDF PALOITTELU VÄLILEHTIEN MUKAAN ──────────────────
+async function paloitteleAineisto(pdfBytesUint8) {
+  if (typeof PDFLib === 'undefined' || typeof pdfjsLib === 'undefined') return null;
+  const { PDFDocument } = PDFLib;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const alkupDoc = await PDFDocument.load(pdfBytesUint8);
+  const pdf = await pdfjsLib.getDocument({data: pdfBytesUint8}).promise;
+
+  // 1. Tunnista VÄLILEHTI-sivut
+  const valilehtiSivut = new Set();
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const teksti = content.items.map(it => it.str).join(' ').trim();
+    if (teksti.replace(/\s+/g, '').toUpperCase().includes('VÄLILEHTI')) {
+      valilehtiSivut.add(i);
+    }
+  }
+  console.log('VÄLILEHTI-sivut:', [...valilehtiSivut], '/', pdf.numPages, 'sivua');
+  if (valilehtiSivut.size === 0) return null; // ei välilehtiä → ei paloitella
+
+  // 2. Ryhmittele sivut laskuittain
+  const laskuRyhmat = [];
+  let nykyinen = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    if (valilehtiSivut.has(i)) {
+      if (nykyinen.length > 0) { laskuRyhmat.push(nykyinen); nykyinen = []; }
+      // Välilehtisivu ohitetaan
+    } else {
+      nykyinen.push(i);
+    }
+  }
+  if (nykyinen.length > 0) laskuRyhmat.push(nykyinen);
+  console.log('Laskuryhmiä:', laskuRyhmat.length, laskuRyhmat);
+
+  // 3. Luo jokaisesta ryhmästä oma PDF
+  const laskuPdft = [];
+  for (const sivut of laskuRyhmat) {
+    const uusiDoc = await PDFDocument.create();
+    const kopiot = await uusiDoc.copyPages(alkupDoc, sivut.map(s => s - 1));
+    kopiot.forEach(s => uusiDoc.addPage(s));
+    const bytes = await uusiDoc.save();
+    laskuPdft.push({ bytes, sivut });
+  }
+
+  return laskuPdft; // [{bytes: Uint8Array, sivut: [1,2]}, ...]
+}
+
 async function analyseLaskutErillinen() {
   const fileEl = document.getElementById('laskut-file-erillinen');
   const file = fileEl?.files?.[0];
@@ -4828,51 +4877,77 @@ async function analyseLaskutErillinen() {
   statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan laskuja...</span>';
 
   const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
+  const pdfBytesAll = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 
-  const prompt = `Tässä PDF:ssä on ostolaskuja tai myyntilaskuja. Tunnista jokainen lasku erikseen.
+  // Yritä paloitella välilehtien mukaan
+  let palat = null;
+  try {
+    palat = await paloitteleAineisto(pdfBytesAll);
+  } catch(e) { console.warn('Paloittelu epäonnistui:', e); }
+
+  const prompt = `Tässä PDF:ssä on YKSI ostolasku tai myyntilasku. Tunnista lasku.
+Palauta VAIN JSON: {"laskut":[{"nro":"laskun numero","toimittaja":"nimi","pvm":"YYYY-MM-DD","erapv":"YYYY-MM-DD tai null","summa_brutto":150.00,"summa_netto":119.62,"alv_prosentti":25.5,"viite":"viitenumero tai null","kuvaus":"laskun sisältö","ehdotettu_tili":"7950 tai null","page_number":1}]}
+Ehdota tili: puhelin→7950, vuokra→7210, sähkö→7390, markkinointi→7910, palkka→5000, vakuutus→7414, kirjanpito→8060, siivous→7360.`;
+
+  const promptMulti = `Tässä PDF:ssä on ostolaskuja tai myyntilaskuja. Tunnista jokainen lasku erikseen.
 Palauta VAIN JSON: {"laskut":[{"nro":"laskun numero","toimittaja":"nimi","pvm":"YYYY-MM-DD","erapv":"YYYY-MM-DD tai null","summa_brutto":150.00,"summa_netto":119.62,"alv_prosentti":25.5,"viite":"viitenumero tai null","kuvaus":"laskun sisältö","ehdotettu_tili":"7950 tai null","page_number":1}]}
 Ehdota tili: puhelin→7950, vuokra→7210, sähkö→7390, markkinointi→7910, palkka→5000, vakuutus→7414, kirjanpito→8060, siivous→7360.
 page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
 
   try {
-    let sivuKuvat = [];
-    try {
-      const pdfBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const vp = page.getViewport({scale: 1.5});
-        const canvas = document.createElement('canvas');
-        canvas.width = vp.width; canvas.height = vp.height;
-        await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
-        sivuKuvat.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+    const pdfOsat = palat || [{bytes: pdfBytesAll, sivut: null}];
+    const kayttaaYksiPromptia = palat && palat.length > 1;
+    laskut = [];
+
+    for (let pi = 0; pi < pdfOsat.length; pi++) {
+      const osa = pdfOsat[pi];
+      const osaBase64 = btoa(String.fromCharCode(...osa.bytes));
+      if (kayttaaYksiPromptia) {
+        statusEl.innerHTML = `<span style="color:var(--amber)">⏳ Lasku ${pi+1}/${pdfOsat.length}...</span>`;
       }
-    } catch(e) { console.warn('PDF renderöinti:', e); }
 
-    const content = sivuKuvat.length > 0
-      ? [...sivuKuvat.map(b64 => ({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}})), {type:'text',text:prompt}]
-      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}, {type:'text',text:prompt}];
+      // Renderöi sivut kuviksi
+      let sivuKuvat = [];
+      try {
+        const pdf = await pdfjsLib.getDocument({data: osa.bytes}).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const vp = page.getViewport({scale: 1.5});
+          const canvas = document.createElement('canvas');
+          canvas.width = vp.width; canvas.height = vp.height;
+          await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+          sivuKuvat.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+        }
+      } catch(e) { console.warn('PDF renderöinti:', e); }
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content}]})
-    });
-    if (!resp.ok) { statusEl.innerHTML = `<span style="color:var(--red)">✗ API virhe ${resp.status}</span>`; return; }
-    const data = await resp.json();
-    const txt = (data.content||[]).map(c=>c.text||'').join('');
-    console.log('Laskut AI RAW:', txt.substring(0,500));
-    const clean = txt.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
+      const aktiiviPrompt = kayttaaYksiPromptia ? prompt : promptMulti;
+      const content = sivuKuvat.length > 0
+        ? [...sivuKuvat.map(b64 => ({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}})), {type:'text',text:aktiiviPrompt}]
+        : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:osaBase64}}, {type:'text',text:aktiiviPrompt}];
 
-    laskut = (parsed.laskut || []).map((l, i) => ({
-      ...l, idx: i, tapIdx: null,
-      pageNumber: l.page_number || (i + 1),
-      pdfBase64: base64,
-    }));
-    statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${laskut.length} laskua</span>`;
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4000,messages:[{role:'user',content}]})
+      });
+      if (!resp.ok) { console.warn('API virhe osalle', pi, resp.status); continue; }
+      const data = await resp.json();
+      const txt = (data.content||[]).map(c=>c.text||'').join('');
+      console.log(`Lasku ${pi+1} AI RAW:`, txt.substring(0,300));
+      const clean = txt.replace(/```json|```/g,'').trim();
+      try {
+        const parsed = JSON.parse(clean);
+        const uudet = (parsed.laskut || []).map((l, i) => ({
+          ...l, idx: laskut.length + i, tapIdx: null,
+          pageNumber: l.page_number || 1,
+          pdfBase64: osaBase64,
+        }));
+        laskut = [...laskut, ...uudet];
+      } catch(e) { console.warn('JSON parse epäonnistui osalle', pi, e); }
+    }
+
+    statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${laskut.length} laskua${palat ? ' (' + palat.length + ' PDF-osaa)' : ''}</span>`;
     paivitaJatkaBtn();
-    // Esirenderöi laskujen PDF-sivut taustalla
     esirenderöiLaskut();
   } catch(e) {
     console.error('Lasku-analyysi:', e);
