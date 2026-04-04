@@ -1056,8 +1056,8 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           <div style="display:flex;flex-direction:column;gap:6px;font-size:11px">
             <div style="display:flex;align-items:center;gap:4px">
               <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">D</span>
-              <select id="mg-tili-select" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px;font-family:var(--ffm);background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:4px;outline:none">
-                <option value="">? Valitse tili</option>
+              <select id="mg-tili-select" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+                <option value="" style="background:#1a2332;color:#e0e0e0">? Valitse tili</option>
               </select>
               <span id="mg-debet-summa" style="font-family:var(--ffm);color:#fff;white-space:nowrap;min-width:55px;text-align:right">—</span>
             </div>
@@ -1068,11 +1068,11 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
             </div>
             <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
               <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">ALV</span>
-              <select id="mg-alv-select" onchange="mgAlvChanged()" style="padding:3px 6px;font-size:11px;font-family:var(--ffm);background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:4px;outline:none">
-                <option value="0">0 %</option>
-                <option value="10">10 %</option>
-                <option value="14">14 %</option>
-                <option value="25.5" selected>25,5 %</option>
+              <select id="mg-alv-select" onchange="mgAlvChanged()" style="padding:3px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+                <option value="0" style="background:#1a2332;color:#e0e0e0">0 %</option>
+                <option value="10" style="background:#1a2332;color:#e0e0e0">10 %</option>
+                <option value="14" style="background:#1a2332;color:#e0e0e0">14 %</option>
+                <option value="25.5" selected style="background:#1a2332;color:#e0e0e0">25,5 %</option>
               </select>
               <span id="mg-tili-status" style="font-size:10px;margin-left:auto"></span>
             </div>
@@ -3304,9 +3304,9 @@ function mgDropLasku(e) {
 function mgPopulateTiliSelect() {
   const sel = document.getElementById('mg-tili-select');
   const current = sel.value;
-  sel.innerHTML = '<option value="">? Valitse tili</option>';
+  sel.innerHTML = '<option value="" style="background:#1a2332;color:#e0e0e0">? Valitse tili</option>';
   TILIT.forEach(t => {
-    sel.innerHTML += `<option value="${t.nro}">${t.nro} ${t.lbl}</option>`;
+    sel.innerHTML += `<option value="${t.nro}" style="background:#1a2332;color:#e0e0e0">${t.nro} ${t.lbl}</option>`;
   });
   if (current) sel.value = current;
 }
