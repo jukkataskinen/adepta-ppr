@@ -2997,6 +2997,7 @@ function renderImpTable() {
   if (tbody)    tbody.innerHTML = '';
   if (tbodyPdf) tbodyPdf.innerHTML = '';
   impTapahtumat.forEach((t, i) => {
+    if (i < 3) console.log('renderImpTable rivi', i, ':', {sel:t.sel, summa:t.summa, typeof:typeof t.summa, arvopv:t.arvopv});
     const pos = t.summa > 0;
     const debetTili  = pos ? '1910' : (t.vak ? t.vak.vt : (t.vtNro || '?'));
     const kreditTili = pos ? (t.vak ? t.vak.vt : (t.vtNro || '?')) : '1910';
@@ -4501,6 +4502,7 @@ LASKUJEN SIVU: Palauta jokaisen laskun kohdalla page_number (1-indeksoitu) jolta
     console.log('Tiliote loydetty:', parsed.tiliote?.loydetty, 'IBAN:', parsed.tiliote?.iban);
     if (parsed.tiliote?.tapahtumat?.length) {
       console.log('Ensimmäiset 3 tiliotetapahtumaa (raakadata):', JSON.stringify(parsed.tiliote.tapahtumat.slice(0,3)));
+      console.table(parsed.tiliote.tapahtumat.map((t,i) => ({i, sel:(t.sel||'').slice(0,30), summa:t.summa, typeof_summa:typeof t.summa, suunta:t.suunta})));
     }
 
     setStatus('Täsmäytetään aineistoa…', 'Yhdistetään laskut tiliotteen tapahtumiin', 95);
@@ -4561,6 +4563,7 @@ async function prosessoiAITulos(parsed, filename, base64) {
       });
     });
     console.log('Tiliote validoitu:', validoidut.length, '/', tiliote.tapahtumat.length, 'tapahtumaa');
+    console.table(validoidut.map((v,i) => ({i, sel:(v.sel||'').slice(0,30), summa:v.summa})));
     if (validoidut.length > 0) {
       ladattuTiliote(validoidut, tiliote.iban || filename, tiliote.kausi || '');
     }
