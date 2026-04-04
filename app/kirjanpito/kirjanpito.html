@@ -3490,9 +3490,44 @@ function suljeTarkistus() {
   document.getElementById('tarkistus-modal').style.display = 'none';
 }
 
-function siirryVaihe3() {
+async function siirryVaihe3() {
+  console.log('siirryVaihe3 kutsuttu', 'impTiliote:', impTiliote?.tapahtumat?.length, 'impTapahtumat:', impTapahtumat?.length, 'laskut:', laskut?.length);
   suljeTarkistus();
   impVaihe = 3;
+
+  // Varmista että impTapahtumat on ladattu impTiliote:sta
+  if (impTiliote?.tapahtumat?.length > 0 && impTapahtumat.length === 0) {
+    console.log('siirryVaihe3: ladataan impTapahtumat impTiliote:sta');
+    await ladattuTiliote(impTiliote.tapahtumat, impTiliote.iban || '', impTiliote.kausi || '');
+  }
+
+  // Suorita laskujen täsmäytys jos laskuja on
+  if (laskut.length > 0 && impTapahtumat.length > 0) {
+    laskut.forEach(lasku => {
+      if (lasku.tapIdx !== null) return;
+      let bestMatch = null, bestScore = 0;
+      impTapahtumat.forEach(t => {
+        if (t.laskuIdx != null) return;
+        let score = 0;
+        const tSumma = Math.abs(t.summa);
+        if (lasku.summa_brutto && Math.abs(tSumma - lasku.summa_brutto) <= Math.max(1.0, lasku.summa_brutto * 0.02)) score += 40;
+        const norm = s => (s||'').toLowerCase().replace(/[^a-zäöå0-9]/g,' ').trim();
+        const tn = norm(t.maksu||t.sel), ln = norm(lasku.toimittaja);
+        if (tn && ln && (tn.includes(ln)||ln.includes(tn))) score += 30;
+        const tV = (t.viite||'').replace(/\s/g,''), lV = (lasku.viite||'').replace(/\s/g,'');
+        if (tV && lV && (tV===lV||tV.includes(lV)||lV.includes(tV))) score += 50;
+        if (score > bestScore) { bestScore = score; bestMatch = t; }
+      });
+      if (bestScore >= 40 && bestMatch) {
+        lasku.tapIdx = bestMatch.idx;
+        bestMatch.laskuIdx = lasku.idx;
+        if (lasku.ehdotettu_tili && !bestMatch.vak)
+          bestMatch.vak = {vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti||25.5, lbl: lasku.toimittaja};
+      }
+    });
+    console.log('Täsmäytys:', laskut.filter(l=>l.tapIdx!==null).length, '/', laskut.length, 'laskua kohdistettu');
+  }
+
   aloitaMatchGame();
 }
 
