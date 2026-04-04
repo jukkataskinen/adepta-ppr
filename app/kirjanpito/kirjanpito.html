@@ -628,27 +628,48 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         </div>
       </div>
 
-      <!-- ── TAB 3: Yhdistetty PDF ── -->
+      <!-- ── TAB 3: PDF-tuonti (tiliote + laskut erikseen) ── -->
       <div id="upload-pdf" style="display:none">
-        <div style="background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
-          ⚠ Yhdistetty PDF on epätarkempi kuin erillinen CSV + laskut. Käytä vain jos pankilta ei saa CSV-vientiä.
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <!-- LATAUS 1: Tiliote -->
+          <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:10px">1. Tiliote-PDF</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px">
+              <span style="color:var(--inu)">Pankki:</span>
+              <select id="pankki-select" style="padding:4px 8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink);cursor:pointer">
+                <option value="" disabled selected>— Valitse —</option>
+                <option value="op">OP</option>
+                <option value="nordea">Nordea</option>
+                <option value="muu">Muu</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <input type="file" id="tiliote-file" accept=".pdf" style="font-size:11px;flex:1">
+              <button onclick="analyseTilioteErillinen()" style="padding:5px 12px;font-size:11px;font-weight:500;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer;white-space:nowrap">Lue tiliote</button>
+            </div>
+            <div id="tiliote-upload-status" style="font-size:11px;color:var(--inu)"></div>
+          </div>
+
+          <!-- LATAUS 2: Laskut -->
+          <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:10px">2. Laskut-PDF</div>
+            <div style="font-size:11px;color:var(--inu);margin-bottom:10px">Yksi PDF jossa kaikki laskut (tai yksi lasku)</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <input type="file" id="laskut-file-erillinen" accept=".pdf" style="font-size:11px;flex:1">
+              <button onclick="analyseLaskutErillinen()" style="padding:5px 12px;font-size:11px;font-weight:500;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer;white-space:nowrap">Lue laskut</button>
+            </div>
+            <div id="laskut-upload-status" style="font-size:11px;color:var(--inu)"></div>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:12px">
-          <span style="color:var(--inu)">Pankki:</span>
-          <select id="pankki-select" style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink);cursor:pointer">
-            <option value="" disabled selected>— Valitse pankki —</option>
-            <option value="op">OP</option>
-            <option value="nordea">Nordea</option>
-            <option value="muu">Muu pankki</option>
-          </select>
+
+        <!-- Jatka-nappi -->
+        <div style="text-align:center;margin-bottom:14px">
+          <button id="aloita-tarkistus-btn" onclick="avaaTarkistusModal()" disabled
+            style="padding:9px 24px;font-size:13px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:not-allowed">
+            Tarkista tiliote →
+          </button>
         </div>
-        <div class="drop-zone" id="dz" onclick="document.getElementById('file-in').click()"
-             ondragover="dzOver(event,'dz')" ondragleave="dzLeave(event,'dz')" ondrop="dzDrop(event)">
-          <input type="file" id="file-in" accept=".pdf,.csv,.txt" style="display:none" onchange="handleFile(event)">
-          <div class="dz-ic">📄</div>
-          <div class="dz-t">Tiliote + laskut samassa PDF:ssä</div>
-          <div class="dz-s">Claude erottelee automaattisesti · Max 100 sivua · Vaatii API-avaimen</div>
-        </div>
+
         <div id="scan-loader" style="display:none;padding:20px;text-align:center">
           <div style="display:inline-block;width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--fg);border-radius:50%;animation:spin 0.8s linear infinite"></div>
           <div style="margin-top:12px;font-size:13px;color:var(--inu)" id="scan-loader-text">Analysoidaan PDF:ää...</div>
@@ -4642,6 +4663,213 @@ function parseNordeaPDF(kaikkirivit, raakaTeksti) {
   console.table(tapahtumat.map((t,i) => ({i, tapnro:t.tapnro, pvm:t.kirjpv, sel:t.sel?.slice(0,30), summa:t.summa, suunta:t.suunta})));
 
   return { pankki: 'Nordea', iban, kausi, alkusaldo: alkusaldo || 0, loppusaldo: loppusaldo || 0, tapahtumat };
+}
+
+// ── ERILLINEN TILIOTE-ANALYYSI ──────────────────────────────
+async function analyseTilioteErillinen() {
+  const fileEl = document.getElementById('tiliote-file');
+  const file = fileEl?.files?.[0];
+  if (!file) { alert('Valitse tiliote-PDF'); return; }
+  const pankki = document.getElementById('pankki-select')?.value;
+  if (!pankki) { alert('Valitse pankki ennen tiliotteen lataamista'); return; }
+
+  apiKey = document.getElementById('api-key-input')?.value?.trim() || sessionStorage.getItem('adepta_api_key') || '';
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) { alert('API-avain puuttuu'); return; }
+  if (file.size > 5*1024*1024) { alert('PDF liian suuri (max 5 MB)'); return; }
+
+  const statusEl = document.getElementById('tiliote-upload-status');
+  statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan tiliotetta...</span>';
+
+  const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
+  impPdfBase64 = base64;
+
+  // Nordea: kokeile regex ensin
+  if (pankki === 'nordea') {
+    try {
+      const { rivit: xyRivit, raakaTeksti } = await extractPdfRivitXY(base64);
+      if (xyRivit.length > 0) {
+        const nordeaResult = parseNordeaPDF(xyRivit, raakaTeksti);
+        if (nordeaResult.tapahtumat.length > 0) {
+          impTiliote = nordeaResult;
+          statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${nordeaResult.tapahtumat.length} tapahtumaa (regex)</span>`;
+          paivitaJatkaBtn();
+          return;
+        }
+      }
+    } catch(e) { console.warn('Nordea regex:', e); }
+  }
+
+  // AI-parsinta
+  const nordeaOhje = pankki === 'nordea' ? `
+Tämä on Nordean pankkitiliote. Lue tapahtumat AINOASTAAN oikeanpuoleisimmasta sarakkeesta (Määrä/Tiliöinti).
+
+TÄRKEÄÄ:
+- Maksuerittely-rivit (ALV, kpl, erittely) EIVÄT ole tapahtumia — jätä pois
+- Jokaisella oikealla tapahtumalla on tap.nro (numero 1,2,3...)
+- Miinusmerkki = kredit (maksettu tililtä)
+- Ilman merkkiä tai plusmerkki = debet (saatu tilille)
+- Lue alkusaldo ensimmäiseltä Saldo-riviltä
+- Lue loppusaldo viimeiseltä Saldo-riviltä
+- Laske itse: alkusaldo + tapahtumat = pitää täsmätä loppusaldoon
+` : '';
+
+  const prompt = `${nordeaOhje}Analysoi tämä suomalainen pankkitiliote (${pankki}). Palauta VAIN pelkkä JSON:
+{"pankki":"${pankki}","iban":"FI...","kausi":"...","alkusaldo":0,"loppusaldo":0,"tapahtumat":[{"kirjpv":"YYYY-MM-DD","sel":"selite","maksu":"nimi","summa":123.45,"suunta":"kredit","viite":null}]}
+summa AINA positiivinen numero. suunta: "kredit"=tililtä, "debet"=tilille. Jätä pois saldo/yhteenveto-rivit.`;
+
+  try {
+    // Renderöi sivut kuviksi
+    let sivuKuvat = [];
+    try {
+      const pdfBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({scale: 1.5});
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+        sivuKuvat.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+      }
+    } catch(e) { console.warn('PDF renderöinti:', e); }
+
+    const content = sivuKuvat.length > 0
+      ? [...sivuKuvat.map(b64 => ({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}})), {type:'text',text:prompt}]
+      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}, {type:'text',text:prompt}];
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content}]})
+    });
+    if (!resp.ok) { statusEl.innerHTML = `<span style="color:var(--red)">✗ API virhe ${resp.status}</span>`; return; }
+    const data = await resp.json();
+    const txt = (data.content||[]).map(c=>c.text||'').join('');
+    console.log('Tiliote AI RAW:', txt.substring(0,500));
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    console.log('Tiliote parsed:', Object.keys(parsed));
+
+    // Validoi tapahtumat
+    const tiliote = parsed.tiliote || parsed;
+    const raaka = tiliote.tapahtumat || parsed.tapahtumat || [];
+    const validoidut = [];
+    raaka.forEach(t => {
+      let raw = t.summa, suunta = t.suunta;
+      if (typeof raw === 'string') { if (raw==='debet'||raw==='kredit') { suunta=raw; raw=0; } raw = parseFloat(String(raw).replace(/[^\d.,-]/g,'').replace(',','.')); }
+      const num = Number(raw);
+      if (isNaN(num) || num === 0) return;
+      const abs = Math.abs(num);
+      const summa = suunta ? (suunta === 'debet' ? abs : -abs) : num;
+      validoidut.push({...t, summa, arvopv: t.arvopv||t.kirjpv, kirjpv: t.kirjpv||t.arvopv});
+    });
+    // Suodata saldo-rivit
+    const suodatetut = validoidut.filter(t => {
+      const s = (t.sel||'').toLowerCase();
+      return !s.includes('saldo') && !s.includes('balance');
+    });
+
+    impTiliote = {
+      pankki: parsed.pankki || pankki,
+      iban: parsed.iban || tiliote.iban || '',
+      kausi: parsed.kausi || tiliote.kausi || '',
+      alkusaldo: Number(parsed.alkusaldo ?? tiliote.alkusaldo ?? 0),
+      loppusaldo: Number(parsed.loppusaldo ?? tiliote.loppusaldo ?? 0),
+      tapahtumat: suodatetut,
+    };
+    statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${suodatetut.length} tapahtumaa</span>`;
+    paivitaJatkaBtn();
+  } catch(e) {
+    console.error('Tiliote-analyysi:', e);
+    statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
+  }
+}
+
+// ── ERILLINEN LASKU-ANALYYSI ────────────────────────────────
+async function analyseLaskutErillinen() {
+  const fileEl = document.getElementById('laskut-file-erillinen');
+  const file = fileEl?.files?.[0];
+  if (!file) { alert('Valitse laskut-PDF'); return; }
+
+  apiKey = document.getElementById('api-key-input')?.value?.trim() || sessionStorage.getItem('adepta_api_key') || '';
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) { alert('API-avain puuttuu'); return; }
+  if (file.size > 5*1024*1024) { alert('PDF liian suuri (max 5 MB)'); return; }
+
+  const statusEl = document.getElementById('laskut-upload-status');
+  statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan laskuja...</span>';
+
+  const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
+
+  const prompt = `Tässä PDF:ssä on ostolaskuja tai myyntilaskuja. Tunnista jokainen lasku erikseen.
+Palauta VAIN JSON: {"laskut":[{"nro":"laskun numero","toimittaja":"nimi","pvm":"YYYY-MM-DD","erapv":"YYYY-MM-DD tai null","summa_brutto":150.00,"summa_netto":119.62,"alv_prosentti":25.5,"viite":"viitenumero tai null","kuvaus":"laskun sisältö","ehdotettu_tili":"7950 tai null","page_number":1}]}
+Ehdota tili: puhelin→7950, vuokra→7210, sähkö→7390, markkinointi→7910, palkka→5000, vakuutus→7414, kirjanpito→8060, siivous→7360.
+page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
+
+  try {
+    let sivuKuvat = [];
+    try {
+      const pdfBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({scale: 1.5});
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+        sivuKuvat.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+      }
+    } catch(e) { console.warn('PDF renderöinti:', e); }
+
+    const content = sivuKuvat.length > 0
+      ? [...sivuKuvat.map(b64 => ({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}})), {type:'text',text:prompt}]
+      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}, {type:'text',text:prompt}];
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content}]})
+    });
+    if (!resp.ok) { statusEl.innerHTML = `<span style="color:var(--red)">✗ API virhe ${resp.status}</span>`; return; }
+    const data = await resp.json();
+    const txt = (data.content||[]).map(c=>c.text||'').join('');
+    console.log('Laskut AI RAW:', txt.substring(0,500));
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    laskut = (parsed.laskut || []).map((l, i) => ({
+      ...l, idx: i, tapIdx: null,
+      pageNumber: l.page_number || (i + 1),
+      pdfBase64: base64,
+    }));
+    statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${laskut.length} laskua</span>`;
+    paivitaJatkaBtn();
+  } catch(e) {
+    console.error('Lasku-analyysi:', e);
+    statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
+  }
+}
+
+function paivitaJatkaBtn() {
+  const tilioteOk = impTiliote?.tapahtumat?.length > 0;
+  const laskutOk = laskut?.length > 0;
+  const btn = document.getElementById('aloita-tarkistus-btn');
+  if (!btn) return;
+  // Aktivoi kun tiliote luettu (laskut vapaaehtoinen)
+  if (tilioteOk) {
+    btn.disabled = false;
+    btn.style.background = 'var(--fg)';
+    btn.style.color = '#fff';
+    btn.style.cursor = 'pointer';
+    btn.textContent = laskutOk
+      ? `Tarkista tiliote → (${impTiliote.tapahtumat.length} tapahtumaa, ${laskut.length} laskua)`
+      : `Tarkista tiliote → (${impTiliote.tapahtumat.length} tapahtumaa)`;
+  } else {
+    btn.disabled = true;
+    btn.style.background = 'rgba(255,255,255,.1)';
+    btn.style.color = 'rgba(255,255,255,.3)';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'Tarkista tiliote →';
+  }
 }
 
 async function analysePDF(file) {
