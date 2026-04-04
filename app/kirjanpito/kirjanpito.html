@@ -3655,27 +3655,33 @@ let apiKey = '';   // tallennetaan sessioniin
 
 async function tallennaApiAvain(avain) {
   if (!window._PPR?.orgId) return;
-  await _sb.from('ppr_asetukset').upsert({
-    organisaatio_id: window._PPR.orgId,
-    avain: 'anthropic_api_key',
-    arvo: avain
-  }, { onConflict: 'organisaatio_id,avain' });
-  sessionStorage.setItem('adepta_api_key', avain);
+  try {
+    const { error } = await _sb.from('ppr_asetukset').upsert({
+      organisaatio_id: window._PPR.orgId,
+      avain: 'anthropic_api_key',
+      arvo: avain
+    }, { onConflict: 'organisaatio_id,avain' });
+    if (error) console.warn('tallennaApiAvain virhe:', error);
+    sessionStorage.setItem('adepta_api_key', avain);
+  } catch(e) { console.warn('tallennaApiAvain:', e); }
 }
 
 async function haeApiAvain() {
   if (!window._PPR?.orgId) return;
-  const { data } = await _sb.from('ppr_asetukset')
-    .select('arvo')
-    .eq('organisaatio_id', window._PPR.orgId)
-    .eq('avain', 'anthropic_api_key')
-    .single();
-  if (data?.arvo) {
-    sessionStorage.setItem('adepta_api_key', data.arvo);
-    apiKey = data.arvo;
-    const inp = document.getElementById('api-key-input');
-    if (inp) { inp.value = data.arvo; apiKeyChanged(data.arvo); }
-  }
+  try {
+    const { data, error } = await _sb.from('ppr_asetukset')
+      .select('arvo')
+      .eq('organisaatio_id', window._PPR.orgId)
+      .eq('avain', 'anthropic_api_key')
+      .maybeSingle();
+    if (error) { console.warn('haeApiAvain virhe:', error); return; }
+    if (data?.arvo) {
+      sessionStorage.setItem('adepta_api_key', data.arvo);
+      apiKey = data.arvo;
+      const inp = document.getElementById('api-key-input');
+      if (inp) { inp.value = data.arvo; apiKeyChanged(data.arvo); }
+    }
+  } catch(e) { console.warn('haeApiAvain:', e); }
 }
 
 function apiKeyChanged(val) {
