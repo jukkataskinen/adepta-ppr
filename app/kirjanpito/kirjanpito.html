@@ -321,7 +321,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="sb-div"></div>
     <div class="sb-sec">Hallinta</div>
     <a class="nav-item" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
-    <a class="nav-item" href="/reskontra" target="_blank" style="text-decoration:none">Myyntireskontra</a>
+    <div class="nav-item" id="nav-reskontra" onclick="showPanel('reskontra')">Myyntireskontra</div>
     <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
     <div class="sb-div"></div>
     <div class="sb-sec">Kirjanpidon työkalut</div>
@@ -1531,6 +1531,7 @@ function vaihdaAsiakas(id) {
   lataaRivit(y.id).then(() => { lataaEtusivu(); showPanel('etusivu'); });
   alustaTositeNro();
   checkImportQueue();
+  lataaReskontra();
   toast(`${y.nimi} ladattu`);
 }
 
@@ -5836,6 +5837,17 @@ function lataaEtusivu() {
 
 // ── MYYNTIRESKONTRA ──────────────────────────────────────────
 let reskLaskut = []; // {lasku_nro, asiakas, osoite, kaupunki, pvm, erapv, viite, summa, tila}
+let reskApiData = []; // API:sta ladattu reskontra-data
+
+async function lataaReskontra() {
+  if (!curYritys) { reskApiData = []; return; }
+  try {
+    const res = await fetch('/api/ppr/reskontra?kirjanpitoasiakas_id=' + curYritys.id);
+    if (!res.ok) { console.warn('reskontra fetch:', res.status); reskApiData = []; return; }
+    reskApiData = await res.json();
+    reskRenderAvoimet();
+  } catch(e) { console.warn('lataaReskontra:', e); reskApiData = []; }
+}
 
 async function lueMyyLaskutPdf() {
   const fileEl = document.getElementById('reskontra-file');
@@ -5973,29 +5985,56 @@ async function reskKirjaaKaikki() {
     } catch(e) { virheet++; }
   }
 
+  // Tallenna reskontra API:lle batch-erissä
+  const BATCH = 10;
+  const kirjatutLaskut = reskLaskut.filter(l => l.tila === 'kirjattu');
+  for (let i = 0; i < kirjatutLaskut.length; i += BATCH) {
+    const erä = kirjatutLaskut.slice(i, i + BATCH).map(l => ({
+      kirjanpitoasiakas_id: curYritys.id,
+      lasku_nro: l.lasku_nro,
+      asiakas: l.asiakas,
+      osoite: l.osoite,
+      postinro: l.postinro,
+      kaupunki: l.kaupunki,
+      pvm: l.pvm,
+      erapv: l.erapv,
+      viite: l.viite || null,
+      summa: l.summa,
+      tila: 'avoin',
+    }));
+    try {
+      await fetch('/api/ppr/reskontra', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(erä) });
+    } catch(e) { console.warn('reskontra batch:', e); }
+  }
+
   btn.disabled = false; btn.textContent = 'Tee kirjanpitokirjaukset →';
   reskRenderLista();
   await lataaRivit(curYritys.id);
-  reskRenderAvoimet();
+  await lataaReskontra();
   toast(`Reskontra: ${kirjattu} kirjattu` + (virheet ? `, ${virheet} epäonnistui` : ''));
 }
 
 function reskRenderAvoimet() {
   const fmt = v => v.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  const avoimet = reskLaskut.filter(l => l.tila !== 'maksettu');
+  // Yhdistä: API-data (tallennetut) + juuri luetut (kirjatut mutta ei vielä API:ssa)
+  const kaikki = reskApiData.length > 0 ? reskApiData : reskLaskut.filter(l => l.tila === 'kirjattu');
+  const avoimet = kaikki.filter(l => (l.tila || 'avoin') !== 'maksettu');
   const tbody = document.getElementById('resk-avoimet-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
   avoimet.forEach(l => {
-    const myohassa = l.erapv && l.erapv < new Date().toISOString().slice(0, 10);
+    const nimi = l.ppr_asiakkaat?.nimi || l.asiakas || '—';
+    const summa = Number(l.summa) || 0;
+    const myohassa = l.erapv && l.erapv.slice(0,10) < new Date().toISOString().slice(0, 10);
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid var(--bd)';
     tr.innerHTML = `
-      <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${l.lasku_nro}</td>
-      <td style="padding:7px 8px;color:var(--ink)">${l.asiakas}</td>
-      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(l.summa)} €</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${l.lasku_nro || '—'}</td>
+      <td style="padding:7px 8px;color:var(--ink)">${nimi}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(summa)} €</td>
       <td style="padding:7px 8px;font-family:var(--ffm);color:${myohassa ? 'var(--red)' : 'var(--inu)'}">${fmtPv(l.erapv)}${myohassa ? ' ⚠' : ''}</td>
-      <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${l.viite}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:11px;color:${l.tila === 'kirjattu' ? 'var(--fg3)' : 'var(--amber)'}">${l.tila === 'kirjattu' ? 'Avoin' : l.tila}</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${l.viite || '—'}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:11px;color:${l.tila === 'maksettu' ? 'var(--fg3)' : myohassa ? 'var(--red)' : 'var(--amber)'}">${l.tila === 'maksettu' ? 'Maksettu' : myohassa ? 'Myöhässä' : 'Avoin'}</td>
     `;
     tbody.appendChild(tr);
   });
