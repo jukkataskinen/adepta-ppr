@@ -3067,6 +3067,11 @@ async function impTuoRivi(i) {
   console.log('impTuoRivi', i, 'curYritys:', curYritys?.id, 'vak:', vak);
 
   const summa = Number(t.summa) || 0;
+  if (isNaN(summa) || summa === 0) {
+    console.error('impTuoRivi: virheellinen summa tapahtumalla', i, t.sel, t.summa);
+    toast('Virheellinen summa — tarkista tapahtuma');
+    return;
+  }
   const pos = summa > 0;
   const alvp = vak.alv || 0;
   const brutto = Math.abs(summa);
@@ -3894,11 +3899,13 @@ TILIOTTEEN SUODATUS — jätä kokonaan pois rivit joiden selite:
 - sisältää "NOSTOVARA OTOT YHTEENSÄ", "NOSTOVARA PANOT YHTEENSÄ", "PANOT/KAUSI", "OTOT/KAUSI"
 Nämä ovat yhteenvetorivejä, eivät yksittäisiä tapahtumia.
 
-TILIOTTEEN SUMMAT:
-- Palauta "summa" AINA positiivisena lukuna (desimaalipiste, ei valuuttasymbolia)
-- Erota suunta kenttään "suunta": "kredit" = raha tilille (pano), "debet" = raha tililtä (otto/maksu)
-- Esim. 150 € maksu → summa: 150.00, suunta: "debet"
-- Esim. 3000 € myyntisuoritus → summa: 3000.00, suunta: "kredit"
+TILIOTTEEN KENTTIEN TYYPIT — TÄRKEÄ:
+- "summa" on AINA numero (float/int), EI KOSKAAN teksti. Esim: 150.00, 3000.50, 11.50
+- "suunta" on AINA teksti, JOKO "debet" TAI "kredit" — EI muuta arvoa
+- ÄLÄ SEKOITA näitä kenttiä! summa-kentässä EI SAA olla tekstiä "debet" tai "kredit"
+- Esim. 150 € maksu → "summa": 150.00, "suunta": "debet"
+- Esim. 3000 € tulo → "summa": 3000.00, "suunta": "kredit"
+- summa on AINA positiivinen, suunta kertoo onko raha tullut (kredit) vai lähtenyt (debet)
 
 TÄRKEÄÄ: Jos dokumentissa on sekä tiliote että laskuja, yritä täsmäyttää laskut tiliotteen tapahtumiin.
 Täsmäytysperusteet tärkeysjärjestyksessä:
@@ -3956,7 +3963,10 @@ Täsmäytykset-kentässä tapnro viittaa tiliotteen Tap.nro-sarakkeeseen ja lask
 Varmuus: "korkea" (viite tai summa+nimi täsmää), "kohtalainen" (nimi+päivä tai summa lähellä), "heikko" (vain summa tai vain nimi).
 Tiliotteen tapahtumanumero (tapnro) on Tap.nro-sarakkeessa. Tiliotenro on juokseva numero sivun yläreunasta.
 Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa kuin liian vähän.
-MUISTA: summa aina positiivinen luku, suunta kertoo kredit/debet.
+MUISTA:
+- summa-kenttä on AINA positiivinen NUMERO (esim. 150.00), EI teksti
+- suunta-kenttä on AINA teksti "debet" tai "kredit"
+- Näitä EI saa sekoittaa: summa: "debet" on VÄÄRIN, oikein on summa: 150.00, suunta: "debet"
 LASKUJEN SIVU: Palauta jokaisen laskun kohdalla page_number (1-indeksoitu) jolta lasku löytyy PDF:stä.`;
 
   try {
@@ -4050,31 +4060,48 @@ async function prosessoiAITulos(parsed, filename, base64) {
   const sl = document.getElementById('scan-loader');
   if (sl) sl.style.display = 'none';
 
-  // 1. Lataa tiliote — muunna suunta etumerkiksi (kredit=+, debet=-)
+  // 1. Lataa tiliote — validoi ja muunna summat
   const tiliote = parsed.tiliote;
   if (tiliote && tiliote.loydetty && tiliote.tapahtumat?.length) {
-    ladattuTiliote(
-      tiliote.tapahtumat.map(t => {
-        const raw = Number(t.summa) || 0;
-        let summa;
-        if (t.suunta) {
-          // Uusi formaatti: summa aina positiivinen, suunta kertoo etumerkin
-          const abs = Math.abs(raw);
-          summa = t.suunta === 'debet' ? -abs : abs;
-        } else {
-          // Vanha formaatti: summa voi olla negatiivinen suoraan
-          summa = raw;
+    const validoidut = [];
+    tiliote.tapahtumat.forEach((t, i) => {
+      // Korjaa yleinen AI-virhe: summa sisältää tekstin "debet"/"kredit"
+      let rawSumma = t.summa;
+      let suunta = t.suunta;
+      if (typeof rawSumma === 'string') {
+        if (rawSumma === 'debet' || rawSumma === 'kredit') {
+          // AI sekoitti kentät: summa-kentässä on suunta, etsitään summaa muista kentistä
+          console.warn('AI-virhe rivi', i, ': summa sisältää suunnan "' + rawSumma + '", yritetään korjata');
+          suunta = rawSumma;
+          // Yritetään löytää summa amount/maara kentistä
+          rawSumma = t.amount || t.maara || t.määrä || 0;
         }
-        return {
-          ...t,
-          summa,
-          arvopv: t.arvopv || t.kirjpv,
-          kirjpv: t.kirjpv || t.arvopv,
-        };
-      }),
-      tiliote.iban || filename,
-      tiliote.kausi || ''
-    );
+        rawSumma = parseFloat(String(rawSumma).replace(/[^\d.,-]/g,'').replace(',','.'));
+      }
+      const num = Number(rawSumma);
+      if (isNaN(num) || num === 0) {
+        console.error('Virheellinen summa tapahtumalla', i, ':', t.sel, '— ohitetaan');
+        return; // skip this row
+      }
+      const abs = Math.abs(num);
+      let summa;
+      if (suunta) {
+        summa = suunta === 'debet' ? -abs : abs;
+      } else {
+        // Vanha formaatti: summa voi olla jo negatiivinen
+        summa = num;
+      }
+      validoidut.push({
+        ...t,
+        summa,
+        arvopv: t.arvopv || t.kirjpv,
+        kirjpv: t.kirjpv || t.arvopv,
+      });
+    });
+    console.log('Tiliote validoitu:', validoidut.length, '/', tiliote.tapahtumat.length, 'tapahtumaa');
+    if (validoidut.length > 0) {
+      ladattuTiliote(validoidut, tiliote.iban || filename, tiliote.kausi || '');
+    }
   }
 
   // 2. Lataa laskut — tallenna pageNumber ja pdfBase64 per lasku
