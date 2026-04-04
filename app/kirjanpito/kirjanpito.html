@@ -3900,6 +3900,9 @@ Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa 
       return;
     }
 
+    console.log('AI vastaus tiliote:', JSON.stringify(parsed.tiliote?.tapahtumat?.length), 'laskut:', parsed.laskut?.length, 'täsmäytykset:', parsed.tasmaytyket?.length);
+    console.log('Tiliote loydetty:', parsed.tiliote?.loydetty, 'IBAN:', parsed.tiliote?.iban);
+
     setStatus('Täsmäytetään aineistoa…', 'Yhdistetään laskut tiliotteen tapahtumiin', 95);
     await prosessoiAITulos(parsed, file.name, base64);
 
