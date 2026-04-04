@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin!
       .from('ppr_reskontra')
-      .select('*, ppr_asiakkaat(nimi)')
+      .select('*, asiakas:asiakas_id(nimi, katuosoite, postinro, kaupunki)')
       .eq('organisaatio_id', kayttaja.organisaatio_id)
       .order('erapv', { ascending: true })
 

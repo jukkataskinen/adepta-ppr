@@ -6023,7 +6023,7 @@ function reskRenderAvoimet() {
   if (!tbody) return;
   tbody.innerHTML = '';
   avoimet.forEach(l => {
-    const nimi = l.ppr_asiakkaat?.nimi || l.asiakas || '—';
+    const nimi = l.asiakas?.nimi || l.asiakas_nimi || '—';
     const summa = Number(l.summa) || 0;
     const myohassa = l.erapv && l.erapv.slice(0,10) < new Date().toISOString().slice(0, 10);
     const tr = document.createElement('tr');
