@@ -4614,6 +4614,7 @@ NORDEA-TILIOTE (erittelymuoto):
 Jos pankki on Nordea, tiliote on erittelymuotoinen:
 - Poimi VAIN rivit joissa on TAP.NRO-sarakkeessa numero (1, 2, 3...) JA oikeanpuoleisimmassa sarakkeessa on eurosumma
 - Erittely- ja seliterivit (ilman tap.nro:a) JÄTETÄÄN POIS — ne ovat lisätietoja, eivät tapahtumia
+- TÄRKEÄÄ: Jokaisella rivillä voi olla USEITA lukuja (erittely, ALV, kappalemäärät). Poimi AINOASTAAN se luku joka on rivin OIKEASSA REUNASSA (viimeinen sarake). Kaikki muut luvut JÄTETÄÄN POIS.
 - Summan miinusmerkki (esim. "22,70-") tarkoittaa kredit (maksettu tililtä)
 - Summan plusmerkki tai ei merkkiä tarkoittaa debet (saatu tilille)
 - Saldo-rivit tunnistaa tekstistä "Saldo" — lue niistä alkusaldo ja loppusaldo
@@ -4628,8 +4629,40 @@ OP-TILIOTE:
 - Sarakkeet: kirjauspäivä, arvopäivä, summa, saldo, nimi, viite, viesti, korttinumero, tapahtumanumero`;
 
   try {
-    setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
+    setStatus('Renderöidään PDF-sivut…', 'Muunnetaan sivut kuviksi AI-analyysiä varten', 40);
     console.log('analysePDF: apiKey alkaa:', apiKey.slice(0,12) + '...', 'pituus:', apiKey.length);
+
+    // Renderöi kaikki PDF-sivut JPEG-kuviksi → lähetetään AI:lle yksi kerrallaan
+    let sivuKuvat = [];
+    try {
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdfBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const vp = page.getViewport({scale: 1.5});
+          const canvas = document.createElement('canvas');
+          canvas.width = vp.width; canvas.height = vp.height;
+          await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+          sivuKuvat.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+        }
+      }
+    } catch(e) { console.warn('PDF sivujen renderöinti epäonnistui:', e); }
+    console.log('Sivuja lähetetty AI:lle:', sivuKuvat.length);
+
+    // Rakenna content: kaikki sivut kuvina + prompt tekstinä
+    const content = sivuKuvat.length > 0
+      ? [
+          ...sivuKuvat.map(b64 => ({type: 'image', source: {type: 'base64', media_type: 'image/jpeg', data: b64}})),
+          {type: 'text', text: prompt}
+        ]
+      : [
+          {type: 'document', source: {type: 'base64', media_type: 'application/pdf', data: base64}},
+          {type: 'text', text: prompt}
+        ];
+
+    setStatus('Claude lukee dokumenttia…', `Tunnistetaan tiliote ja laskut (${sivuKuvat.length} sivua)`, 55);
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -4640,15 +4673,9 @@ OP-TILIOTE:
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',   // Haiku riittää dokumenttien erotteluun, halvempi
-        max_tokens: 8000,                      // riittää 100 sivun aineistolle
-        messages: [{
-          role: 'user',
-          content: [
-            {type: 'document', source: {type:'base64', media_type:'application/pdf', data: base64}},
-            {type: 'text', text: prompt}
-          ]
-        }]
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 8000,
+        messages: [{role: 'user', content}]
       })
     });
 
