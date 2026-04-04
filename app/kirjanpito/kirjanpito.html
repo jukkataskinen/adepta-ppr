@@ -4364,32 +4364,24 @@ async function analysePDF(file) {
 
   setStatus('Claude analysoi…', 'Etsitään tiliote- ja laskuaineisto (voi kestää 10–30 s)', 30);
 
-  const prompt = `Analysoi tämä PDF-dokumentti. Se sisältää yhden tai useamman seuraavista:
-1. Pankkitiliote (suomalainen OP, Nordea, Handelsbanken tai muu)
-2. Ostolaskuja tai myyntilaskuja
+  const prompt = `Sinulle annetaan suomalainen pankkitiliote (OP, Nordea, Danske tai muu).
+Tunnista pankki ja formaatti automaattisesti.
 
-TILIOTTEEN SUODATUS — jätä kokonaan pois rivit joiden selite:
-- alkaa sanalla "SALDO" (esim. "SALDO 31.12.2025")
-- sisältää "NOSTOVARA OTOT YHTEENSÄ", "NOSTOVARA PANOT YHTEENSÄ", "PANOT/KAUSI", "OTOT/KAUSI"
-Nämä ovat yhteenvetorivejä, eivät yksittäisiä tapahtumia.
+Parsii KAIKKI yksittäiset tapahtumat. Jätä pois:
+- Saldo-rivit (SALDO, NOSTOVARA, PANOT/KAUSI, OTOT/KAUSI)
+- Otsikkorivit ja tyhjät rivit
+- Yhteenvetorivit
 
-TILIOTTEEN KENTTIEN TYYPIT — TÄRKEÄ:
-- "summa" on AINA numero (float/int), EI KOSKAAN teksti. Esim: 150.00, 3000.50, 11.50
-- "suunta" on AINA teksti, JOKO "debet" TAI "kredit" — EI muuta arvoa
-- ÄLÄ SEKOITA näitä kenttiä! summa-kentässä EI SAA olla tekstiä "debet" tai "kredit"
-- Esim. 150 € maksu tililtä → "summa": 150.00, "suunta": "kredit"
-- Esim. 3000 € tulo tilille → "summa": 3000.00, "suunta": "debet"
-- summa on AINA positiivinen, suunta kertoo onko raha tullut tilille (debet) vai lähtenyt tililtä (kredit)
-
-TÄRKEÄÄ: Jos dokumentissa on sekä tiliote että laskuja, yritä täsmäyttää laskut tiliotteen tapahtumiin.
-Täsmäytysperusteet tärkeysjärjestyksessä:
-- Viitenumero (laskun viite = tiliotteen viite, jopa osittainen osuma riittää)
-- Summa (lasku brutto ≈ tiliotteen summa, toleranssi ±1 € tai ±2 %)
-- Toimittajan nimi vs. tiliotteen maksajan nimi (osittainen vastaavuus riittää)
-- Päivämäärä (laskun eräpäivä ≈ tiliotteen arvopäivä, ±14 pv)
+Jos dokumentissa on myös ostolaskuja tai myyntilaskuja, tunnista ne erikseen.
+Jos sekä tiliote että laskuja löytyy, yritä täsmäyttää laskut tiliotteen tapahtumiin:
+- Viitenumero (osittainen osuma riittää)
+- Summa (±1 € tai ±2 %)
+- Toimittajan nimi vs. maksajan nimi
+- Päivämäärä (±14 pv)
 
 Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
 {
+  "pankki": "OP/Nordea/Danske/muu",
   "tiliote": {
     "loydetty": true,
     "iban": "tilinumero tai null",
@@ -4403,7 +4395,7 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
         "sel": "Tapahtuman selite",
         "maksu": "Maksajan/saajan nimi tai null",
         "summa": 150.00,
-        "suunta": "debet",
+        "suunta": "kredit",
         "viite": "viitenumero tai null"
       }
     ]
@@ -4433,15 +4425,14 @@ Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
   ]
 }
 
-Täsmäytykset-kentässä tapnro viittaa tiliotteen Tap.nro-sarakkeeseen ja lasku_nro laskun numeroon.
-Varmuus: "korkea" (viite tai summa+nimi täsmää), "kohtalainen" (nimi+päivä tai summa lähellä), "heikko" (vain summa tai vain nimi).
-Tiliotteen tapahtumanumero (tapnro) on Tap.nro-sarakkeessa. Tiliotenro on juokseva numero sivun yläreunasta.
-Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti — parempi liikaa kuin liian vähän.
-MUISTA:
-- summa-kenttä on AINA positiivinen NUMERO (esim. 150.00), EI teksti
-- suunta-kenttä on AINA teksti "debet" (raha tilille) tai "kredit" (raha tililtä)
-- Näitä EI saa sekoittaa: summa: "debet" on VÄÄRIN, oikein on summa: 150.00, suunta: "debet"
-LASKUJEN SIVU: Palauta jokaisen laskun kohdalla page_number (1-indeksoitu) jolta lasku löytyy PDF:stä.`;
+TÄRKEÄÄ — summa ja suunta:
+- summa on AINA positiivinen NUMERO (float), esim. 150.00 — EI KOSKAAN teksti
+- suunta on AINA teksti: "kredit" = maksettu tililtä, "debet" = saatu tilille
+- Nordean tiliotteessa miinusmerkki tarkoittaa suuntaa "kredit"
+- OP:n tiliotteessa sarakkeet voivat olla eri järjestyksessä
+- ÄLÄ SEKOITA: summa: "debet" on VÄÄRIN — oikein: summa: 150.00, suunta: "debet"
+- Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti.
+- page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
 
   try {
     setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
