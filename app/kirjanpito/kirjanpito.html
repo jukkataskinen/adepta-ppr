@@ -3317,35 +3317,54 @@ function mgRenderKirjaus(t, lasku) {
 
   mgPopulateTiliSelect();
 
-  // Automaattinen tili: 1) laskun ehdotus 2) vakiokirjaus 3) aiempi kirjaus
   const sel = document.getElementById('mg-tili-select');
   const alvSel = document.getElementById('mg-alv-select');
   let autoTili = '';
   let autoAlv = 25.5;
 
-  if (lasku?.ehdotettu_tili) { autoTili = lasku.ehdotettu_tili; autoAlv = lasku.alv_prosentti || 25.5; }
-  else if (t.vak) { autoTili = t.vak.vt; autoAlv = t.vak.alv || 0; }
+  // Prioriteetti: 1) laskun AI-ehdotus 2) vakiokirjaus 3) aiempi kirjaus samalle toimittajalle
+  if (lasku?.ehdotettu_tili) {
+    autoTili = lasku.ehdotettu_tili;
+    autoAlv = lasku.alv_prosentti || 25.5;
+  } else if (t.vak) {
+    autoTili = t.vak.vt;
+    autoAlv = t.vak.alv || 0;
+  } else {
+    // Hae aiemmista kirjauksista: etsi rows-arraystä sama toimittaja/maksaja
+    const toimittaja = (lasku?.toimittaja || t.maksu || t.sel || '').toLowerCase().trim();
+    if (toimittaja.length > 3) {
+      const aiempi = rows.find(r =>
+        (r.sel||'').toLowerCase().includes(toimittaja) &&
+        r.d && r.d !== '1910' && r.d !== '1763' && r.d !== '29390'
+      );
+      if (aiempi) {
+        autoTili = aiempi.d;
+        autoAlv = aiempi.alvp || 0;
+        console.log('Aiempi kirjaus löytyi toimittajalle "' + toimittaja + '":', autoTili);
+      }
+    }
+  }
 
-  if (autoTili) sel.value = autoTili;
+  sel.value = autoTili || '';
   alvSel.value = String(autoAlv);
 
-  // Päivitä D/K rivit suunnan mukaan
+  // D/K labelit ja summat suunnan mukaan
+  const dLabel = sel.parentElement.querySelector('span:first-child');
+  const kLabel = document.getElementById('mg-kredit-tili').parentElement.querySelector('span:first-child');
   if (pos) {
-    // Tulo: 1910 debet, vastatili kredit
-    document.getElementById('mg-kredit-tili').textContent = sel.value ? sel.options[sel.selectedIndex].text : '? Valitse tili';
-    document.getElementById('mg-debet-summa').textContent = fmt(brutto) + ' €';
-    document.getElementById('mg-kredit-summa').textContent = fmt(brutto) + ' €';
-    // Vaihda labelit
-    sel.parentElement.querySelector('span:first-child').textContent = 'D';
-    document.getElementById('mg-kredit-tili').parentElement.querySelector('span:first-child').textContent = 'K';
-    document.getElementById('mg-kredit-tili').textContent = '1910 Pankkitili';
-    // Vaihda: debet-rivi on pankkitili (kiinteä), kredit on valittava
-    // Oikeastaan tulo: D 1910 pankkitili, K vastatili → vasen rivi kiinteä, oikea valittava
-    // Laitetaan select kredit-puolelle
+    // Tulo tilille: D 1910 Pankkitili, K vastatili
+    dLabel.textContent = 'K';
+    kLabel.textContent = 'D';
+    document.getElementById('mg-kredit-tili').innerHTML = '<span style="color:var(--fl)">1910</span> Pankkitili';
   } else {
-    // Meno: vastatili debet, 1910 kredit → normaali asettelu
-    document.getElementById('mg-kredit-tili').textContent = '1910 Pankkitili';
+    // Meno tililtä: D vastatili, K 1910 Pankkitili
+    dLabel.textContent = 'D';
+    kLabel.textContent = 'K';
+    document.getElementById('mg-kredit-tili').innerHTML = '<span style="color:var(--fl)">1910</span> Pankkitili';
   }
+
+  document.getElementById('mg-debet-summa').textContent = fmt(brutto) + ' €';
+  document.getElementById('mg-kredit-summa').textContent = fmt(brutto) + ' €';
 
   mgAlvChanged();
   mgTiliChanged();
@@ -3361,15 +3380,19 @@ function mgTiliChanged() {
     btn.style.color = '#fff';
     btn.style.cursor = 'pointer';
     btn.title = '';
-    status.textContent = '✓';
-    status.style.color = 'var(--fg3)';
+    sel.style.borderColor = 'var(--fg)';
+    status.textContent = '✓ Vahvistettu';
+    status.style.color = '#5DCAA5';
+    status.style.display = 'inline';
   } else {
     btn.disabled = true;
     btn.style.background = 'rgba(255,255,255,.1)';
     btn.style.color = 'rgba(255,255,255,.3)';
     btn.style.cursor = 'not-allowed';
     btn.title = 'Valitse ensin kirjaustili';
+    sel.style.borderColor = 'rgba(255,255,255,.1)';
     status.textContent = '';
+    status.style.display = 'none';
   }
 }
 
@@ -3553,7 +3576,11 @@ async function mgHyvaksy() {
   // Lue tili ja ALV selecteistä
   const valittuTili = document.getElementById('mg-tili-select').value;
   const valittuAlv = parseFloat(document.getElementById('mg-alv-select').value) || 0;
-  if (!valittuTili) { toast('Valitse ensin kirjaustili'); return; }
+  if (!valittuTili) {
+    document.getElementById('mg-tili-select').style.borderColor = 'var(--red)';
+    toast('Valitse ensin kirjaustili');
+    return;
+  }
 
   // Aseta vastatili selectin arvosta
   const tiliInfo = TILIT.find(tl => tl.nro === valittuTili);
