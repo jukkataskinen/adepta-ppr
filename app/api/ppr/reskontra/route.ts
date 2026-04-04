@@ -156,6 +156,13 @@ export async function PATCH(request: NextRequest) {
     const session = await auth0.getSession(request)
     if (!session) return NextResponse.json({ error: 'Ei istuntoa' }, { status: 401 })
 
+    const { data: kayttaja } = await supabaseAdmin!
+      .from('ppr_kayttajat')
+      .select('id, organisaatio_id')
+      .eq('auth_sub', session.user.sub)
+      .single()
+    if (!kayttaja) return NextResponse.json({ error: 'Käytt��jää ei löydy' }, { status: 404 })
+
     const body = await request.json()
     const { id, tila, maksettu_pvm, maksettu_summa } = body
     if (!id) return NextResponse.json({ error: 'id vaaditaan' }, { status: 400 })
@@ -165,10 +172,12 @@ export async function PATCH(request: NextRequest) {
     if (maksettu_pvm) update.maksettu_pvm = maksettu_pvm
     if (maksettu_summa !== undefined) update.maksettu_summa = maksettu_summa
 
+    // Suodata organisaatio_id:llä — estää toisen organisaation datan muokkauksen
     const { data, error } = await supabaseAdmin!
       .from('ppr_reskontra')
       .update(update)
       .eq('id', id)
+      .eq('organisaatio_id', kayttaja.organisaatio_id)
       .select()
       .single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
