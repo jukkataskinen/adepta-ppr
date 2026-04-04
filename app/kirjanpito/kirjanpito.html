@@ -1051,8 +1051,35 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       <div style="display:flex;flex-direction:column;padding:14px;gap:10px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.06)">
         <div id="mg-tapahtuma" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px"></div>
         <div id="mg-ehdotus" style="background:rgba(29,158,117,.08);border:1px solid rgba(29,158,117,.15);border-radius:8px;padding:12px"></div>
+        <div id="mg-kirjaus" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Ehdotettu kirjaus</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:11px">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">D</span>
+              <select id="mg-tili-select" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px;font-family:var(--ffm);background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:4px;outline:none">
+                <option value="">? Valitse tili</option>
+              </select>
+              <span id="mg-debet-summa" style="font-family:var(--ffm);color:#fff;white-space:nowrap;min-width:55px;text-align:right">—</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">K</span>
+              <span style="flex:1;font-family:var(--ffm);color:var(--fl);font-size:11px;padding:4px 6px" id="mg-kredit-tili">1910 Pankkitili</span>
+              <span id="mg-kredit-summa" style="font-family:var(--ffm);color:#fff;white-space:nowrap;min-width:55px;text-align:right">—</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
+              <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">ALV</span>
+              <select id="mg-alv-select" onchange="mgAlvChanged()" style="padding:3px 6px;font-size:11px;font-family:var(--ffm);background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:4px;outline:none">
+                <option value="0">0 %</option>
+                <option value="10">10 %</option>
+                <option value="14">14 %</option>
+                <option value="25.5" selected>25,5 %</option>
+              </select>
+              <span id="mg-tili-status" style="font-size:10px;margin-left:auto"></span>
+            </div>
+          </div>
+        </div>
         <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
-          <button id="mg-hyvaksy" onclick="mgHyvaksy()" style="padding:9px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">✓ Hyväksy ja siirry →</button>
+          <button id="mg-hyvaksy" onclick="mgHyvaksy()" disabled title="Valitse ensin kirjaustili" style="padding:9px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:not-allowed">✓ Hyväksy ja siirry →</button>
           <button onclick="mgKirjaaIlman()" style="padding:6px;font-size:11px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer">Kirjaa ilman laskua</button>
           <button onclick="mgOhita()" style="padding:6px;font-size:11px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:transparent;color:rgba(255,255,255,.35);cursor:pointer">Ohita →</button>
         </div>
@@ -3273,6 +3300,93 @@ function mgDropLasku(e) {
   if (!isNaN(laskuIdx)) mgVaihdaLasku(laskuIdx);
 }
 
+function mgPopulateTiliSelect() {
+  const sel = document.getElementById('mg-tili-select');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">? Valitse tili</option>';
+  TILIT.forEach(t => {
+    sel.innerHTML += `<option value="${t.nro}">${t.nro} ${t.lbl}</option>`;
+  });
+  if (current) sel.value = current;
+}
+
+function mgRenderKirjaus(t, lasku) {
+  const pos = t.summa > 0;
+  const brutto = Math.abs(t.summa);
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2});
+
+  mgPopulateTiliSelect();
+
+  // Automaattinen tili: 1) laskun ehdotus 2) vakiokirjaus 3) aiempi kirjaus
+  const sel = document.getElementById('mg-tili-select');
+  const alvSel = document.getElementById('mg-alv-select');
+  let autoTili = '';
+  let autoAlv = 25.5;
+
+  if (lasku?.ehdotettu_tili) { autoTili = lasku.ehdotettu_tili; autoAlv = lasku.alv_prosentti || 25.5; }
+  else if (t.vak) { autoTili = t.vak.vt; autoAlv = t.vak.alv || 0; }
+
+  if (autoTili) sel.value = autoTili;
+  alvSel.value = String(autoAlv);
+
+  // Päivitä D/K rivit suunnan mukaan
+  if (pos) {
+    // Tulo: 1910 debet, vastatili kredit
+    document.getElementById('mg-kredit-tili').textContent = sel.value ? sel.options[sel.selectedIndex].text : '? Valitse tili';
+    document.getElementById('mg-debet-summa').textContent = fmt(brutto) + ' €';
+    document.getElementById('mg-kredit-summa').textContent = fmt(brutto) + ' €';
+    // Vaihda labelit
+    sel.parentElement.querySelector('span:first-child').textContent = 'D';
+    document.getElementById('mg-kredit-tili').parentElement.querySelector('span:first-child').textContent = 'K';
+    document.getElementById('mg-kredit-tili').textContent = '1910 Pankkitili';
+    // Vaihda: debet-rivi on pankkitili (kiinteä), kredit on valittava
+    // Oikeastaan tulo: D 1910 pankkitili, K vastatili → vasen rivi kiinteä, oikea valittava
+    // Laitetaan select kredit-puolelle
+  } else {
+    // Meno: vastatili debet, 1910 kredit → normaali asettelu
+    document.getElementById('mg-kredit-tili').textContent = '1910 Pankkitili';
+  }
+
+  mgAlvChanged();
+  mgTiliChanged();
+}
+
+function mgTiliChanged() {
+  const sel = document.getElementById('mg-tili-select');
+  const btn = document.getElementById('mg-hyvaksy');
+  const status = document.getElementById('mg-tili-status');
+  if (sel.value) {
+    btn.disabled = false;
+    btn.style.background = 'var(--fg)';
+    btn.style.color = '#fff';
+    btn.style.cursor = 'pointer';
+    btn.title = '';
+    status.textContent = '✓';
+    status.style.color = 'var(--fg3)';
+  } else {
+    btn.disabled = true;
+    btn.style.background = 'rgba(255,255,255,.1)';
+    btn.style.color = 'rgba(255,255,255,.3)';
+    btn.style.cursor = 'not-allowed';
+    btn.title = 'Valitse ensin kirjaustili';
+    status.textContent = '';
+  }
+}
+
+function mgAlvChanged() {
+  const ti = mgQueue[mgIdx];
+  if (ti === undefined) return;
+  const t = impTapahtumat[ti];
+  const brutto = Math.abs(t.summa);
+  const alvp = parseFloat(document.getElementById('mg-alv-select').value) || 0;
+  const netto = alvp > 0 ? brutto / (1 + alvp/100) : brutto;
+  const alv = brutto - netto;
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2});
+  // Päivitä summat — debet-rivi näyttää neton (+alv erikseen), kredit brutto
+  document.getElementById('mg-debet-summa').textContent = alvp > 0 ? fmt(netto) + ' €' : fmt(brutto) + ' €';
+  document.getElementById('mg-kredit-summa').textContent = fmt(brutto) + ' €';
+}
+
 function mgRender() {
   if (mgIdx >= mgQueue.length) {
     document.getElementById('match-game').style.display = 'none';
@@ -3300,6 +3414,9 @@ function mgRender() {
   // Ehdotettu lasku
   const lasku = (t.laskuIdx != null) ? laskut[t.laskuIdx] : mgParasLasku(t);
   mgRenderEhdotus(lasku, t);
+
+  // Kirjaus-boksi
+  mgRenderKirjaus(t, lasku);
 
   // Oikea: kohdistamattomien laskujen lista
   mgRenderLaskuLista(ti);
@@ -3425,6 +3542,7 @@ function mgVaihdaLasku(laskuIdx) {
   const lasku = laskut[laskuIdx];
   if (!lasku) return;
   mgRenderEhdotus(lasku, t);
+  mgRenderKirjaus(t, lasku);
 }
 
 async function mgHyvaksy() {
@@ -3432,14 +3550,15 @@ async function mgHyvaksy() {
   const t = impTapahtumat[ti];
   const lasku = t._mgLasku;
 
-  // Aseta vastatili laskusta tai vakiosta
-  if (lasku && lasku.ehdotettu_tili && !t.vak) {
-    t.vak = { vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti || 25.5, lbl: lasku.toimittaja };
-  }
-  if (!t.vak && !t.vtNro) {
-    toast('Aseta vastatili ensin (Käy läpi)');
-    return;
-  }
+  // Lue tili ja ALV selecteistä
+  const valittuTili = document.getElementById('mg-tili-select').value;
+  const valittuAlv = parseFloat(document.getElementById('mg-alv-select').value) || 0;
+  if (!valittuTili) { toast('Valitse ensin kirjaustili'); return; }
+
+  // Aseta vastatili selectin arvosta
+  const tiliInfo = TILIT.find(tl => tl.nro === valittuTili);
+  t.vak = { vt: valittuTili, alv: valittuAlv, lbl: tiliInfo?.lbl || valittuTili };
+  t.alvp = valittuAlv;
 
   // Linkitä lasku tapahtumaan
   if (lasku) {
@@ -3447,10 +3566,16 @@ async function mgHyvaksy() {
     t.laskuIdx = lasku.idx;
   }
 
-  // Tuo rivi
+  // Disable nappi tuonnin ajaksi
+  const btn = document.getElementById('mg-hyvaksy');
+  btn.disabled = true;
+  btn.textContent = 'Kirjataan...';
+
   await impTuoRivi(ti);
   mgKirjattu++;
   mgIdx++;
+
+  btn.textContent = '✓ Hyväksy ja siirry →';
   mgRender();
 }
 
