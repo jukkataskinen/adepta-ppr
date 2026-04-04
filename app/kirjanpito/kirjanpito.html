@@ -3538,7 +3538,27 @@ let mgKirjattu = 0;
 let mgOhitettu2 = 0;
 let mgPdfPage = 1;
 let mgPdfTotal = 1;
-let mgPdfDoc = null;    // ladattu pdf-lib dokumentti
+let mgPdfDoc = null;
+const laskuCanvasCache = {};
+
+async function esirenderöiLaskut() {
+  if (!laskut?.length || typeof pdfjsLib === 'undefined') return;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  for (const lasku of laskut) {
+    if (!lasku.pdfBase64 || laskuCanvasCache[lasku.idx]) continue;
+    try {
+      const bytes = Uint8Array.from(atob(lasku.pdfBase64), c => c.charCodeAt(0));
+      const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+      const page = await pdf.getPage(lasku.pageNumber || 1);
+      const vp = page.getViewport({scale: 2.0});
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+      laskuCanvasCache[lasku.idx] = canvas;
+    } catch(e) { console.warn('Esirenderöinti epäonnistui laskulle', lasku.idx, e); }
+  }
+  console.log('Esirenderöinti valmis:', Object.keys(laskuCanvasCache).length, 'laskua');
+}
 
 function aloitaMatchGame() {
   mgQueue = impTapahtumat
@@ -3771,9 +3791,22 @@ function mgRenderEhdotus(lasku, t) {
   const ti = mgQueue[mgIdx];
   impTapahtumat[ti]._mgLasku = lasku;
 
-  // Renderöi PDF
-  if (lasku.pdfBase64) mgRenderPdf(lasku);
-  else mgClearPdf();
+  // Renderöi PDF (cache ensin, fallback renderöinti)
+  document.getElementById('mg-pdf-title').textContent = (lasku.toimittaja || 'Lasku') + (lasku.nro ? ' #' + lasku.nro : '');
+  const cached = laskuCanvasCache[lasku.idx];
+  if (cached) {
+    const container = document.getElementById('mg-pdf-container');
+    container.innerHTML = '';
+    const clone = cached.cloneNode(false);
+    clone.style.cssText = 'max-width:100%;height:auto;border-radius:4px';
+    clone.getContext('2d').drawImage(cached, 0, 0);
+    container.appendChild(clone);
+    document.getElementById('mg-pdf-page').textContent = (lasku.pageNumber||1) + '/' + (lasku.pageNumber||1);
+  } else if (lasku.pdfBase64) {
+    mgRenderPdf(lasku);
+  } else {
+    mgClearPdf();
+  }
 }
 
 async function mgRenderPdf(lasku) {
@@ -4839,6 +4872,8 @@ page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
     }));
     statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${laskut.length} laskua</span>`;
     paivitaJatkaBtn();
+    // Esirenderöi laskujen PDF-sivut taustalla
+    esirenderöiLaskut();
   } catch(e) {
     console.error('Lasku-analyysi:', e);
     statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
