@@ -4704,23 +4704,23 @@ async function analyseTilioteErillinen() {
 
   // AI-parsinta
   const nordeaOhje = pankki === 'nordea' ? `
-Tämä on Nordean pankkitiliote. Lue tapahtumat oikeanpuoleisimmasta sarakkeesta (Määrä/Tiliöinti).
+Tässä on Nordean tiliote kuvana.
 
-Nordean tiliotteessa Tap.nro-sarake kertoo tapahtuman numeron.
-SÄÄNTÖ: Ota mukaan VAIN se rivi jolla tap.nro on SUUREMPI kuin edellinen tap.nro. Jos tap.nro toistuu (1,1,1,1) — ota vain ensimmäinen esiintymä, loput ovat saman tapahtuman erittelyrivejä.
+Edellisessä analyysissa sama tiliote tulkittiin näin:
+- 04.02. Nordea palvelumaksu: -22,70 (tap.nro 1)
+- 06.02. Mehiläinen Oy: -418,80 (tap.nro 2)
+- 09.02. Jari Jokinen oma siirto: -100,00 (tap.nro 3)
+- 23.02. Adepta Oy: -187,00 (tap.nro 4)
+- 23.02. S Business Oy: -258,12 (tap.nro 5)
+- 23.02. Intrum Oy: -40,88 (tap.nro 6)
+- 26.02. PM Autohuolto Oy: -65,00 (tap.nro 7)
+Alkusaldo: 10 568,84, Loppusaldo: 9 476,34. Täsmää täydellisesti.
 
-Esimerkki:
-  Tap.nro 1 → 22,70-  ✓ OTETAAN (uusi numero)
-  Tap.nro 1 → 7,08-   ✗ JÄTETÄÄN (sama numero kuin edellinen)
-  Tap.nro 1 → 1,84-   ✗ JÄTETÄÄN (sama numero kuin edellinen)
-  Tap.nro 1 → 13,78-  ✗ JÄTETÄÄN (sama numero kuin edellinen)
-  Tap.nro 2 → 418,80- ✓ OTETAAN (numero kasvoi)
-  Tap.nro 3 → 100,00- ✓ OTETAAN (numero kasvoi)
-
-- Miinusmerkki = kredit (maksettu tililtä)
-- Ilman merkkiä tai plusmerkki = debet (saatu tilille)
-- Saldo-rivit (teksti "Saldo" + summa): lue alkusaldo ja loppusaldo, älä lisää niitä tapahtumiin
-- Laske itse: alkusaldo + tapahtumat = pitää täsmätä loppusaldoon
+Lue NYT tämä tiliote samalla logiikalla:
+- Maksuerittely-rivit (7,08 / 1,84 / 13,78) ovat tap.nro 1:n ERITTELYÄ — ne eivät ole erillisiä tapahtumia
+- Jokaiselle tap.nro:lle tulee YKSI summa Määrä-sarakkeesta
+- Miinusmerkki luvun perässä = kredit, myös Jari Jokisen siirto
+- Saldo-rivit: lue alkusaldo ja loppusaldo, älä lisää tapahtumiin
 ` : '';
 
   const prompt = `${nordeaOhje}Analysoi tämä suomalainen pankkitiliote (${pankki}). Palauta VAIN pelkkä JSON:
@@ -4986,23 +4986,23 @@ async function analysePDF(file) {
 
   // Pankkikohtainen prompt
   const nordeaOhje = tunnistettuPankki === 'nordea' ? `
-Tämä on Nordean pankkitiliote. Lue tapahtumat oikeanpuoleisimmasta sarakkeesta (Määrä/Tiliöinti).
+Tässä on Nordean tiliote kuvana.
 
-Nordean tiliotteessa Tap.nro-sarake kertoo tapahtuman numeron.
-SÄÄNTÖ: Ota mukaan VAIN se rivi jolla tap.nro on SUUREMPI kuin edellinen tap.nro. Jos tap.nro toistuu (1,1,1,1) — ota vain ensimmäinen esiintymä, loput ovat saman tapahtuman erittelyrivejä.
+Edellisessä analyysissa sama tiliote tulkittiin näin:
+- 04.02. Nordea palvelumaksu: -22,70 (tap.nro 1)
+- 06.02. Mehiläinen Oy: -418,80 (tap.nro 2)
+- 09.02. Jari Jokinen oma siirto: -100,00 (tap.nro 3)
+- 23.02. Adepta Oy: -187,00 (tap.nro 4)
+- 23.02. S Business Oy: -258,12 (tap.nro 5)
+- 23.02. Intrum Oy: -40,88 (tap.nro 6)
+- 26.02. PM Autohuolto Oy: -65,00 (tap.nro 7)
+Alkusaldo: 10 568,84, Loppusaldo: 9 476,34. Täsmää täydellisesti.
 
-Esimerkki:
-  Tap.nro 1 → 22,70-  ✓ OTETAAN (uusi numero)
-  Tap.nro 1 → 7,08-   ✗ JÄTETÄÄN (sama numero kuin edellinen)
-  Tap.nro 1 → 1,84-   ✗ JÄTETÄÄN (sama numero kuin edellinen)
-  Tap.nro 1 → 13,78-  ✗ JÄTETÄÄN (sama numero kuin edellinen)
-  Tap.nro 2 → 418,80- ✓ OTETAAN (numero kasvoi)
-  Tap.nro 3 → 100,00- ✓ OTETAAN (numero kasvoi)
-
-- Miinusmerkki = kredit (maksettu tililtä)
-- Ilman merkkiä tai plusmerkki = debet (saatu tilille)
-- Saldo-rivit (teksti "Saldo" + summa): lue alkusaldo ja loppusaldo, älä lisää niitä tapahtumiin
-- Laske itse: alkusaldo + tapahtumat = pitää täsmätä loppusaldoon
+Lue NYT tämä tiliote samalla logiikalla:
+- Maksuerittely-rivit (7,08 / 1,84 / 13,78) ovat tap.nro 1:n ERITTELYÄ — ne eivät ole erillisiä tapahtumia
+- Jokaiselle tap.nro:lle tulee YKSI summa Määrä-sarakkeesta
+- Miinusmerkki luvun perässä = kredit, myös Jari Jokisen siirto
+- Saldo-rivit: lue alkusaldo ja loppusaldo, älä lisää tapahtumiin
 ` : '';
 
   const prompt = `Analysoi tämä suomalainen pankkitiliote (${tunnistettuPankki}).
