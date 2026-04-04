@@ -16,8 +16,20 @@ export async function GET(request: NextRequest) {
     console.log('reskontra GET kayttaja:', JSON.stringify(kayttaja), 'auth_sub:', session.user.sub)
 
     const { searchParams } = new URL(request.url)
+    const kirjanpitoasiakas_id = searchParams.get('kirjanpitoasiakas_id')
     const asiakas_id = searchParams.get('asiakas_id')
     const tila = searchParams.get('tila')
+
+    // Varmista kirjanpitoasiakas kuuluu käyttäjän organisaatioon
+    if (kirjanpitoasiakas_id) {
+      const { data: asiakas } = await supabaseAdmin!
+        .from('ppr_asiakkaat')
+        .select('id, organisaatio_id')
+        .eq('id', kirjanpitoasiakas_id)
+        .eq('organisaatio_id', kayttaja.organisaatio_id)
+        .maybeSingle()
+      if (!asiakas) return NextResponse.json({ error: 'Kirjanpitoasiakas ei kuulu organisaatioon' }, { status: 403 })
+    }
 
     let query = supabaseAdmin!
       .from('ppr_reskontra')
@@ -25,6 +37,7 @@ export async function GET(request: NextRequest) {
       .eq('organisaatio_id', kayttaja.organisaatio_id)
       .order('erapv', { ascending: true })
 
+    if (kirjanpitoasiakas_id) query = query.eq('kirjanpitoasiakas_id', kirjanpitoasiakas_id)
     if (asiakas_id) query = query.eq('asiakas_id', asiakas_id)
     if (tila) query = query.eq('tila', tila)
 
@@ -115,6 +128,7 @@ export async function POST(request: NextRequest) {
         // 2. Tallenna reskontra-rivi
         const rivi = {
           organisaatio_id: orgId,
+          kirjanpitoasiakas_id: r.kirjanpitoasiakas_id || null,
           asiakas_id,
           lasku_nro: r.lasku_nro || null,
           pvm: r.pvm || null,

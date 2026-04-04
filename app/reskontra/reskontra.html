@@ -44,6 +44,12 @@ tr:hover{background:var(--fpale)}
 
 <div class="top">
   <h1>Adepta <em style="color:var(--fg2)">PPR</em> — Myyntireskontra</h1>
+  <div style="display:flex;align-items:center;gap:10px;margin-left:16px">
+    <span style="font-size:12px;color:rgba(255,255,255,.5)">Asiakas:</span>
+    <select id="resk-asiakas-select" onchange="vaihdaReskAsiakas()" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:var(--fd);color:#fff;cursor:pointer;max-width:250px">
+      <option value="">— Valitse kirjanpitoasiakas —</option>
+    </select>
+  </div>
   <div style="margin-left:auto;display:flex;gap:16px">
     <a href="/kirjanpito">Kirjanpito</a>
     <a href="/asiakkaat" target="_blank">Asiakkaat</a>
@@ -51,6 +57,10 @@ tr:hover{background:var(--fpale)}
 </div>
 
 <div class="main">
+
+  <div id="resk-no-asiakas" style="background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:16px;margin-bottom:24px;font-size:13px;color:var(--amber);text-align:center">
+    Valitse kirjanpitoasiakas yläpalkista ennen aloittamista
+  </div>
 
   <!-- Yhteenvetokortit -->
   <div class="cards" id="resk-cards">
@@ -110,7 +120,9 @@ tr:hover{background:var(--fpale)}
 const fmt = v => Math.abs(v).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtPv = iso => { if(!iso) return ''; const [y,m,d]=(iso||'').slice(0,10).split('-'); return d+'.'+m+'.'+y; };
 let reskData = [];
-let reskLuetut = []; // PDF:sta luetut, ei vielä tallennettu
+let reskLuetut = [];
+let reskAsiakkaat = []; // kirjanpitoasiakkaat (ppr_asiakkaat)
+let curReskAsiakas = null; // valittu kirjanpitoasiakas {id, nimi}
 
 // Toast
 let toastT;
@@ -121,10 +133,46 @@ function toast(msg) {
   toastT = setTimeout(() => t.classList.remove('sh'), 2800);
 }
 
-// Lataa reskontra API:sta
-async function reskLataa() {
+// Lataa kirjanpitoasiakkaat
+async function lataaReskAsiakkaat() {
   try {
-    const res = await fetch('/api/ppr/reskontra');
+    const res = await fetch('/api/ppr/asiakkaat');
+    if (!res.ok) return;
+    reskAsiakkaat = await res.json();
+    const sel = document.getElementById('resk-asiakas-select');
+    sel.innerHTML = '<option value="">— Valitse kirjanpitoasiakas —</option>';
+    reskAsiakkaat.forEach(a => {
+      sel.innerHTML += '<option value="' + a.id + '">' + a.nimi + '</option>';
+    });
+    // Autoselect jos vain yksi
+    if (reskAsiakkaat.length === 1) {
+      sel.value = reskAsiakkaat[0].id;
+      vaihdaReskAsiakas();
+    }
+  } catch(e) { console.warn('lataaReskAsiakkaat:', e); }
+}
+
+function vaihdaReskAsiakas() {
+  const id = document.getElementById('resk-asiakas-select').value;
+  curReskAsiakas = reskAsiakkaat.find(a => a.id === id) || null;
+  const noAsiakas = document.getElementById('resk-no-asiakas');
+  if (curReskAsiakas) {
+    noAsiakas.style.display = 'none';
+    console.log('Reskontra asiakas:', curReskAsiakas.nimi, curReskAsiakas.id);
+    reskLataa();
+  } else {
+    noAsiakas.style.display = 'block';
+    reskData = [];
+    reskRender();
+    reskPaivitaKortit();
+  }
+}
+
+// Lataa reskontra API:sta — suodatettu kirjanpitoasiakkaalla
+async function reskLataa() {
+  if (!curReskAsiakas) return;
+  try {
+    const res = await fetch('/api/ppr/reskontra?kirjanpitoasiakas_id=' + curReskAsiakas.id);
     if (!res.ok) { console.warn('reskontra fetch:', res.status); return; }
     reskData = await res.json();
     reskRender();
@@ -270,6 +318,7 @@ function reskPv(ddmmyyyy) {
 
 async function reskKirjaaAvoimet() {
   if (!reskLuetut.length) { toast('Ei laskuja kirjattavaksi'); return; }
+  if (!curReskAsiakas) { toast('Valitse kirjanpitoasiakas ensin'); return; }
   const btn = document.getElementById('resk-kirjaa-btn');
   btn.disabled = true; btn.textContent = 'Kirjataan...';
   const progEl = document.getElementById('resk-progress');
@@ -282,6 +331,7 @@ async function reskKirjaaAvoimet() {
   const BATCH = 10;
   for (let i = 0; i < reskLuetut.length; i += BATCH) {
     const erä = reskLuetut.slice(i, i + BATCH).map(l => ({
+      kirjanpitoasiakas_id: curReskAsiakas.id,
       lasku_nro: l.lasku_nro,
       asiakas: l.asiakas,
       osoite: l.osoite,
@@ -326,7 +376,7 @@ async function reskKirjaaAvoimet() {
 }
 
 // Init
-reskLataa();
+lataaReskAsiakkaat();
 </script>
 </body>
 </html>
