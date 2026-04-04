@@ -267,6 +267,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
 <body>
 
@@ -1784,6 +1785,7 @@ async function lataaRivit(asiakas_id) {
       k: Number(d.saldo) < 0 ? d.tili : '',
       netto: Math.abs(Number(d.saldo)),
       alvp: Number(d.alv_prosentti) || 0,
+      tosite_pdf_path: d.tosite_pdf_path || null,
     }));
   } else {
     rows = [];
@@ -1823,6 +1825,37 @@ function renderTK() {
 function copyTxt(t) { navigator.clipboard.writeText(t).catch(()=>{}); toast(`${t} kopioitu`); }
 
 // ── TOSITTEET ─────────────────────────────────────────────────
+async function naytaTositePdf(pdfPath) {
+  try {
+    const { data } = _sb.storage.from('tositteet').getPublicUrl(pdfPath);
+    if (!data?.publicUrl) { toast('PDF-polkua ei löydy'); return; }
+    // Avaa modaalissa
+    if (_popupEl) { _popupEl.remove(); _popupEl = null; }
+    document.getElementById('lasku-popup-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'lasku-popup-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:899';
+    const pop = document.createElement('div');
+    pop.id = 'lasku-popup';
+    pop.style.cssText = 'position:fixed;z-index:900;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--pp);border:1px solid var(--bd2);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:20px 24px;width:650px;max-height:90vh;overflow-y:auto;font-family:var(--ffb);font-size:12px';
+    pop.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite-PDF</div>
+      <button onclick="document.getElementById('lasku-popup')?.remove();document.getElementById('lasku-popup-overlay')?.remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--inf);line-height:1">×</button>
+    </div>
+    <div style="border-radius:6px;border:1px solid var(--bd);overflow:hidden"><canvas id="tosite-pdf-canvas" style="width:100%;height:auto;display:block"></canvas></div>`;
+    overlay.onclick = () => { pop.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(pop);
+    _popupEl = pop;
+    // Renderöi sivu 1 (yksi-sivuinen erotettu PDF)
+    const resp = await fetch(data.publicUrl);
+    const buf = await resp.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const canvas = document.getElementById('tosite-pdf-canvas');
+    if (canvas) await renderLaskuSivu(base64, 1, canvas);
+  } catch(e) { console.warn('naytaTositePdf virhe:', e); toast('PDF:n avaus epäonnistui'); }
+}
+
 function renderTositteet() {
   const q     = (document.getElementById('tos-search')?.value||'').trim().toLowerCase();
   const filt  = document.getElementById('tos-filter')?.value || 'kaikki';
@@ -1888,11 +1921,12 @@ function renderTositteet() {
         ${(pos?'+':'-')}${br.toLocaleString('fi-FI',{minimumFractionDigits:2})} €
       </td>
       <td style="padding:10px 14px">
-        ${harTosite ? `
+        ${harTosite || r.tosite_pdf_path ? `
           <div style="display:flex;flex-direction:column;gap:2px">
             <div style="display:flex;align-items:center;gap:5px">
               <span style="font-size:12px">📎</span>
               <span style="font-size:11px;font-weight:600;color:var(--ink)">${r.tosite_nro||r.tosite_tmttja||'—'}</span>
+              ${r.tosite_pdf_path ? `<a href="#" onclick="event.preventDefault();naytaTositePdf('${r.tosite_pdf_path}')" style="font-size:10px;color:var(--fl)" title="Avaa PDF">📄</a>` : ''}
             </div>
             ${r.tosite_tmttja&&r.tosite_nro?`<div style="font-size:10px;color:var(--inu)">${r.tosite_tmttja}</div>`:''}
             ${r.tosite_summa?`<div style="font-size:10px;color:var(--inu);font-family:var(--ffm)">${r.tosite_summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} € · ${r.tosite_pvm||''}</div>`:''}
@@ -3062,6 +3096,13 @@ async function impTuoRivi(i) {
   }
 
   try {
+    // Lataa laskun PDF-sivu Storageen jos liitetty lasku
+    let tosite_pdf_path = null;
+    if (t.laskuIdx != null && laskut[t.laskuIdx]?.pdfBase64) {
+      const lasku = laskut[t.laskuIdx];
+      tosite_pdf_path = await lataaLaskuPdf(lasku.pdfBase64, lasku.pageNumber || 1, tosite_nro);
+    }
+
     const res = await fetch('/api/ppr/paivakirja', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -3070,7 +3111,7 @@ async function impTuoRivi(i) {
         tosite_nro,
         paivamaara: t.arvopv,
         rivit,
-        liite_pdf: (t.laskuIdx != null && laskut[t.laskuIdx]?.pdfBase64) ? laskut[t.laskuIdx].pdfBase64 : null,
+        tosite_pdf_path,
       })
     });
     const json = await res.json();
@@ -3084,6 +3125,7 @@ async function impTuoRivi(i) {
       toast('Virhe: ' + json.error);
     }
   } catch(e) {
+    console.error('impTuoRivi virhe:', e);
     toast('Verkkovirhe');
   }
 }
@@ -3366,6 +3408,41 @@ async function renderLaskuSivu(base64pdf, pageNum, canvasEl) {
     canvasEl.height = viewport.height;
     await page.render({canvasContext: canvasEl.getContext('2d'), viewport}).promise;
   } catch(e) { console.warn('renderLaskuSivu virhe:', e); }
+}
+
+async function erotaSivu(alkupBase64, sivuNro) {
+  const { PDFDocument } = PDFLib;
+  const alkupBytes = Uint8Array.from(atob(alkupBase64), c => c.charCodeAt(0));
+  const alkupDoc = await PDFDocument.load(alkupBytes);
+  const uusiDoc = await PDFDocument.create();
+  const [sivu] = await uusiDoc.copyPages(alkupDoc, [sivuNro - 1]);
+  uusiDoc.addPage(sivu);
+  return await uusiDoc.save(); // Uint8Array
+}
+
+async function lataaStorageen(orgId, polku, uint8array) {
+  const { data, error } = await _sb.storage
+    .from('tositteet')
+    .upload(polku, uint8array, { contentType: 'application/pdf', upsert: true });
+  if (error) console.warn('Storage upload virhe:', error);
+  return data?.path || null;
+}
+
+async function lataaTiliotePdf(base64, kausi) {
+  if (!base64 || !window._PPR?.orgId) return null;
+  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const kk = kausi ? kausi.replace(/[^0-9-]/g,'').slice(0,7) : new Date().toISOString().slice(0,7);
+  const polku = window._PPR.orgId + '/tilioттeet/tiliote_' + kk + '.pdf';
+  return await lataaStorageen(window._PPR.orgId, polku, bytes);
+}
+
+async function lataaLaskuPdf(base64, sivuNro, tositeNro) {
+  if (!base64 || !window._PPR?.orgId) return null;
+  try {
+    const sivuBytes = await erotaSivu(base64, sivuNro);
+    const polku = window._PPR.orgId + '/laskut/lasku_' + tositeNro + '.pdf';
+    return await lataaStorageen(window._PPR.orgId, polku, sivuBytes);
+  } catch(e) { console.warn('lataaLaskuPdf virhe:', e); return null; }
 }
 
 // ── TAB 2: LASKUT PDF ─��──────────────────────────────────────
