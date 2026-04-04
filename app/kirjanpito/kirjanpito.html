@@ -636,6 +636,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:12px">
           <span style="color:var(--inu)">Pankki:</span>
           <select id="pankki-select" style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink);cursor:pointer">
+            <option value="" disabled selected>— Valitse pankki —</option>
             <option value="op">OP</option>
             <option value="nordea">Nordea</option>
             <option value="muu">Muu pankki</option>
@@ -4655,6 +4656,12 @@ async function analysePDF(file) {
         + 'Avain alkaa sk-ant-api03-…\n'
         + 'Hae osoitteesta: console.anthropic.com/settings/keys\n\n'
         + 'CSV-tiliote (pankin export) toimii ilman avainta.');
+    document.getElementById('file-in').value = '';
+    return;
+  }
+
+  if (!document.getElementById('pankki-select')?.value) {
+    alert('Valitse pankki ennen tiliotteen lataamista');
     document.getElementById('file-in').value = '';
     return;
   }
