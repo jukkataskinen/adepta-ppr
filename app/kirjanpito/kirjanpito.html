@@ -316,6 +316,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
     </div>
     <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')">Pankkituonti</div>
+    <div class="nav-item" id="nav-reskontra" onclick="showPanel('reskontra')">Myyntireskontra</div>
     <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')">Raportit</div>
     <div class="sb-div"></div>
     <div class="sb-sec">Hallinta</div>
@@ -962,6 +963,62 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </table>
     </div>
 
+    <!-- ─── MYYNTIRESKONTRA PANEL ─── -->
+    <div id="panel-reskontra" class="panel" style="overflow-y:auto;padding:24px 28px">
+      <h2>Myyntireskontra</h2>
+      <div class="panel-sub">Laskuaineiston tuonti ja seuranta</div>
+
+      <!-- Vaihe 1: Sisäänluku -->
+      <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-top:16px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:10px">1. Lataa laskuaineisto</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <input type="file" id="reskontra-file" accept=".pdf" style="font-size:11px;flex:1">
+          <button onclick="lueMyyLaskutPdf()" style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer">Lue laskut</button>
+        </div>
+        <div id="reskontra-status" style="font-size:11px;color:var(--inu)"></div>
+      </div>
+
+      <!-- Laskutaulukko -->
+      <div id="reskontra-lista" style="display:none;margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Luetut laskut (<span id="resk-lkm">0</span> kpl · <span id="resk-summa">0</span> €)</div>
+          <button id="resk-kirjaa-btn" onclick="reskKirjaaKaikki()" style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tee kirjanpitokirjaukset →</button>
+        </div>
+        <div id="resk-progress" style="display:none;margin-bottom:10px">
+          <div style="height:3px;background:var(--bd);border-radius:2px"><div id="resk-progress-bar" style="height:100%;background:var(--fg);width:0%;transition:width .2s;border-radius:2px"></div></div>
+          <div id="resk-progress-text" style="font-size:11px;color:var(--inu);margin-top:4px"></div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+            <th style="padding:8px;text-align:left">Lasku nro</th>
+            <th style="padding:8px;text-align:left">Asiakas</th>
+            <th style="padding:8px;text-align:left">Päivämäärä</th>
+            <th style="padding:8px;text-align:left">Eräpäivä</th>
+            <th style="padding:8px;text-align:right">Summa</th>
+            <th style="padding:8px;text-align:left">Viitenro</th>
+            <th style="padding:8px;text-align:center">Tila</th>
+          </tr></thead>
+          <tbody id="resk-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Reskontra (avoimet laskut) -->
+      <div id="reskontra-avoimet" style="display:none;margin-top:24px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:10px">Avoimet myyntilaskut</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+            <th style="padding:8px;text-align:left">Lasku</th>
+            <th style="padding:8px;text-align:left">Asiakas</th>
+            <th style="padding:8px;text-align:right">Summa</th>
+            <th style="padding:8px;text-align:left">Eräpäivä</th>
+            <th style="padding:8px;text-align:left">Viite</th>
+            <th style="padding:8px;text-align:center">Tila</th>
+          </tr></thead>
+          <tbody id="resk-avoimet-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ─── KIRJANPIDON TYÖKALUT PANEL ─── -->
     <div id="panel-tyokalut" class="panel">
       <h2>Kirjanpidon työkalut</h2>
@@ -1491,7 +1548,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -5774,6 +5831,174 @@ function lataaEtusivu() {
       '<td style="padding:7px 8px;font-family:var(--ffm);font-size:11px">' + tili + '</td>' +
       '<td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">' + fmtE(summa) + '</td></tr>';
   }).join('');
+}
+
+// ── MYYNTIRESKONTRA ──────────────────────────────────────────
+let reskLaskut = []; // {lasku_nro, asiakas, osoite, kaupunki, pvm, erapv, viite, summa, tila}
+
+async function lueMyyLaskutPdf() {
+  const fileEl = document.getElementById('reskontra-file');
+  const file = fileEl?.files?.[0];
+  if (!file) { alert('Valitse laskut-PDF'); return; }
+
+  const statusEl = document.getElementById('reskontra-status');
+  statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan laskuja...</span>';
+
+  try {
+    if (typeof pdfjsLib === 'undefined') { statusEl.innerHTML = '<span style="color:var(--red)">PDF.js ei ladattu</span>'; return; }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const buf = await file.arrayBuffer();
+    const pdfBytes = new Uint8Array(buf);
+    const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+
+    reskLaskut = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const rivit = [];
+      // Ryhmittele y-koordinaatin mukaan
+      const yMap = {};
+      content.items.forEach(item => {
+        const y = Math.round(item.transform[5] / 3) * 3;
+        if (!yMap[y]) yMap[y] = [];
+        yMap[y].push(item.str);
+      });
+      Object.keys(yMap).sort((a,b) => b - a).forEach(y => {
+        rivit.push(yMap[y].join(' ').trim());
+      });
+
+      // Parsitaan kentät
+      const kokoTeksti = rivit.join(' ');
+      const asiakas = rivit[7] || '';
+      const osoite = rivit[8] || '';
+      const kaupunki = rivit[9] || '';
+
+      // Laskun numero + päivämäärä
+      let lasku_nro = '', pvm = '';
+      const laskuM = kokoTeksti.match(/(\d{9})\s+(\d{2}\.\d{2}\.\d{4})/);
+      if (laskuM) { lasku_nro = laskuM[1]; pvm = reskParsePvm(laskuM[2]); }
+
+      // Viite + eräpäivä
+      let viite = '', erapv = '';
+      const viiteM = kokoTeksti.match(/(\d{5}\s\d{5})\s+(\d{2}\.\d{2}\.\d{4})/);
+      if (viiteM) { viite = viiteM[1].replace(/\s/g, ''); erapv = reskParsePvm(viiteM[2]); }
+
+      // Summa
+      let summa = 0;
+      const summaM = kokoTeksti.match(/Maksettava:\s*([\d\s,]+)\s*€/i);
+      if (summaM) summa = parseFloat(summaM[1].replace(/\s/g, '').replace(',', '.')) || 0;
+
+      if (lasku_nro && summa > 0) {
+        reskLaskut.push({ lasku_nro, asiakas: asiakas.trim(), osoite: osoite.trim(), kaupunki: kaupunki.trim(), pvm, erapv, viite, summa, tila: 'luettu', sivu: p });
+      }
+    }
+
+    console.log('Myyntilaskut luettu:', reskLaskut.length);
+    if (reskLaskut.length > 0) console.table(reskLaskut.slice(0, 5));
+
+    reskRenderLista();
+    statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${reskLaskut.length} laskua</span>`;
+  } catch(e) {
+    console.error('Myyntilaskujen luku:', e);
+    statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
+  }
+}
+
+function reskParsePvm(ddmmyyyy) {
+  const m = ddmmyyyy.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  return m ? m[3] + '-' + m[2] + '-' + m[1] : ddmmyyyy;
+}
+
+function reskRenderLista() {
+  const fmt = v => v.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const summaYht = reskLaskut.reduce((s, l) => s + l.summa, 0);
+  document.getElementById('resk-lkm').textContent = reskLaskut.length;
+  document.getElementById('resk-summa').textContent = fmt(summaYht);
+
+  const tbody = document.getElementById('resk-tbody');
+  tbody.innerHTML = '';
+  reskLaskut.forEach((l, i) => {
+    const tilaVari = l.tila === 'kirjattu' ? 'var(--fg3)' : l.tila === 'luettu' ? 'var(--amber)' : 'var(--inu)';
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.innerHTML = `
+      <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${l.lasku_nro}</td>
+      <td style="padding:7px 8px;color:var(--ink)">${l.asiakas}</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${fmtPv(l.pvm)}</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${fmtPv(l.erapv)}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(l.summa)} €</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${l.viite}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:11px;color:${tilaVari}">${l.tila === 'kirjattu' ? '✓ Kirjattu' : 'Luettu'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('reskontra-lista').style.display = 'block';
+}
+
+async function reskKirjaaKaikki() {
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  const btn = document.getElementById('resk-kirjaa-btn');
+  btn.disabled = true; btn.textContent = 'Kirjataan...';
+  const progressEl = document.getElementById('resk-progress');
+  const barEl = document.getElementById('resk-progress-bar');
+  const textEl = document.getElementById('resk-progress-text');
+  progressEl.style.display = 'block';
+
+  let kirjattu = 0, virheet = 0;
+  for (let i = 0; i < reskLaskut.length; i++) {
+    const l = reskLaskut[i];
+    if (l.tila === 'kirjattu') { kirjattu++; continue; }
+    const pct = Math.round((i + 1) / reskLaskut.length * 100);
+    barEl.style.width = pct + '%';
+    textEl.textContent = `${i + 1}/${reskLaskut.length} kirjattu`;
+
+    try {
+      const res = await fetch('/api/ppr/paivakirja', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          asiakas_id: curYritys.id,
+          tosite_nro: parseInt(l.lasku_nro) || (9100 + i),
+          paivamaara: l.pvm,
+          rivit: [
+            { tili: '1701', selite: l.asiakas + ' — Myyntilasku ' + l.lasku_nro, saldo: l.summa },
+            { tili: '3000', selite: l.asiakas + ' — Myyntilasku ' + l.lasku_nro, saldo: -l.summa }
+          ]
+        })
+      });
+      if (res.ok) { l.tila = 'kirjattu'; kirjattu++; }
+      else { virheet++; console.warn('Kirjausvirhe laskulle', l.lasku_nro, await res.json()); }
+    } catch(e) { virheet++; }
+  }
+
+  btn.disabled = false; btn.textContent = 'Tee kirjanpitokirjaukset →';
+  reskRenderLista();
+  await lataaRivit(curYritys.id);
+  reskRenderAvoimet();
+  toast(`Reskontra: ${kirjattu} kirjattu` + (virheet ? `, ${virheet} epäonnistui` : ''));
+}
+
+function reskRenderAvoimet() {
+  const fmt = v => v.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const avoimet = reskLaskut.filter(l => l.tila !== 'maksettu');
+  const tbody = document.getElementById('resk-avoimet-tbody');
+  tbody.innerHTML = '';
+  avoimet.forEach(l => {
+    const myohassa = l.erapv && l.erapv < new Date().toISOString().slice(0, 10);
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.innerHTML = `
+      <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${l.lasku_nro}</td>
+      <td style="padding:7px 8px;color:var(--ink)">${l.asiakas}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(l.summa)} €</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);color:${myohassa ? 'var(--red)' : 'var(--inu)'}">${fmtPv(l.erapv)}${myohassa ? ' ⚠' : ''}</td>
+      <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${l.viite}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:11px;color:${l.tila === 'kirjattu' ? 'var(--fg3)' : 'var(--amber)'}">${l.tila === 'kirjattu' ? 'Avoin' : l.tila}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('reskontra-avoimet').style.display = avoimet.length ? 'block' : 'none';
 }
 
 // ── START ────────────────────────────────────────────────────
