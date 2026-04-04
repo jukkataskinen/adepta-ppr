@@ -2818,6 +2818,7 @@ function genTosite(t) {
 }
 
 async function ladattuTiliote(tapahtumat, iban, period, tasmays) {
+  console.log('ladattuTiliote syöte (ensimmäiset 5):', tapahtumat.slice(0,5).map((t,i) => ({i, sel:t.sel, summa:t.summa, suunta:t.suunta, typeof_summa:typeof t.summa})));
   impTapahtumat = tapahtumat.map((t, i) => ({
     ...t,
     idx: i,
@@ -2827,6 +2828,7 @@ async function ladattuTiliote(tapahtumat, iban, period, tasmays) {
     kirjpv: t.kirjpv || t.pv || '',
     iban,   // tallenna IBAN jokaiseen riviin jonoa varten
   }));
+  console.log('impTapahtumat tulos (ensimmäiset 5):', impTapahtumat.slice(0,5).map((t,i) => ({i, sel:t.sel, summa:t.summa})));
   // Esipäättele vakiokirjaukset
   impTapahtumat.forEach(t => {
     const koko = (t.sel + ' ' + (t.maksu||'')).trim();
@@ -2894,6 +2896,15 @@ async function ladattuTiliote(tapahtumat, iban, period, tasmays) {
 }
 
 function renderImpTable() {
+  console.log('renderImpTable kutsuttu, impTapahtumat.length:', impTapahtumat.length);
+  if (impTapahtumat.length > 0) {
+    const summat = impTapahtumat.slice(0,5).map(t => t.summa);
+    const kaikkiSamat = summat.every(s => s === summat[0]);
+    console.log('Ensimmäiset 5 summaa:', summat, kaikkiSamat ? '⚠ KAIKKI SAMAT!' : '✓ erilaisia');
+    if (kaikkiSamat && impTapahtumat.length > 1) {
+      console.warn('BUGI: kaikki summat samat! Tarkista impTapahtumat:', impTapahtumat.slice(0,3));
+    }
+  }
   const tbody    = document.getElementById('imp-tbody');
   const tbodyPdf = document.getElementById('imp-tbody-pdf');
   if (tbody)    tbody.innerHTML = '';
