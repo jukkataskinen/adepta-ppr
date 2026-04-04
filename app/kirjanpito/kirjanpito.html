@@ -3069,7 +3069,8 @@ async function impTuoRivi(i) {
         asiakas_id: curYritys.id,
         tosite_nro,
         paivamaara: t.arvopv,
-        rivit
+        rivit,
+        liite_pdf: (t.laskuIdx != null && laskut[t.laskuIdx]?.pdfBase64) ? laskut[t.laskuIdx].pdfBase64 : null,
       })
     });
     const json = await res.json();

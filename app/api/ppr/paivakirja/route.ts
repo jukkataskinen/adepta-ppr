@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   const body = await request.json()
-  const { asiakas_id, tosite_nro, paivamaara, rivit } = body
+  const { asiakas_id, tosite_nro, paivamaara, rivit, liite_pdf } = body
 
   if (!asiakas_id || !tosite_nro || !paivamaara || !rivit?.length) {
     return NextResponse.json({ error: 'asiakas_id, tosite_nro, paivamaara ja rivit vaaditaan' }, { status: 400 })
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     .eq('asiakas_id', asiakas_id)
     .eq('tosite_nro', tosite_nro)
 
-  const insert = rivit.map((r: { tili: string; selite?: string; saldo: number; alv_prosentti?: number }) => ({
+  const insert = rivit.map((r: { tili: string; selite?: string; saldo: number; alv_prosentti?: number }, idx: number) => ({
     asiakas_id,
     tosite_nro,
     paivamaara,
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     saldo:    r.saldo,
     alv_prosentti: r.alv_prosentti ?? null,
     luonut_kayttaja_id: kayttaja?.id ?? null,
+    liite_pdf: idx === 0 && liite_pdf ? liite_pdf : null,
   }))
 
   const { error } = await supabaseAdmin!.from('ppr_paivakirja').insert(insert)
