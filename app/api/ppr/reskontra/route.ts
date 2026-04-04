@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
       .eq('auth_sub', session.user.sub)
       .single()
     if (!kayttaja) return NextResponse.json({ error: 'Käyttäjää ei löydy' }, { status: 404 })
+    console.log('reskontra GET kayttaja:', JSON.stringify(kayttaja), 'auth_sub:', session.user.sub)
 
     const { searchParams } = new URL(request.url)
     const asiakas_id = searchParams.get('asiakas_id')
