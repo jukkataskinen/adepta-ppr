@@ -653,6 +653,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
             <div style="font-size:12px;color:rgba(255,255,255,.6)" id="ai-match-stats"></div>
             <div style="margin-left:auto;display:flex;gap:6px">
               <button onclick="tuoKaikki()" style="padding:5px 12px;font-size:11px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer">Tuo täsmäytyneet →</button>
+              <button onclick="aloitaMatchGame()" style="padding:5px 12px;font-size:11px;font-weight:500;border:none;border-radius:5px;background:#e8a86a;color:var(--fd);cursor:pointer">🎯 Täsmäytä →</button>
               <button onclick="kaySeptapahtumat()" style="padding:5px 12px;font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:transparent;color:#fff;cursor:pointer">Käy läpi →</button>
             </div>
           </div>
@@ -670,6 +671,46 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               <div id="lasku-cards"></div>
             </div>
           </div>
+          <!-- ── MATCHING GAME ── -->
+          <div id="match-game" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">🎯 Täsmäytys — <span id="mg-progress">0/0</span></div>
+              <button onclick="lopetaMatchGame()" style="padding:4px 10px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inu);cursor:pointer">✕ Sulje</button>
+            </div>
+            <div style="display:grid;grid-template-columns:220px 1fr 160px;gap:12px;min-height:500px">
+              <!-- VASEN: tapahtuma + ehdotettu lasku + napit -->
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div id="mg-tapahtuma" style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:12px"></div>
+                <div id="mg-ehdotus" style="background:#f0faf5;border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:12px"></div>
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:auto">
+                  <button id="mg-hyvaksy" onclick="mgHyvaksy()" style="padding:8px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">✓ Hyväksy ja siirry →</button>
+                  <button onclick="mgOhita()" style="padding:6px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--inu);cursor:pointer">Ohita ilman kirjausta</button>
+                  <button onclick="mgKirjaaIlman()" style="padding:6px;font-size:11px;border:1px solid rgba(160,92,26,.2);border-radius:6px;background:var(--ambl);color:var(--amber);cursor:pointer">Kirjaa ilman laskua</button>
+                </div>
+              </div>
+              <!-- KESKI: PDF preview -->
+              <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;overflow:hidden;display:flex;flex-direction:column">
+                <div id="mg-pdf-header" style="padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;font-size:11px;color:var(--inu)">
+                  <span id="mg-pdf-title" style="flex:1;font-weight:600;color:var(--ink)">Ei laskua valittuna</span>
+                  <button onclick="mgPdfPrev()" style="padding:2px 8px;border:1px solid var(--bd);border-radius:4px;background:var(--pp);cursor:pointer;font-size:11px">◀</button>
+                  <span id="mg-pdf-page">-</span>
+                  <button onclick="mgPdfNext()" style="padding:2px 8px;border:1px solid var(--bd);border-radius:4px;background:var(--pp);cursor:pointer;font-size:11px">▶</button>
+                </div>
+                <div id="mg-pdf-container" style="flex:1;overflow-y:auto;padding:8px;text-align:center">
+                  <canvas id="mg-pdf-canvas" style="max-width:100%;height:auto"></canvas>
+                </div>
+              </div>
+              <!-- OIKEA: kohdistamattomien laskujen lista -->
+              <div style="display:flex;flex-direction:column">
+                <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px"><span id="mg-lasku-cnt">0</span> laskua</div>
+                <div id="mg-laskut-lista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px"
+                     ondragover="event.preventDefault();this.style.background='rgba(29,158,117,.05)'"
+                     ondragleave="this.style.background=''"
+                     ondrop="this.style.background=''"></div>
+              </div>
+            </div>
+          </div>
+
           <div id="import-preview" style="display:none">
             <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px">Kirjausvalmis aineisto</div>
             <table class="import-table" id="imp-table">
@@ -3166,6 +3207,251 @@ function kaySeptapahtumat() {
   const puuttuu = impTapahtumat.filter(t => t.tila !== 'tuotu' && t.tila !== 'ohitettu');
   if (!puuttuu.length) { toast('Kaikki tapahtumat käsitelty ✓'); return; }
   avaaVtModal(puuttuu[0].idx);
+}
+
+// ── MATCHING GAME ────────────────────────────────────────────
+let mgIdx = 0;          // nykyinen tapahtuma-indeksi (käsittelyssä)
+let mgQueue = [];       // käsiteltävät tapahtumat (indeksit impTapahtumat)
+let mgKirjattu = 0;
+let mgOhitettu2 = 0;
+let mgPdfPage = 1;
+let mgPdfTotal = 1;
+let mgPdfDoc = null;    // ladattu pdf-lib dokumentti
+
+function aloitaMatchGame() {
+  mgQueue = impTapahtumat
+    .map((t, i) => i)
+    .filter(i => impTapahtumat[i].tila !== 'tuotu' && impTapahtumat[i].tila !== 'ohitettu');
+  if (!mgQueue.length) { toast('Kaikki tapahtumat jo käsitelty ✓'); return; }
+  mgIdx = 0;
+  mgKirjattu = 0;
+  mgOhitettu2 = 0;
+  document.getElementById('match-game').style.display = 'block';
+  mgRender();
+}
+
+function lopetaMatchGame() {
+  document.getElementById('match-game').style.display = 'none';
+  if (mgKirjattu > 0 || mgOhitettu2 > 0) {
+    toast(`Täsmäytys valmis: ${mgKirjattu} kirjattu, ${mgOhitettu2} ohitettu`);
+  }
+}
+
+function mgRender() {
+  if (mgIdx >= mgQueue.length) {
+    // Kaikki käyty läpi
+    document.getElementById('match-game').style.display = 'none';
+    toast(`✓ Täsmäytys valmis: ${mgKirjattu} kirjattu, ${mgOhitettu2} ohitettu`);
+    renderImpTable();
+    return;
+  }
+
+  const ti = mgQueue[mgIdx];
+  const t = impTapahtumat[ti];
+  const pos = t.summa > 0;
+
+  // Progress
+  document.getElementById('mg-progress').textContent = (mgIdx + 1) + '/' + mgQueue.length;
+
+  // Vasen: tapahtuma
+  document.getElementById('mg-tapahtuma').innerHTML = `
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px">Tiliotetapahtuma</div>
+    <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px">${t.maksu || t.sel}</div>
+    ${t.maksu && t.maksu !== t.sel ? `<div style="font-size:11px;color:var(--inu);margin-bottom:4px">${t.sel}</div>` : ''}
+    <div style="font-size:18px;font-weight:300;font-family:var(--ffd);color:${pos?'var(--fg3)':'var(--red)'};margin-bottom:4px">${pos?'+':''}${t.summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} €</div>
+    <div style="font-size:11px;color:var(--inu)">${t.arvopv}${t.viite ? ' · Viite: ' + t.viite : ''}</div>
+    ${t.vak ? `<div style="margin-top:6px;font-size:11px;color:var(--fg3)">⚡ ${t.vak.lbl} (${t.vak.vt})</div>` : ''}
+  `;
+
+  // Ehdotettu lasku
+  const lasku = (t.laskuIdx != null) ? laskut[t.laskuIdx] : mgParasLasku(t);
+  mgRenderEhdotus(lasku, t);
+
+  // Oikea: kohdistamattomien laskujen lista
+  mgRenderLaskuLista(ti);
+}
+
+function mgParasLasku(t) {
+  // Etsi kohdistamaton lasku parhaalla pisteellä
+  let best = null, bestScore = 0;
+  const tSumma = Math.abs(t.summa);
+  laskut.forEach(l => {
+    if (l.tapIdx !== null) return;
+    let score = 0;
+    if (l.summa_brutto && Math.abs(tSumma - l.summa_brutto) <= Math.max(1.0, l.summa_brutto * 0.01)) score += 40;
+    const norm = s => (s||'').toLowerCase().replace(/[^a-zäöå0-9]/g,' ').trim();
+    if (norm(t.maksu || t.sel).includes(norm(l.toimittaja)) || norm(l.toimittaja).includes(norm(t.maksu || t.sel))) score += 30;
+    const tV = (t.viite||'').replace(/\s/g,''), lV = (l.viite||'').replace(/\s/g,'');
+    if (tV && lV && (tV === lV || tV.includes(lV) || lV.includes(tV))) score += 50;
+    if (score > bestScore) { bestScore = score; best = { lasku: l, score }; }
+  });
+  return best && bestScore >= 20 ? best.lasku : null;
+}
+
+function mgRenderEhdotus(lasku, t) {
+  const el = document.getElementById('mg-ehdotus');
+  if (!lasku) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--inu);text-align:center;padding:12px">Ei ehdotettua laskua.<br>Raahaa lasku oikeasta palkista.</div>`;
+    mgClearPdf();
+    return;
+  }
+  // Laske pisteet
+  const tSumma = Math.abs(t.summa);
+  let pisteet = 0;
+  if (lasku.summa_brutto && Math.abs(tSumma - lasku.summa_brutto) <= Math.max(1.0, lasku.summa_brutto * 0.01)) pisteet += 40;
+  const norm = s => (s||'').toLowerCase().replace(/[^a-zäöå0-9]/g,' ').trim();
+  if (norm(t.maksu || t.sel).includes(norm(lasku.toimittaja)) || norm(lasku.toimittaja).includes(norm(t.maksu || t.sel))) pisteet += 30;
+  const tV = (t.viite||'').replace(/\s/g,''), lV = (lasku.viite||'').replace(/\s/g,'');
+  if (tV && lV && (tV === lV || tV.includes(lV) || lV.includes(tV))) pisteet += 50;
+
+  const pisteVari = pisteet >= 70 ? 'var(--fg3)' : pisteet >= 40 ? 'var(--amber)' : 'var(--red)';
+
+  el.innerHTML = `
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:6px;display:flex;justify-content:space-between">
+      <span>Ehdotettu lasku</span>
+      <span style="color:${pisteVari};font-weight:700">${pisteet} p</span>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px">${lasku.toimittaja || '—'}</div>
+    <div style="font-size:15px;font-weight:300;font-family:var(--ffd);color:var(--ink);margin-bottom:4px">${lasku.summa_brutto ? lasku.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €' : '—'}</div>
+    <div style="font-size:11px;color:var(--inu)">${lasku.nro ? 'Nro: ' + lasku.nro : ''}${lasku.pvm ? ' · ' + lasku.pvm : ''}</div>
+    ${lasku.viite ? `<div style="font-size:10px;color:var(--inf);margin-top:2px">Viite: ${lasku.viite}</div>` : ''}
+    ${lasku.ehdotettu_tili ? `<div style="font-size:10px;color:var(--fl);margin-top:2px">Tili: ${lasku.ehdotettu_tili}</div>` : ''}
+  `;
+
+  // Tallenna linkki
+  const ti = mgQueue[mgIdx];
+  impTapahtumat[ti]._mgLasku = lasku;
+
+  // Renderöi PDF
+  if (lasku.pdfBase64) mgRenderPdf(lasku);
+  else mgClearPdf();
+}
+
+async function mgRenderPdf(lasku) {
+  try {
+    document.getElementById('mg-pdf-title').textContent = (lasku.toimittaja || 'Lasku') + (lasku.nro ? ' #' + lasku.nro : '');
+    if (typeof pdfjsLib === 'undefined') return;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const bytes = Uint8Array.from(atob(lasku.pdfBase64), c => c.charCodeAt(0));
+    mgPdfDoc = await pdfjsLib.getDocument({data: bytes}).promise;
+    mgPdfTotal = mgPdfDoc.numPages;
+    mgPdfPage = lasku.pageNumber || 1;
+    if (mgPdfPage > mgPdfTotal) mgPdfPage = 1;
+    await mgRenderPage();
+  } catch(e) { console.warn('mgRenderPdf virhe:', e); }
+}
+
+async function mgRenderPage() {
+  if (!mgPdfDoc) return;
+  const page = await mgPdfDoc.getPage(mgPdfPage);
+  const viewport = page.getViewport({scale: 2.0});
+  const canvas = document.getElementById('mg-pdf-canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+  document.getElementById('mg-pdf-page').textContent = mgPdfPage + '/' + mgPdfTotal;
+}
+
+function mgPdfPrev() { if (mgPdfPage > 1) { mgPdfPage--; mgRenderPage(); } }
+function mgPdfNext() { if (mgPdfPage < mgPdfTotal) { mgPdfPage++; mgRenderPage(); } }
+
+function mgClearPdf() {
+  document.getElementById('mg-pdf-title').textContent = 'Ei laskua valittuna';
+  document.getElementById('mg-pdf-page').textContent = '-';
+  const canvas = document.getElementById('mg-pdf-canvas');
+  if (canvas) { canvas.width = 0; canvas.height = 0; }
+  mgPdfDoc = null;
+}
+
+function mgRenderLaskuLista(currentTapIdx) {
+  const kohdistamattomatLaskut = laskut.filter(l => l.tapIdx === null);
+  document.getElementById('mg-lasku-cnt').textContent = kohdistamattomatLaskut.length;
+  const lista = document.getElementById('mg-laskut-lista');
+  lista.innerHTML = '';
+  kohdistamattomatLaskut.forEach(l => {
+    const card = document.createElement('div');
+    card.draggable = true;
+    card.style.cssText = 'background:var(--pp);border:1px solid var(--bd);border-radius:6px;padding:8px;cursor:grab;font-size:11px;transition:border-color .1s';
+    card.onmouseover = () => card.style.borderColor = 'var(--fl)';
+    card.onmouseout = () => card.style.borderColor = 'var(--bd)';
+    card.innerHTML = `
+      <div style="font-weight:600;color:var(--ink);margin-bottom:2px">${l.toimittaja || '—'}</div>
+      <div style="font-family:var(--ffd);color:var(--ink)">${l.summa_brutto ? l.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €' : '—'}</div>
+      <div style="color:var(--inu);font-size:10px">${l.pvm || ''}${l.nro ? ' · ' + l.nro : ''}</div>
+    `;
+    card.ondragstart = (e) => { e.dataTransfer.setData('text/plain', String(l.idx)); card.style.opacity = '0.5'; };
+    card.ondragend = () => { card.style.opacity = '1'; };
+    card.onclick = () => mgVaihdaLasku(l.idx);
+    lista.appendChild(card);
+  });
+  // Drop-zone keskialueelle
+  const pdfContainer = document.getElementById('mg-pdf-container');
+  pdfContainer.ondragover = (e) => { e.preventDefault(); pdfContainer.style.outline = '2px dashed var(--fg)'; };
+  pdfContainer.ondragleave = () => { pdfContainer.style.outline = ''; };
+  pdfContainer.ondrop = (e) => {
+    e.preventDefault();
+    pdfContainer.style.outline = '';
+    const laskuIdx = parseInt(e.dataTransfer.getData('text/plain'));
+    if (!isNaN(laskuIdx)) mgVaihdaLasku(laskuIdx);
+  };
+}
+
+function mgVaihdaLasku(laskuIdx) {
+  const ti = mgQueue[mgIdx];
+  const t = impTapahtumat[ti];
+  const lasku = laskut[laskuIdx];
+  if (!lasku) return;
+  mgRenderEhdotus(lasku, t);
+}
+
+async function mgHyvaksy() {
+  const ti = mgQueue[mgIdx];
+  const t = impTapahtumat[ti];
+  const lasku = t._mgLasku;
+
+  // Aseta vastatili laskusta tai vakiosta
+  if (lasku && lasku.ehdotettu_tili && !t.vak) {
+    t.vak = { vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti || 25.5, lbl: lasku.toimittaja };
+  }
+  if (!t.vak && !t.vtNro) {
+    toast('Aseta vastatili ensin (Käy läpi)');
+    return;
+  }
+
+  // Linkitä lasku tapahtumaan
+  if (lasku) {
+    lasku.tapIdx = ti;
+    t.laskuIdx = lasku.idx;
+  }
+
+  // Tuo rivi
+  await impTuoRivi(ti);
+  mgKirjattu++;
+  mgIdx++;
+  mgRender();
+}
+
+function mgOhita() {
+  const ti = mgQueue[mgIdx];
+  impTapahtumat[ti].tila = 'ohitettu';
+  mgOhitettu2++;
+  mgIdx++;
+  mgRender();
+}
+
+async function mgKirjaaIlman() {
+  const ti = mgQueue[mgIdx];
+  const t = impTapahtumat[ti];
+  if (!t.vak && !t.vtNro) {
+    toast('Aseta vastatili ensin (Käy läpi)');
+    return;
+  }
+  t._mgLasku = null;
+  t.laskuIdx = null;
+  await impTuoRivi(ti);
+  mgKirjattu++;
+  mgIdx++;
+  mgRender();
 }
 
 // ── VASTATILI MODAL ─────────────────────────────────────────
