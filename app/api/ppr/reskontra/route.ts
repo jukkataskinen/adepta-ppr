@@ -50,24 +50,41 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const rivit = Array.isArray(body) ? body : [body]
+    console.log('reskontra POST:', rivit.length, 'riviä, org:', kayttaja.organisaatio_id)
+    if (rivit.length > 0) console.log('reskontra POST esimerkki:', JSON.stringify(rivit[0]))
 
-    const insert = rivit.map(r => ({
-      organisaatio_id: kayttaja.organisaatio_id,
-      asiakas_id: r.asiakas_id || null,
-      lasku_nro: r.lasku_nro,
-      pvm: r.pvm,
-      erapv: r.erapv || null,
-      viite: r.viite || null,
-      summa: r.summa,
-      tila: r.tila || 'avoin',
-    }))
-
-    const { data, error } = await supabaseAdmin!
-      .from('ppr_reskontra')
-      .upsert(insert, { onConflict: 'viite' })
-      .select()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data, { status: 201 })
+    const tulokset = []
+    let virheet = 0
+    for (const r of rivit) {
+      const rivi = {
+        organisaatio_id: kayttaja.organisaatio_id,
+        asiakas_id: r.asiakas_id || null,
+        lasku_nro: r.lasku_nro || null,
+        pvm: r.pvm || null,
+        erapv: r.erapv || null,
+        viite: r.viite || null,
+        summa: r.summa || 0,
+        tila: r.tila || 'avoin',
+      }
+      try {
+        const { data, error } = await supabaseAdmin!
+          .from('ppr_reskontra')
+          .insert(rivi)
+          .select()
+          .single()
+        if (error) {
+          console.error('reskontra insert error:', error.code, error.message, 'lasku:', r.lasku_nro, 'viite:', r.viite)
+          virheet++
+        } else {
+          tulokset.push(data)
+        }
+      } catch(e: any) {
+        console.error('reskontra insert catch:', e.message, 'lasku:', r.lasku_nro)
+        virheet++
+      }
+    }
+    console.log('reskontra POST tulos:', tulokset.length, 'ok,', virheet, 'virheitä')
+    return NextResponse.json({ ok: true, tallennettu: tulokset.length, virheet }, { status: 201 })
   } catch (e: any) {
     console.error('reskontra POST:', e)
     return NextResponse.json({ error: e.message }, { status: 500 })
