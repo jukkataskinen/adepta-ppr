@@ -321,7 +321,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="sb-div"></div>
     <div class="sb-sec">Hallinta</div>
     <a class="nav-item" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
-    <div class="nav-item" id="nav-reskontra" onclick="showPanel('reskontra')">Myyntireskontra</div>
+    <div class="nav-item" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
     <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
     <div class="sb-div"></div>
     <div class="sb-sec">Kirjanpidon työkalut</div>
@@ -1020,6 +1020,59 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
     </div>
 
+    <!-- ─── ASIAKASREKISTERI PANEL ─── -->
+    <div id="panel-asiakasrek" class="panel" style="overflow:hidden;display:none">
+      <div style="display:grid;grid-template-columns:320px 1fr;height:100%;overflow:hidden">
+        <!-- VASEN: asiakaslistaus -->
+        <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:16px 14px 10px">
+            <h2 style="font-size:16px;margin-bottom:8px">Asiakasrekisteri</h2>
+            <input id="ar-search" type="text" placeholder="Hae osakasta..." oninput="arRender()" style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--bd);border-radius:6px;outline:none">
+          </div>
+          <div id="ar-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
+        </div>
+        <!-- OIKEA: valitun asiakkaan tiedot -->
+        <div style="overflow-y:auto;padding:20px 24px">
+          <div id="ar-ei-valittu" style="text-align:center;padding:60px 20px;color:var(--inu);font-size:13px">Valitse osakas vasemmalta</div>
+          <div id="ar-tiedot" style="display:none">
+            <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px">
+              <div id="ar-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--fg);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0"></div>
+              <div style="flex:1">
+                <h3 id="ar-nimi" style="font-size:16px;margin-bottom:4px"></h3>
+                <div id="ar-osoite" style="font-size:12px;color:var(--inu)"></div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+              <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:12px">
+                <div id="ar-laskuja" style="font-size:20px;font-weight:300;font-family:var(--ffd)">0</div>
+                <div style="font-size:10px;color:var(--inu);margin-top:2px">Laskuja</div>
+              </div>
+              <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:12px">
+                <div id="ar-avoin" style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--amber)">0 €</div>
+                <div style="font-size:10px;color:var(--inu);margin-top:2px">Avoinna</div>
+              </div>
+              <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:12px">
+                <div id="ar-maksettu" style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--fg3)">0 €</div>
+                <div style="font-size:10px;color:var(--inu);margin-top:2px">Maksettu</div>
+              </div>
+            </div>
+            <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:8px">Laskuhistoria</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+                <th style="padding:8px;text-align:left">Lasku nro</th>
+                <th style="padding:8px;text-align:left">Päivämäärä</th>
+                <th style="padding:8px;text-align:left">Eräpäivä</th>
+                <th style="padding:8px;text-align:right">Summa</th>
+                <th style="padding:8px;text-align:left">Viite</th>
+                <th style="padding:8px;text-align:center">Tila</th>
+              </tr></thead>
+              <tbody id="ar-laskut-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── KIRJANPIDON TYÖKALUT PANEL ─── -->
     <div id="panel-tyokalut" class="panel">
       <h2>Kirjanpidon työkalut</h2>
@@ -1550,7 +1603,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -5835,6 +5888,85 @@ function lataaEtusivu() {
   }).join('');
 }
 
+// ── ASIAKASREKISTERI (OSAKKAAT) ──────────────────────────────
+let arOsakkaat = [];
+let arValittu = null;
+
+async function lataaOsakkaat() {
+  if (!curYritys) return;
+  try {
+    const res = await fetch('/api/ppr/osakkaat?kirjanpitoasiakas_id=' + curYritys.id);
+    if (!res.ok) return;
+    arOsakkaat = await res.json();
+    arRender();
+  } catch(e) { console.warn('lataaOsakkaat:', e); }
+}
+
+function arRender() {
+  const q = (document.getElementById('ar-search')?.value || '').toLowerCase();
+  const lista = document.getElementById('ar-lista');
+  if (!lista) return;
+  lista.innerHTML = '';
+  const fmt = v => Math.abs(Number(v)||0).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  arOsakkaat.filter(o => !q || o.nimi.toLowerCase().includes(q)).forEach(o => {
+    const initials = (o.nimi||'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const avoin = Number(o.avoin_summa)||0;
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .1s;border:1px solid transparent;margin-bottom:2px';
+    card.onmouseover = () => card.style.background = 'var(--fpale)';
+    card.onmouseout = () => { if (arValittu?.id !== o.id) card.style.background = ''; };
+    if (arValittu?.id === o.id) { card.style.background = 'var(--fmist)'; card.style.borderColor = 'rgba(29,158,117,.2)'; }
+    card.onclick = () => { arValittu = o; arRender(); arNaytaTiedot(o); };
+    card.innerHTML = `
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--fg);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.nimi}</div>
+        <div style="font-size:11px;color:var(--inu)">${o.katuosoite||''} ${o.postinro||''} ${o.kaupunki||''}</div>
+        <div style="font-size:10px;color:var(--inu);margin-top:2px">${o.laskuja||0} laskua${avoin > 0 ? ' · <span style="color:var(--amber)">' + fmt(avoin) + ' € avoinna</span>' : ''}</div>
+      </div>
+    `;
+    lista.appendChild(card);
+  });
+}
+
+async function arNaytaTiedot(o) {
+  document.getElementById('ar-ei-valittu').style.display = 'none';
+  document.getElementById('ar-tiedot').style.display = 'block';
+  const initials = (o.nimi||'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('ar-avatar').textContent = initials;
+  document.getElementById('ar-nimi').textContent = o.nimi;
+  document.getElementById('ar-osoite').textContent = [o.katuosoite, o.postinro, o.kaupunki].filter(Boolean).join(', ');
+  const fmt = v => Math.abs(Number(v)||0).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('ar-laskuja').textContent = o.laskuja || 0;
+  document.getElementById('ar-avoin').textContent = fmt(o.avoin_summa) + ' €';
+  document.getElementById('ar-maksettu').textContent = fmt(o.maksettu_summa) + ' €';
+
+  // Hae laskut tältä osakkaalta
+  try {
+    const res = await fetch('/api/ppr/reskontra?kirjanpitoasiakas_id=' + curYritys.id);
+    if (!res.ok) return;
+    const data = await res.json();
+    const laskut = data.filter(r => r.osakas_id === o.id);
+    const tbody = document.getElementById('ar-laskut-tbody');
+    tbody.innerHTML = '';
+    laskut.forEach(l => {
+      const myohassa = l.tila === 'avoin' && l.erapv && l.erapv.slice(0,10) < new Date().toISOString().slice(0,10);
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--bd)';
+      tr.innerHTML = `
+        <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${l.lasku_nro||'—'}</td>
+        <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${fmtPv(l.pvm)}</td>
+        <td style="padding:7px 8px;font-family:var(--ffm);color:${myohassa?'var(--red)':'var(--inu)'}">${fmtPv(l.erapv)}${myohassa?' ⚠':''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(l.summa)} €</td>
+        <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${l.viite||'—'}</td>
+        <td style="padding:7px 8px;text-align:center;font-size:11px;color:${l.tila==='maksettu'?'var(--fg3)':myohassa?'var(--red)':'var(--amber)'}">${l.tila==='maksettu'?'Maksettu':myohassa?'Myöhässä':'Avoin'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch(e) { console.warn('arNaytaTiedot laskut:', e); }
+}
+
 // ── MYYNTIRESKONTRA ──────────────────────────────────────────
 let reskLaskut = []; // {lasku_nro, asiakas, osoite, kaupunki, pvm, erapv, viite, summa, tila}
 let reskApiData = []; // API:sta ladattu reskontra-data
@@ -6023,7 +6155,7 @@ function reskRenderAvoimet() {
   if (!tbody) return;
   tbody.innerHTML = '';
   avoimet.forEach(l => {
-    const nimi = l.asiakas?.nimi || l.asiakas_nimi || '—';
+    const nimi = l.osakas?.nimi || l.asiakas?.nimi || '—';
     const summa = Number(l.summa) || 0;
     const myohassa = l.erapv && l.erapv.slice(0,10) < new Date().toISOString().slice(0, 10);
     const tr = document.createElement('tr');

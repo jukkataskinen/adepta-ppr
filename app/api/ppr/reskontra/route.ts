@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin!
       .from('ppr_reskontra')
-      .select('*, asiakas:asiakas_id(nimi, katuosoite, postinro, kaupunki)')
+      .select('*, asiakas:asiakas_id(nimi, katuosoite, postinro, kaupunki), osakas:osakas_id(nimi, katuosoite, postinro, kaupunki)')
       .eq('organisaatio_id', kayttaja.organisaatio_id)
       .order('erapv', { ascending: true })
 
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
     const orgId = kayttaja.organisaatio_id
     const tulokset = []
     let virheet = 0
-    const asiakasCache: Record<string, string> = {} // nimi → id
+    const asiakasCache: Record<string, string> = {} // nimi → ppr_asiakkaat id
+    const osakasCache: Record<string, string> = {}  // nimi → ppr_osakkaat id
 
     for (const r of rivit) {
       try {
@@ -125,11 +126,42 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 2. Tallenna reskontra-rivi
+        // 2. Luo/hae osakas (ppr_osakkaat)
+        let osakas_id: string | null = null
+        const kirjAsId = r.kirjanpitoasiakas_id || null
+        if (nimi && kirjAsId) {
+          if (osakasCache[nimi]) {
+            osakas_id = osakasCache[nimi]
+          } else {
+            const { data: osEx } = await supabaseAdmin!
+              .from('ppr_osakkaat')
+              .select('id')
+              .eq('kirjanpitoasiakas_id', kirjAsId)
+              .eq('nimi', nimi)
+              .maybeSingle()
+            if (osEx) {
+              osakas_id = osEx.id
+              await supabaseAdmin!.from('ppr_osakkaat').update({
+                katuosoite: r.osoite || null, postinro: r.postinro || null, kaupunki: r.kaupunki || null
+              }).eq('id', osEx.id)
+            } else {
+              const { data: osNew, error: osErr } = await supabaseAdmin!
+                .from('ppr_osakkaat')
+                .insert({ kirjanpitoasiakas_id: kirjAsId, nimi, katuosoite: r.osoite || null, postinro: r.postinro || null, kaupunki: r.kaupunki || null })
+                .select('id').single()
+              if (!osErr && osNew) osakas_id = osNew.id
+              else if (osErr) console.warn('osakas insert:', osErr.code, osErr.message, nimi)
+            }
+            if (osakas_id) osakasCache[nimi] = osakas_id
+          }
+        }
+
+        // 3. Tallenna reskontra-rivi
         const rivi = {
           organisaatio_id: orgId,
-          kirjanpitoasiakas_id: r.kirjanpitoasiakas_id || null,
+          kirjanpitoasiakas_id: kirjAsId,
           asiakas_id,
+          osakas_id,
           lasku_nro: r.lasku_nro || null,
           pvm: r.pvm || null,
           erapv: r.erapv || null,
