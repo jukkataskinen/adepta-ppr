@@ -3653,6 +3653,31 @@ let laskut = [];
 let lmAktiivinen = null;
 let apiKey = '';   // tallennetaan sessioniin
 
+async function tallennaApiAvain(avain) {
+  if (!window._PPR?.orgId) return;
+  await _sb.from('ppr_asetukset').upsert({
+    organisaatio_id: window._PPR.orgId,
+    avain: 'anthropic_api_key',
+    arvo: avain
+  }, { onConflict: 'organisaatio_id,avain' });
+  sessionStorage.setItem('adepta_api_key', avain);
+}
+
+async function haeApiAvain() {
+  if (!window._PPR?.orgId) return;
+  const { data } = await _sb.from('ppr_asetukset')
+    .select('arvo')
+    .eq('organisaatio_id', window._PPR.orgId)
+    .eq('avain', 'anthropic_api_key')
+    .single();
+  if (data?.arvo) {
+    sessionStorage.setItem('adepta_api_key', data.arvo);
+    apiKey = data.arvo;
+    const inp = document.getElementById('api-key-input');
+    if (inp) { inp.value = data.arvo; apiKeyChanged(data.arvo); }
+  }
+}
+
 function apiKeyChanged(val) {
   apiKey = (val || document.getElementById('api-key-input').value || '').trim();
   const el = document.getElementById('api-key-status');
@@ -3662,6 +3687,7 @@ function apiKeyChanged(val) {
     el.style.color = 'var(--fg3)';
     el.style.borderColor = 'rgba(29,158,117,.2)';
     sessionStorage.setItem('adepta_api_key', apiKey);
+    tallennaApiAvain(apiKey);
   } else if (apiKey.length > 5) {
     el.textContent = '⚠ Tarkista avain';
     el.style.background = 'var(--ambl)';
@@ -4363,6 +4389,7 @@ document.getElementById('sb-user-name').textContent = window._PPR?.email || '—
 document.getElementById('sb-user-role').textContent = window._PPR?.rooli === 'paakayttaja' ? 'Pääkäyttäjä' : 'Kirjanpitäjä';
 toggleNavGroup('kirjanpito');
 lataaYritykset();
+haeApiAvain();
 
 // ── TOSITTEEN SYÖTTÖ ─────────────────────────────────────────
 let tositeRivit = [];
