@@ -6015,9 +6015,19 @@ async function lueMyyLaskutPdf() {
 
       // Parsitaan kentät
       const kokoTeksti = rivit.join(' ');
-      const asiakas = rivit[7] || '';
-      const osoite = rivit[8] || '';
-      const kaupunki = rivit[9] || '';
+      if (p === 1) console.log('Myyntilasku sivu 1 rivit:', rivit.slice(0, 15));
+
+      // Etsi asiakas: ensimmäinen rivi joka on kokonaan isoilla (vähintään 4 merkkiä, ei sisällä tunnettuja otsikoita)
+      let asiakasIdx = -1;
+      for (let ri = 0; ri < rivit.length; ri++) {
+        const r = rivit[ri].trim();
+        if (r.length < 4) continue;
+        if (/lasku|faktura|viitenro|eräpäivä|päivämäärä|maksettava|yhteensä|alv|tilinumero|bic/i.test(r)) continue;
+        if (r === r.toUpperCase() && /^[A-ZÄÖÅÉ\s-]+$/.test(r)) { asiakasIdx = ri; break; }
+      }
+      const asiakas = asiakasIdx >= 0 ? rivit[asiakasIdx] : '';
+      const osoite = asiakasIdx >= 0 && rivit[asiakasIdx + 1] ? rivit[asiakasIdx + 1] : '';
+      const kaupunki = asiakasIdx >= 0 && rivit[asiakasIdx + 2] ? rivit[asiakasIdx + 2] : '';
 
       // Laskun numero + päivämäärä
       let lasku_nro = '', pvm = '';
