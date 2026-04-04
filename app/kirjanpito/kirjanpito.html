@@ -2948,8 +2948,9 @@ function renderImpTable() {
 let _popupEl = null;
 function naytaLaskuPopup(event, tapIdx) {
   event.stopPropagation();
-  // Poista vanha popup
+  // Poista vanha popup + overlay
   if (_popupEl) { _popupEl.remove(); _popupEl = null; }
+  document.getElementById('lasku-popup-overlay')?.remove();
 
   const t = impTapahtumat[tapIdx];
   if (t.laskuIdx === undefined || t.laskuIdx === null) return;
@@ -2960,24 +2961,20 @@ function naytaLaskuPopup(event, tapIdx) {
   pop.id = 'lasku-popup';
   pop.style.cssText = `
     position:fixed;z-index:900;
+    top:50%;left:50%;transform:translate(-50%,-50%);
     background:var(--pp);border:1px solid var(--bd2);border-radius:10px;
-    box-shadow:0 8px 32px rgba(0,0,0,.18);padding:16px 18px;width:300px;
+    box-shadow:0 8px 32px rgba(0,0,0,.18);padding:20px 24px;width:650px;
+    max-height:90vh;overflow-y:auto;
     font-family:var(--ffb);font-size:12px;
   `;
-
-  // Asemoi kursorin viereen
-  const x = Math.min(event.clientX + 12, window.innerWidth - 320);
-  const y = Math.min(event.clientY + 8,  window.innerHeight - 280);
-  pop.style.left = x + 'px';
-  pop.style.top  = y + 'px';
 
   pop.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Liitetty lasku</div>
-      <button onclick="document.getElementById('lasku-popup').remove()"
+      <button onclick="document.getElementById('lasku-popup')?.remove();document.getElementById('lasku-popup-overlay')?.remove()"
         style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--inf);line-height:1;margin:-4px -4px 0 0">×</button>
     </div>
-    ${l.pdfBase64 ? `<div style="max-height:300px;overflow-y:auto;margin-bottom:10px;border-radius:6px;border:1px solid var(--bd)"><canvas id="lasku-popup-canvas" style="width:100%;display:block"></canvas></div>` : ''}
+    ${l.pdfBase64 ? `<div style="margin-bottom:12px;border-radius:6px;border:1px solid var(--bd);overflow:hidden"><canvas id="lasku-popup-canvas" style="width:100%;height:auto;display:block"></canvas></div>` : ''}
     <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px">${l.toimittaja||'—'}</div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px">
       ${l.nro ? `<span style="color:var(--inu)">Laskun nro</span><span style="font-family:var(--ffm);color:var(--ink)">${l.nro}</span>` : ''}
@@ -2991,17 +2988,23 @@ function naytaLaskuPopup(event, tapIdx) {
     </div>
     ${l.kuvaus ? `<div style="margin-top:10px;padding:8px 10px;background:var(--ppw);border-radius:6px;font-size:11px;color:var(--inm);line-height:1.5">${l.kuvaus}</div>` : ''}
     <div style="margin-top:12px;display:flex;gap:6px">
-      <button onclick="avaaLaskuModal(${tapIdx});document.getElementById('lasku-popup').remove()"
+      <button onclick="avaaLaskuModal(${tapIdx});document.getElementById('lasku-popup')?.remove();document.getElementById('lasku-popup-overlay')?.remove()"
         style="flex:1;padding:6px;font-family:var(--ffb);font-size:11px;font-weight:500;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--inm);cursor:pointer">
         ✎ Muuta liitostä
       </button>
-      <button onclick="impTuoRivi(${tapIdx});document.getElementById('lasku-popup')?.remove()"
+      <button onclick="impTuoRivi(${tapIdx});document.getElementById('lasku-popup')?.remove();document.getElementById('lasku-popup-overlay')?.remove()"
         style="flex:1;padding:6px;font-family:var(--ffb);font-size:11px;font-weight:500;border:none;border-radius:6px;background:var(--fl);color:#fff;cursor:pointer">
         ✓ Kirjaa
       </button>
     </div>
   `;
 
+  // Overlay-tausta
+  const overlay = document.createElement('div');
+  overlay.id = 'lasku-popup-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:899';
+  overlay.onclick = () => { pop.remove(); overlay.remove(); _popupEl = null; };
+  document.body.appendChild(overlay);
   document.body.appendChild(pop);
   _popupEl = pop;
 
@@ -3010,13 +3013,6 @@ function naytaLaskuPopup(event, tapIdx) {
     const canvas = document.getElementById('lasku-popup-canvas');
     if (canvas) renderLaskuSivu(l.pdfBase64, l.pageNumber || 1, canvas);
   }
-
-  // Sulje klikkaamalla muualle
-  setTimeout(() => {
-    document.addEventListener('click', function closePopup(e) {
-      if (!pop.contains(e.target)) { pop.remove(); _popupEl = null; document.removeEventListener('click', closePopup); }
-    });
-  }, 10);
 }
 async function impTuoRivi(i) {
   const t = impTapahtumat[i];
@@ -3364,7 +3360,7 @@ async function renderLaskuSivu(base64pdf, pageNum, canvasEl) {
     const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
     const pn = Math.min(Math.max(pageNum, 1), pdf.numPages);
     const page = await pdf.getPage(pn);
-    const viewport = page.getViewport({scale: 1.5});
+    const viewport = page.getViewport({scale: 2.0});
     canvasEl.width = viewport.width;
     canvasEl.height = viewport.height;
     await page.render({canvasContext: canvasEl.getContext('2d'), viewport}).promise;
