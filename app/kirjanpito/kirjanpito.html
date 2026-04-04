@@ -1031,6 +1031,75 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   </div>
 </div>
 
+<!-- ── VAIHE 2: TARKISTUSMODAL ── -->
+<div id="tarkistus-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="suljeTarkistus()"></div>
+  <div style="position:relative;max-width:900px;height:90vh;margin:5vh auto;display:flex;flex-direction:column;background:var(--fd);border-radius:12px;overflow:hidden;z-index:1">
+    <!-- Yläpalkki -->
+    <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:14px;font-weight:600;color:#fff">Tiliotteen tarkistus</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5)" id="tark-header-info">—</div>
+      <div style="margin-left:auto">
+        <button onclick="suljeTarkistus()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;line-height:1">✕</button>
+      </div>
+    </div>
+
+    <!-- Runko -->
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden">
+      <!-- VASEN: tapahtumalista -->
+      <div style="overflow-y:auto;padding:14px;border-right:1px solid rgba(255,255,255,.06)">
+        <div id="tark-alkusaldo" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between;font-size:12px">
+          <span style="color:rgba(255,255,255,.4)">Alkusaldo</span>
+          <span id="tark-alkusaldo-val" style="font-family:var(--ffm);color:#fff;font-weight:600">—</span>
+        </div>
+        <div id="tark-tapahtumat" style="display:flex;flex-direction:column;gap:2px"></div>
+        <div id="tark-loppusaldo" style="border-radius:6px;padding:8px 12px;margin-top:8px;display:flex;justify-content:space-between;font-size:12px;font-weight:600"></div>
+      </div>
+
+      <!-- OIKEA: vertailu + PDF -->
+      <div style="overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div id="tark-verdict" style="border-radius:8px;padding:14px 16px;text-align:center;font-size:14px;font-weight:600"></div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <tbody>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+              <td style="padding:6px 8px;color:rgba(255,255,255,.4)">Alkusaldo (luettu)</td>
+              <td id="tark-tbl-alkusaldo" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+              <td style="padding:6px 8px;color:rgba(255,255,255,.4)">Loppusaldo (luettu)</td>
+              <td id="tark-tbl-loppusaldo-luettu" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+              <td style="padding:6px 8px;color:rgba(255,255,255,.4)">Loppusaldo (laskettu)</td>
+              <td id="tark-tbl-loppusaldo-laskettu" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+              <td style="padding:6px 8px;color:rgba(255,255,255,.4)">Tapahtumia</td>
+              <td id="tark-tbl-lkm" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 8px;color:rgba(255,255,255,.4)">Summa yhteensä</td>
+              <td id="tark-tbl-summa" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:8px">Tiliote-PDF</div>
+        <div id="tark-pdf-container" style="background:rgba(0,0,0,.15);border-radius:6px;padding:8px;max-height:400px;overflow-y:auto;text-align:center">
+          <canvas id="tark-pdf-canvas" style="max-width:100%;height:auto;border-radius:4px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alapalkki -->
+    <div style="padding:12px 18px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px">
+      <button onclick="suljeTarkistus()" style="padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer">← Takaisin</button>
+      <div style="flex:1"></div>
+      <span id="tark-jatka-silti" style="display:none;font-size:11px;color:rgba(255,255,255,.3);cursor:pointer;text-decoration:underline" onclick="siirryVaihe3()">Jatka silti</span>
+      <button id="tark-hyvaksy-btn" onclick="siirryVaihe3()" style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Hyväksy ja siirry kohdistukseen →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MATCHING GAME MODAL ── -->
 <div id="match-game" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="lopetaMatchGame()"></div>
@@ -2682,6 +2751,9 @@ const OP_DEMO_TAPAHTUMAT = [
 let impTapahtumat = [];   // kaikki parsitut tapahtumat
 let impTositeNroLaskuri = null; // seuraava vapaa tositenumero tuonnin aikana
 let impTuomatta = [];     // vielä tuomatta (indeksit impTapahtumat)
+let impTiliote = null;    // Vaihe 1 tulos: { pankki, iban, alkusaldo, loppusaldo, tapahtumat }
+let impVaihe = 1;         // Pipeline: 1=sisäänluku, 2=tarkistus, 3=matching
+let impPdfBase64 = null;  // Alkuperäinen PDF base64
 let vtIdx = null;         // modal: käsiteltävä tapahtuma-indeksi
 let vtSelvitys = [];      // väliaikaiset ratkaisut käy-läpi-moodissa
 let vtSelNro = null;      // valittu vastatili-nro modalissa
@@ -3254,6 +3326,107 @@ function kaySeptapahtumat() {
   const puuttuu = impTapahtumat.filter(t => t.tila !== 'tuotu' && t.tila !== 'ohitettu');
   if (!puuttuu.length) { toast('Kaikki tapahtumat käsitelty ✓'); return; }
   avaaVtModal(puuttuu[0].idx);
+}
+
+// ── VAIHE 2: TARKISTUSMODAL ──────────────────────────────────
+function avaaTarkistusModal() {
+  if (!impTiliote) return;
+  const ti = impTiliote;
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Header info
+  document.getElementById('tark-header-info').textContent =
+    (ti.pankki || '') + (ti.iban ? ' · ' + ti.iban : '') + (ti.kausi ? ' · ' + ti.kausi : '');
+
+  // Alkusaldo
+  document.getElementById('tark-alkusaldo-val').textContent = fmt(ti.alkusaldo) + ' €';
+
+  // Tapahtumalista + juokseva saldo
+  const lista = document.getElementById('tark-tapahtumat');
+  lista.innerHTML = '';
+  let saldo = ti.alkusaldo;
+  ti.tapahtumat.forEach((t, i) => {
+    saldo += t.summa;
+    const pos = t.summa > 0;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;gap:8px';
+    row.innerHTML = `
+      <span style="color:rgba(255,255,255,.3);width:60px;font-family:var(--ffm);font-size:10px;flex-shrink:0">${t.arvopv || t.kirjpv || ''}</span>
+      <span style="flex:1;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.sel || ''}${t.maksu && t.maksu !== t.sel ? ' — ' + t.maksu : ''}</span>
+      <span style="font-family:var(--ffm);font-weight:600;color:${pos?'var(--fg3)':'var(--red)'};min-width:70px;text-align:right">${pos?'+':''}${fmt(t.summa)}</span>
+      <span style="font-family:var(--ffm);color:rgba(255,255,255,.4);min-width:70px;text-align:right">${fmt(saldo)}</span>
+    `;
+    lista.appendChild(row);
+  });
+
+  const laskettuLoppu = saldo;
+  const ero = Math.abs(laskettuLoppu - ti.loppusaldo);
+  const tasmaa = ero < 0.02;
+
+  // Loppusaldo rivi
+  const loppuEl = document.getElementById('tark-loppusaldo');
+  loppuEl.style.background = tasmaa ? 'rgba(29,158,117,.12)' : 'rgba(220,60,60,.12)';
+  loppuEl.style.border = tasmaa ? '1px solid rgba(29,158,117,.25)' : '1px solid rgba(220,60,60,.25)';
+  loppuEl.innerHTML = `
+    <span style="color:${tasmaa?'var(--fg3)':'var(--red)'}">Laskettu loppusaldo</span>
+    <span style="font-family:var(--ffm);color:${tasmaa?'var(--fg3)':'var(--red)'}">${fmt(laskettuLoppu)} €</span>
+  `;
+
+  // Verdict
+  const verdict = document.getElementById('tark-verdict');
+  if (tasmaa) {
+    verdict.style.background = 'rgba(29,158,117,.12)';
+    verdict.style.color = 'var(--fg3)';
+    verdict.innerHTML = '✓ Saldot täsmäävät';
+  } else {
+    verdict.style.background = 'rgba(220,60,60,.12)';
+    verdict.style.color = 'var(--red)';
+    verdict.innerHTML = '✗ Saldoero: ' + fmt(ero) + ' €';
+  }
+
+  // Taulukko
+  document.getElementById('tark-tbl-alkusaldo').textContent = fmt(ti.alkusaldo) + ' €';
+  document.getElementById('tark-tbl-loppusaldo-luettu').textContent = fmt(ti.loppusaldo) + ' €';
+  document.getElementById('tark-tbl-loppusaldo-laskettu').textContent = fmt(laskettuLoppu) + ' €';
+  document.getElementById('tark-tbl-lkm').textContent = ti.tapahtumat.length;
+  const summaYht = ti.tapahtumat.reduce((s,t) => s + t.summa, 0);
+  document.getElementById('tark-tbl-summa').textContent = (summaYht >= 0 ? '+' : '') + fmt(summaYht) + ' €';
+
+  // Hyväksy-nappi
+  const btn = document.getElementById('tark-hyvaksy-btn');
+  const jatkaSilti = document.getElementById('tark-jatka-silti');
+  if (tasmaa) {
+    btn.disabled = false;
+    btn.style.background = 'var(--fg)';
+    btn.style.color = '#fff';
+    btn.style.cursor = 'pointer';
+    btn.textContent = 'Hyväksy ja siirry kohdistukseen →';
+    jatkaSilti.style.display = 'none';
+  } else {
+    btn.disabled = true;
+    btn.style.background = 'rgba(255,255,255,.1)';
+    btn.style.color = 'rgba(255,255,255,.3)';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'Tarkista tiliote ennen jatkamista';
+    jatkaSilti.style.display = 'inline';
+  }
+
+  // PDF preview
+  if (impPdfBase64) {
+    renderLaskuSivu(impPdfBase64, 1, document.getElementById('tark-pdf-canvas'));
+  }
+
+  document.getElementById('tarkistus-modal').style.display = 'block';
+}
+
+function suljeTarkistus() {
+  document.getElementById('tarkistus-modal').style.display = 'none';
+}
+
+function siirryVaihe3() {
+  suljeTarkistus();
+  impVaihe = 3;
+  aloitaMatchGame();
 }
 
 // ── MATCHING GAME ────────────────────────────────────────────
@@ -4364,75 +4537,43 @@ async function analysePDF(file) {
 
   setStatus('Claude analysoi…', 'Etsitään tiliote- ja laskuaineisto (voi kestää 10–30 s)', 30);
 
-  const prompt = `Sinulle annetaan suomalainen pankkitiliote (OP, Nordea, Danske tai muu).
-Tunnista pankki ja formaatti automaattisesti.
-
-Parsii KAIKKI yksittäiset tapahtumat. Jätä pois:
-- Saldo-rivit (SALDO, NOSTOVARA, PANOT/KAUSI, OTOT/KAUSI)
-- Otsikkorivit ja tyhjät rivit
-- Yhteenvetorivit
-
-Jos dokumentissa on myös ostolaskuja tai myyntilaskuja, tunnista ne erikseen.
-Jos sekä tiliote että laskuja löytyy, yritä täsmäyttää laskut tiliotteen tapahtumiin:
-- Viitenumero (osittainen osuma riittää)
-- Summa (±1 € tai ±2 %)
-- Toimittajan nimi vs. maksajan nimi
-- Päivämäärä (±14 pv)
+  const prompt = `Analysoi tämä suomalainen pankkitiliote (OP, Nordea tai muu pankki).
 
 Palauta VAIN JSON, ei muuta tekstiä eikä markdown-koodilohkoja:
 {
-  "pankki": "OP/Nordea/Danske/muu",
-  "tiliote": {
-    "loydetty": true,
-    "iban": "tilinumero tai null",
-    "kausi": "esim. 1.5.–30.6.2025 tai null",
-    "tapahtumat": [
-      {
-        "kirjpv": "YYYY-MM-DD",
-        "arvopv": "YYYY-MM-DD",
-        "tiliotenro": 6,
-        "tapnro": 1,
-        "sel": "Tapahtuman selite",
-        "maksu": "Maksajan/saajan nimi tai null",
-        "summa": 150.00,
-        "suunta": "kredit",
-        "viite": "viitenumero tai null"
-      }
-    ]
-  },
+  "pankki": "OP/Nordea/muu",
+  "iban": "FI...",
+  "kausi": "1.5.–30.6.2025 tai null",
+  "alkusaldo": 1240.55,
+  "loppusaldo": 312.45,
+  "tapahtumat": [
+    { "kirjpv": "YYYY-MM-DD", "arvopv": "YYYY-MM-DD", "tiliotenro": 6, "tapnro": 1,
+      "sel": "Tapahtuman selite", "maksu": "Maksajan/saajan nimi tai null",
+      "summa": 103.21, "suunta": "kredit", "viite": "viitenumero tai null" }
+  ],
   "laskut": [
-    {
-      "nro": "laskun numero",
-      "toimittaja": "toimittajan nimi",
-      "pvm": "YYYY-MM-DD",
-      "erapv": "YYYY-MM-DD tai null",
-      "summa_brutto": 150.00,
-      "summa_netto": 119.62,
-      "alv_prosentti": 25.5,
-      "viite": "viitenumero tai null",
-      "kuvaus": "laskun sisältö lyhyesti",
-      "ehdotettu_tili": "LK2025-tilinumero esim. 7950 tai null",
-      "page_number": 3
-    }
+    { "nro": "laskun numero", "toimittaja": "toimittajan nimi",
+      "pvm": "YYYY-MM-DD", "erapv": "YYYY-MM-DD tai null",
+      "summa_brutto": 150.00, "summa_netto": 119.62, "alv_prosentti": 25.5,
+      "viite": "viitenumero tai null", "kuvaus": "laskun sisältö lyhyesti",
+      "ehdotettu_tili": "LK2025-tilinumero esim. 7950 tai null", "page_number": 3 }
   ],
   "tasmaytyket": [
-    {
-      "tapnro": 2,
-      "lasku_nro": "2025-001",
-      "varmuus": "korkea",
-      "peruste": "viite ja summa täsmäävät"
-    }
+    { "tapnro": 2, "lasku_nro": "2025-001", "varmuus": "korkea", "peruste": "viite ja summa täsmäävät" }
   ]
 }
 
-TÄRKEÄÄ — summa ja suunta:
-- summa on AINA positiivinen NUMERO (float), esim. 150.00 — EI KOSKAAN teksti
-- suunta on AINA teksti: "kredit" = maksettu tililtä, "debet" = saatu tilille
-- Nordean tiliotteessa miinusmerkki tarkoittaa suuntaa "kredit"
-- OP:n tiliotteessa sarakkeet voivat olla eri järjestyksessä
+SÄÄNNÖT:
+- summa AINA positiivinen numero (float), EI KOSKAAN teksti
+- suunta: "kredit" = raha poistuu tililtä, "debet" = raha tulee tilille
+- OP: miinusmerkki = kredit, plusmerkki = debet
+- Nordea: sama logiikka, sarakkeet voivat olla eri järjestyksessä
+- Jätä pois: SALDO-rivit, yhteenvetorivit, otsikkorivit, NOSTOVARA, PANOT/KAUSI, OTOT/KAUSI
+- Sisällytä: alkusaldo ja loppusaldo erikseen (numerot, ei riveinä tapahtumat-listaan)
 - ÄLÄ SEKOITA: summa: "debet" on VÄÄRIN — oikein: summa: 150.00, suunta: "debet"
 - Arvopäivä on tositepäivä. Anna täsmäytyksiä rohkeasti.
-- page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
+- page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.
+- Jos dokumentissa on sekä tiliote että laskuja, täsmäytä ne (viite, summa, nimi, pvm).`;
 
   try {
     setStatus('Claude lukee dokumenttia…', 'Tunnistetaan tiliote ja laskut', 55);
@@ -4526,51 +4667,57 @@ async function prosessoiAITulos(parsed, filename, base64) {
   document.getElementById('ai-analysing').style.display = 'none';
   const sl = document.getElementById('scan-loader');
   if (sl) sl.style.display = 'none';
+  impPdfBase64 = base64;
 
-  // 1. Lataa tiliote — validoi ja muunna summat
-  const tiliote = parsed.tiliote;
-  if (tiliote && tiliote.loydetty && tiliote.tapahtumat?.length) {
+  // 1. Validoi ja muunna tiliotetapahtumat
+  const tiliote = parsed.tiliote || parsed;
+  const raakaTapahtumat = tiliote.tapahtumat || parsed.tapahtumat || [];
+  if (raakaTapahtumat.length > 0) {
     const validoidut = [];
-    tiliote.tapahtumat.forEach((t, i) => {
-      // Korjaa yleinen AI-virhe: summa sisältää tekstin "debet"/"kredit"
+    raakaTapahtumat.forEach((t, i) => {
       let rawSumma = t.summa;
       let suunta = t.suunta;
       if (typeof rawSumma === 'string') {
         if (rawSumma === 'debet' || rawSumma === 'kredit') {
-          // AI sekoitti kentät: summa-kentässä on suunta, etsitään summaa muista kentistä
-          console.warn('AI-virhe rivi', i, ': summa sisältää suunnan "' + rawSumma + '", yritetään korjata');
+          console.warn('AI-virhe rivi', i, ': summa sisältää suunnan "' + rawSumma + '"');
           suunta = rawSumma;
-          // Yritetään löytää summa amount/maara kentistä
-          rawSumma = t.amount || t.maara || t.määrä || 0;
+          rawSumma = t.amount || t.maara || 0;
         }
         rawSumma = parseFloat(String(rawSumma).replace(/[^\d.,-]/g,'').replace(',','.'));
       }
       const num = Number(rawSumma);
       if (isNaN(num) || num === 0) {
         console.error('Virheellinen summa tapahtumalla', i, ':', t.sel, '— ohitetaan');
-        return; // skip this row
+        return;
       }
       const abs = Math.abs(num);
       let summa;
       if (suunta) {
-        // Pankkitilin näkökulma: debet = raha tilille (+), kredit = raha tililtä (-)
         summa = suunta === 'debet' ? abs : -abs;
       } else {
-        // Vanha formaatti: summa voi olla jo negatiivinen
         summa = num;
       }
       validoidut.push({
-        ...t,
-        summa,
+        ...t, summa,
         arvopv: t.arvopv || t.kirjpv,
         kirjpv: t.kirjpv || t.arvopv,
       });
     });
-    console.log('Tiliote validoitu:', validoidut.length, '/', tiliote.tapahtumat.length, 'tapahtumaa');
-    console.table(validoidut.map((v,i) => ({i, sel:(v.sel||'').slice(0,30), summa:v.summa})));
-    if (validoidut.length > 0) {
-      ladattuTiliote(validoidut, tiliote.iban || filename, tiliote.kausi || '');
-    }
+    console.log('Tiliote validoitu:', validoidut.length, '/', raakaTapahtumat.length);
+
+    // Tallenna impTiliote pipeline-tilaan
+    impTiliote = {
+      pankki: parsed.pankki || tiliote.pankki || 'muu',
+      iban: parsed.iban || tiliote.iban || filename,
+      kausi: parsed.kausi || tiliote.kausi || '',
+      alkusaldo: Number(parsed.alkusaldo ?? tiliote.alkusaldo ?? 0),
+      loppusaldo: Number(parsed.loppusaldo ?? tiliote.loppusaldo ?? 0),
+      tapahtumat: validoidut,
+    };
+    impVaihe = 2;
+
+    // Lataa myös impTapahtumat (yhteensopivuus vanhan koodin kanssa)
+    ladattuTiliote(validoidut, impTiliote.iban, impTiliote.kausi);
   }
 
   // 2. Lataa laskut — tallenna pageNumber ja pdfBase64 per lasku
@@ -4704,6 +4851,11 @@ async function prosessoiAITulos(parsed, filename, base64) {
   document.getElementById('ai-results').style.display = 'block';
   document.getElementById('import-preview').style.display = impTapahtumat.length ? 'block' : 'none';
   toast(`✓ ${impTapahtumat.length} tapahtumaa · ${laskut.length} laskua · ${matchedCount} täsmäytystä`);
+
+  // Avaa Vaihe 2 tarkistusmodal automaattisesti PDF-tuonnin jälkeen
+  if (impTiliote && impTiliote.tapahtumat.length > 0) {
+    avaaTarkistusModal();
+  }
 }
 
 // ── KORTTINÄKYMÄ (split view) ────────────────────────────────
