@@ -56,13 +56,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Tosite ei täsmää: erotus ${summa.toFixed(2)}` }, { status: 400 })
     }
 
-    // Poista aiempi saman tositteen data jos olemassa
-    const { error: delError } = await supabaseAdmin!
+    // Tarkista ettei sama tosite ole jo olemassa
+    const { data: olemassa } = await supabaseAdmin!
       .from('ppr_paivakirja')
-      .delete()
+      .select('id')
       .eq('asiakas_id', asiakas_id)
       .eq('tosite_nro', tosite_nro)
-    if (delError) console.warn('paivakirja POST delete error:', delError)
+      .limit(1)
+    if (olemassa && olemassa.length > 0) {
+      return NextResponse.json({ error: 'Tosite ' + tosite_nro + ' on jo olemassa' }, { status: 409 })
+    }
 
     const insert = rivit.map((r: { tili: string; selite?: string; saldo: number; alv_prosentti?: number }, idx: number) => ({
       asiakas_id,
