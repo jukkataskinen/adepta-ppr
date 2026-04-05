@@ -6272,7 +6272,7 @@ function generateUserRow(r, i) {
     'oninput="tositeHakuTili(this,' + i + ')" ' +
     'onfocus="tositeAvaaLista(this,' + i + ')" ' +
     'onblur="setTimeout(()=>tositeSubjatLista(' + i + '),300)" ' +
-    'onkeydown="if(event.key===\'ArrowDown\'){event.preventDefault();var l=document.getElementById(\'ts-tili-lista-' + i + '\');if(l&&l.firstElementChild){l.firstElementChild.focus();}}" ' +
+    'onkeydown="tsTiliKey(event,' + i + ')" ' +
     'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
     '<div id="ts-tili-lista-' + i + '" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
     '</div></td>' +
@@ -6501,6 +6501,31 @@ function tositeUpdField(i, f, v) {
   tositeRivit[i][f] = v;
   tositeDirty = true;
   paivitaTositeTotals();
+}
+
+function tsTiliKey(e, rowIdx) {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const l = document.getElementById('ts-tili-lista-' + rowIdx);
+    if (l && l.firstElementChild) l.firstElementChild.focus();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = e.target.value.trim().toLowerCase();
+    const tulokset = TILIT.filter(t => t.nro.startsWith(val) || t.lbl.toLowerCase().includes(val));
+    // Tarkka numerohaku
+    const exact = TILIT.find(t => t.nro === val);
+    if (exact) { tositeValitseTili(rowIdx, exact.nro, exact.lbl); return; }
+    // Täsmälleen yksi tulos → hyväksy
+    if (tulokset.length === 1) { tositeValitseTili(rowIdx, tulokset[0].nro, tulokset[0].lbl); return; }
+    // Korostettu tulos
+    const lista = document.getElementById('ts-tili-lista-' + rowIdx);
+    if (lista && lista.style.display !== 'none') {
+      const focused = lista.querySelector(':focus');
+      if (focused) focused.click();
+    }
+  } else if (e.key === 'Escape') {
+    tositeSubjatLista(rowIdx);
+  }
 }
 
 function tositeAvaaLista(input, rowIdx) {
