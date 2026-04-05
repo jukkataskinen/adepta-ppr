@@ -870,6 +870,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               <button onclick="tosFiltteri('MU')" id="tos-f-mu" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">MU</button>
               <button onclick="tosFiltteri('ML')" id="tos-f-ml" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">ML</button>
               <button onclick="tosFiltteri('OL')" id="tos-f-ol" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">OL</button>
+              <button onclick="tosFiltteri('PA')" id="tos-f-pa" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">PA</button>
             </div>
           </div>
           <div id="tos-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
@@ -2320,6 +2321,41 @@ function tosNaytaTiedot(t) {
   // Näytä liitteet-palkki ja lataa liitteet
   document.getElementById('tos-liitteet-palkki').style.display = 'flex';
   tosLataaLiitteet(t.nro);
+
+  // PA-tosite: näytä palkkalaskelma-nappi
+  if (t.nro.startsWith('PA')) tosNaytaPalkkalaskelmaBtn(t.nro);
+}
+
+async function tosNaytaPalkkalaskelmaBtn(tositeNro) {
+  if (!curYritys) return;
+  try {
+    const res = await fetch('/api/ppr/palkat?asiakas_id='+curYritys.id);
+    if (!res.ok) return;
+    const kaikki = await res.json();
+    const palkat = kaikki.filter(r => r.tosite_nro === tositeNro);
+    if (!palkat.length) return;
+    // Lisää nappi tositteen otsikon viereen
+    const otsikkoDiv = document.getElementById('tos-otsikko')?.parentElement;
+    if (!otsikkoDiv) return;
+    const oldBtn = document.getElementById('tos-palkkalaskelma-btn');
+    if (oldBtn) oldBtn.remove();
+    const btn = document.createElement('button');
+    btn.id = 'tos-palkkalaskelma-btn';
+    btn.textContent = 'Tulosta palkkalaskelmat';
+    btn.style.cssText = 'padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer;margin-left:8px';
+    btn.onclick = async () => {
+      for (const palkka of palkat) {
+        const h = plHenkilot.find(hh => hh.id === palkka.henkilo_id) || {};
+        const tulos = { bruttopalkka:Number(palkka.bruttopalkka)||0, ennakonpidatys:Number(palkka.ennakonpidatys)||0,
+          tyel_tt:Number(palkka.tyel_tyontekija)||0, tvr_tt:Number(palkka.tvr_tyontekija)||0, netto:Number(palkka.nettopalkka)||0,
+          tyel_ta:Number(palkka.tyel_tyonantaja)||0, sotu_ta:Number(palkka.sotu_tyonantaja)||0, tvr_ta:Number(palkka.tvr_tyonantaja)||0,
+          tapaturma:Number(palkka.tapaturma)||0, ta_yht:0, henkilo:h, henkilo_nimi:h.etunimi+' '+h.sukunimi };
+        tulos.ta_yht = tulos.tyel_ta + tulos.sotu_ta + tulos.tvr_ta + tulos.tapaturma;
+        await luoPalkkalaskelma(tulos);
+      }
+    };
+    otsikkoDiv.appendChild(btn);
+  } catch(e) { console.warn('tosNaytaPalkkalaskelmaBtn:', e); }
 }
 
 let tosLiitteet = [];
@@ -6692,10 +6728,9 @@ async function luoPalkkalaskelma(p) {
 
   const bytes = await doc.save();
   const blob = new Blob([bytes], {type:'application/pdf'});
+  console.log('PDF bytes:', bytes?.length);
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'palkkalaskelma_'+p.henkilo_nimi.replace(/\s/g,'_')+'_'+kausi+'.pdf';
-  a.click(); URL.revokeObjectURL(url);
+  window.open(url, '_blank');
 }
 
 async function luoPATositteet() {
