@@ -322,6 +322,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="sb-sec">Hallinta</div>
     <a class="nav-item" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
     <div class="nav-item" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
+    <div class="nav-item" id="nav-palkat" onclick="showPanel('palkat');lataaHenkilot()">Palkat</div>
     <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
     <div class="sb-div"></div>
     <div class="sb-sec">Kirjanpidon työkalut</div>
@@ -1075,6 +1076,63 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
     </div>
 
+    <!-- ─── PALKAT PANEL ─── -->
+    <div id="panel-palkat" class="panel" style="overflow:hidden;padding:0">
+      <div style="display:flex;flex-direction:column;height:100%">
+        <!-- Tabs -->
+        <div style="display:flex;border-bottom:1px solid var(--bd);flex-shrink:0">
+          <button onclick="palkatTab('henkilot')" id="pt-tab-henkilot" class="rpt-tab act" style="padding:10px 20px;font-size:13px">Henkilörekisteri</button>
+          <button onclick="palkatTab('laskenta')" id="pt-tab-laskenta" class="rpt-tab" style="padding:10px 20px;font-size:13px">Palkanlaskenta</button>
+          <button onclick="palkatTab('historia')" id="pt-tab-historia" class="rpt-tab" style="padding:10px 20px;font-size:13px">Historia</button>
+        </div>
+        <!-- Henkilörekisteri -->
+        <div id="pt-henkilot" style="flex:1;overflow-y:auto;padding:20px 24px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px">Henkilörekisteri</h3>
+            <button onclick="avaaHenkiloModal()" style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää henkilö</button>
+          </div>
+          <div id="pt-henkilot-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+        </div>
+        <!-- Palkanlaskenta -->
+        <div id="pt-laskenta" style="flex:1;overflow-y:auto;padding:20px 24px;display:none">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <h3 style="font-size:16px">Palkanlaskenta</h3>
+            <select id="pt-kausi" onchange="lataaPalkat()" style="padding:5px 10px;font-size:12px;border:1px solid var(--bd);border-radius:5px">
+              <option value="">— Valitse kausi —</option>
+            </select>
+            <button onclick="laskeKaikki()" style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Laske kaikki</button>
+            <button onclick="luoPATositteet()" style="padding:6px 14px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inm);cursor:pointer">Tee kirjanpitovienti</button>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+              <th style="padding:8px;text-align:left">Nimi</th>
+              <th style="padding:8px;text-align:right">Brutto</th>
+              <th style="padding:8px;text-align:right">Pidätys</th>
+              <th style="padding:8px;text-align:right">TyEL</th>
+              <th style="padding:8px;text-align:right">TVR</th>
+              <th style="padding:8px;text-align:right;font-weight:700">Netto</th>
+              <th style="padding:8px;text-align:right;color:var(--inu)">TA-kulut</th>
+            </tr></thead>
+            <tbody id="pt-laskenta-tbody"></tbody>
+            <tfoot><tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+              <td style="padding:8px;font-weight:600">Yhteensä</td>
+              <td id="pt-yht-brutto" style="padding:8px;text-align:right;font-weight:600"></td>
+              <td id="pt-yht-pid" style="padding:8px;text-align:right;font-weight:600"></td>
+              <td id="pt-yht-tyel" style="padding:8px;text-align:right;font-weight:600"></td>
+              <td id="pt-yht-tvr" style="padding:8px;text-align:right;font-weight:600"></td>
+              <td id="pt-yht-netto" style="padding:8px;text-align:right;font-weight:700"></td>
+              <td id="pt-yht-ta" style="padding:8px;text-align:right;font-weight:600;color:var(--inu)"></td>
+            </tr></tfoot>
+          </table>
+        </div>
+        <!-- Historia -->
+        <div id="pt-historia" style="flex:1;overflow-y:auto;padding:20px 24px;display:none">
+          <h3 style="font-size:16px;margin-bottom:12px">Palkkahistoria</h3>
+          <div id="pt-historia-content"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── KIRJANPIDON TYÖKALUT PANEL ─── -->
     <div id="panel-tyokalut" class="panel">
       <h2>Kirjanpidon työkalut</h2>
@@ -1324,6 +1382,29 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div style="padding:10px 18px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:16px;font-size:11px;color:rgba(255,255,255,.4)">
       <span id="mg-stats">—</span>
       <span style="margin-left:auto" id="mg-pct">0%</span>
+    </div>
+  </div>
+</div>
+
+<!-- Henkilö-modal -->
+<div id="henkilo-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:480px;padding:24px">
+    <h3 style="margin-bottom:16px">Uusi henkilö</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Etunimi</label><input id="hm-etunimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Sukunimi</label><input id="hm-sukunimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Henkilötunnus</label><input id="hm-hetu" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Tilinumero</label><input id="hm-tili" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Työsuhde alku</label><input id="hm-alku" type="date" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Työsuhdemuoto</label><select id="hm-muoto" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"><option value="kuukausi">Kuukausipalkka</option><option value="tunti">Tuntipalkka</option></select></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Peruspalkka €</label><input id="hm-palkka" type="number" step="0.01" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Pidätys-%</label><input id="hm-pidatys" type="number" step="0.1" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Tuloraja €/v</label><input id="hm-tuloraja" type="number" step="1" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Lisäpidätys-%</label><input id="hm-lisa" type="number" step="0.1" value="0" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button onclick="document.getElementById('henkilo-modal').style.display='none'" style="padding:7px 16px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Peruuta</button>
+      <button onclick="tallennaHenkilo()" style="padding:7px 16px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna</button>
     </div>
   </div>
 </div>
@@ -1622,7 +1703,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -6349,6 +6430,198 @@ async function arNaytaTiedot(o) {
       tbody.appendChild(tr);
     });
   } catch(e) { console.warn('arNaytaTiedot laskut:', e); }
+}
+
+// ── PALKANLASKENTA ───────────────────────────────────────────
+let plHenkilot = [];
+let plLasketut = [];
+
+function palkatTab(tab) {
+  ['henkilot','laskenta','historia'].forEach(t => {
+    document.getElementById('pt-'+t).style.display = t===tab?'block':'none';
+    document.getElementById('pt-tab-'+t).classList.toggle('act', t===tab);
+  });
+  if (tab==='laskenta') alustaKausiDropdown();
+}
+
+async function lataaHenkilot() {
+  if (!curYritys) return;
+  try {
+    const res = await fetch('/api/ppr/henkilot?asiakas_id='+curYritys.id);
+    if (res.ok) plHenkilot = await res.json();
+  } catch(e) {}
+  renderHenkiloLista();
+}
+
+function renderHenkiloLista() {
+  const lista = document.getElementById('pt-henkilot-lista');
+  if (!lista) return;
+  const fmt = v => Number(v||0).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  lista.innerHTML = plHenkilot.map(h => `
+    <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--fg);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">${(h.etunimi||'')[0]||''}${(h.sukunimi||'')[0]||''}</div>
+        <div><div style="font-size:14px;font-weight:600">${h.etunimi} ${h.sukunimi}</div>
+        <div style="font-size:11px;color:var(--inu)">${h.tyosuhdemuoto==='tunti'?'Tuntipalkka':'Kuukausipalkka'} · ${fmt(h.peruspalkka)} €${h.tyosuhdemuoto==='tunti'?'/h':'/kk'}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--inu);display:flex;gap:12px;flex-wrap:wrap">
+        <span>Pidätys: ${h.pidatysprosentti||0}%</span>
+        <span>TyEL: 7,15%</span>
+        ${h.tyosuhde_alku?'<span>Alkaen: '+fmtPv(h.tyosuhde_alku)+'</span>':''}
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--inu);font-size:12px;text-align:center;padding:24px">Ei henkilöitä. Lisää henkilö +-napilla.</div>';
+}
+
+function avaaHenkiloModal() {
+  document.getElementById('henkilo-modal').style.display = 'flex';
+}
+
+async function tallennaHenkilo() {
+  if (!curYritys) return;
+  const body = {
+    asiakas_id: curYritys.id,
+    etunimi: document.getElementById('hm-etunimi').value.trim(),
+    sukunimi: document.getElementById('hm-sukunimi').value.trim(),
+    henkilotunnus: document.getElementById('hm-hetu').value.trim(),
+    tilinumero: document.getElementById('hm-tili').value.trim(),
+    tyosuhde_alku: document.getElementById('hm-alku').value || null,
+    tyosuhdemuoto: document.getElementById('hm-muoto').value,
+    peruspalkka: parseFloat(document.getElementById('hm-palkka').value) || 0,
+    pidatysprosentti: parseFloat(document.getElementById('hm-pidatys').value) || 0,
+    tuloraja: parseFloat(document.getElementById('hm-tuloraja').value) || 0,
+    lisapidatys: parseFloat(document.getElementById('hm-lisa').value) || 0,
+  };
+  if (!body.etunimi || !body.sukunimi) { toast('Nimi vaaditaan'); return; }
+  try {
+    const res = await fetch('/api/ppr/henkilot', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if (res.ok) { document.getElementById('henkilo-modal').style.display='none'; toast('Henkilö lisätty'); await lataaHenkilot(); }
+    else { const j = await res.json(); toast('Virhe: '+(j.error||'')); }
+  } catch(e) { toast('Virhe: '+e.message); }
+}
+
+function laskePalkka(h, brutto) {
+  const tyel_tt = Math.round(brutto * 0.0715 * 100) / 100;
+  const tvr_tt = Math.round(brutto * 0.0079 * 100) / 100;
+  const verotettava = brutto - tyel_tt - tvr_tt;
+  const tuloraja_kk = (h.tuloraja || 0) / 12;
+  let ennakonpidatys;
+  if (!tuloraja_kk || verotettava <= tuloraja_kk) {
+    ennakonpidatys = Math.round(verotettava * ((h.pidatysprosentti||0) / 100) * 100) / 100;
+  } else {
+    ennakonpidatys = Math.round((tuloraja_kk * ((h.pidatysprosentti||0)/100) + (verotettava-tuloraja_kk) * ((h.lisapidatys||h.pidatysprosentti||0)/100)) * 100) / 100;
+  }
+  const netto = Math.round((brutto - tyel_tt - tvr_tt - ennakonpidatys) * 100) / 100;
+  const tyel_ta = Math.round(brutto * 0.1739 * 100) / 100;
+  const sotu_ta = Math.round(brutto * 0.0116 * 100) / 100;
+  const tvr_ta = Math.round(brutto * 0.0043 * 100) / 100;
+  const tapaturma = Math.round(brutto * ((h.tapaturma_prosentti||0.8) / 100) * 100) / 100;
+  return { bruttopalkka:brutto, ennakonpidatys, tyel_tt, tvr_tt, netto, tyel_ta, sotu_ta, tvr_ta, tapaturma, ta_yht: tyel_ta+sotu_ta+tvr_ta+tapaturma };
+}
+
+function alustaKausiDropdown() {
+  const sel = document.getElementById('pt-kausi');
+  if (!sel) return;
+  const nyt = new Date();
+  sel.innerHTML = '<option value="">— Valitse kausi —</option>';
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(nyt.getFullYear(), nyt.getMonth() - i, 1);
+    const v = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const kkN = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'][d.getMonth()];
+    sel.innerHTML += '<option value="'+v+'">'+kkN+' '+d.getFullYear()+'</option>';
+  }
+}
+
+function laskeKaikki() {
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  plLasketut = plHenkilot.map(h => {
+    const brutto = h.peruspalkka || 0;
+    const tulos = laskePalkka(h, brutto);
+    return { ...tulos, henkilo: h, henkilo_nimi: h.etunimi+' '+h.sukunimi };
+  });
+  const tbody = document.getElementById('pt-laskenta-tbody');
+  tbody.innerHTML = plLasketut.map(p => `<tr style="border-bottom:1px solid var(--bd)">
+    <td style="padding:7px 8px;font-weight:600">${p.henkilo_nimi}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(p.bruttopalkka)}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:var(--red)">${fmt(p.ennakonpidatys)}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(p.tyel_tt)}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(p.tvr_tt)}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:700;color:var(--fg3)">${fmt(p.netto)}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:var(--inu)">${fmt(p.ta_yht)}</td>
+  </tr>`).join('');
+  const sum = (f) => plLasketut.reduce((s,p)=>s+(p[f]||0),0);
+  document.getElementById('pt-yht-brutto').textContent = fmt(sum('bruttopalkka'));
+  document.getElementById('pt-yht-pid').textContent = fmt(sum('ennakonpidatys'));
+  document.getElementById('pt-yht-tyel').textContent = fmt(sum('tyel_tt'));
+  document.getElementById('pt-yht-tvr').textContent = fmt(sum('tvr_tt'));
+  document.getElementById('pt-yht-netto').textContent = fmt(sum('netto'));
+  document.getElementById('pt-yht-ta').textContent = fmt(sum('ta_yht'));
+}
+
+async function luoPATositteet() {
+  if (!plLasketut.length || !curYritys) { toast('Laske palkat ensin'); return; }
+  const kausi = document.getElementById('pt-kausi')?.value;
+  if (!kausi) { toast('Valitse kausi'); return; }
+  const palkkapaiva = kausi + '-15'; // kuun 15. päivä
+  const laji = 'PA';
+  const tosite_nro = await seuraavaTositeNroLaji(laji);
+
+  // Kirjanpitorivit
+  const rivit = [];
+  plLasketut.forEach(p => {
+    rivit.push({tili:'5000',selite:'Palkka '+p.henkilo_nimi,saldo:p.bruttopalkka});
+    rivit.push({tili:'6130',selite:'TyEL ta '+p.henkilo_nimi,saldo:p.tyel_ta});
+    rivit.push({tili:'6300',selite:'Sotu '+p.henkilo_nimi,saldo:p.sotu_ta});
+    rivit.push({tili:'2939',selite:'Ennakonpid. '+p.henkilo_nimi,saldo:-p.ennakonpidatys});
+    rivit.push({tili:'29391',selite:'TyEL '+p.henkilo_nimi,saldo:-(p.tyel_tt+p.tyel_ta)});
+    rivit.push({tili:'29392',selite:'Sotu '+p.henkilo_nimi,saldo:-p.sotu_ta});
+    rivit.push({tili:'1910',selite:'Nettopalkka '+p.henkilo_nimi,saldo:-p.netto});
+  });
+
+  try {
+    const res = await fetch('/api/ppr/paivakirja', { method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({asiakas_id:curYritys.id, tosite_nro, paivamaara:palkkapaiva, rivit}) });
+    if (res.ok) {
+      // Tallenna palkkatiedot
+      const palkatData = plLasketut.map(p => ({
+        asiakas_id:curYritys.id, henkilo_id:p.henkilo.id, kausi, palkkapaiva,
+        bruttopalkka:p.bruttopalkka, ennakonpidatys:p.ennakonpidatys,
+        tyel_tyontekija:p.tyel_tt, tvr_tyontekija:p.tvr_tt, nettopalkka:p.netto,
+        tyel_tyonantaja:p.tyel_ta, sotu_tyonantaja:p.sotu_ta, tvr_tyonantaja:p.tvr_ta,
+        tapaturma:p.tapaturma, tosite_nro
+      }));
+      await fetch('/api/ppr/palkat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(palkatData) });
+      await lataaRivit(curYritys.id);
+      toast('PA-tosite '+tosite_nro+' luotu · '+plLasketut.length+' palkkaa');
+    } else { const j = await res.json(); toast('Virhe: '+(j.error||'')); }
+  } catch(e) { toast('Virhe: '+e.message); }
+}
+
+async function lataaPalkat() {
+  if (!curYritys) return;
+  const kausi = document.getElementById('pt-kausi')?.value;
+  if (!kausi) return;
+  try {
+    const res = await fetch('/api/ppr/palkat?asiakas_id='+curYritys.id+'&kausi='+kausi);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.length > 0) {
+      // Näytä jo lasketut
+      const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+      document.getElementById('pt-laskenta-tbody').innerHTML = data.map(p => {
+        const nimi = p.ppr_henkilot ? p.ppr_henkilot.etunimi+' '+p.ppr_henkilot.sukunimi : '—';
+        return `<tr style="border-bottom:1px solid var(--bd)">
+          <td style="padding:7px 8px;font-weight:600">${nimi}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(p.bruttopalkka)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:var(--red)">${fmt(p.ennakonpidatys)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(p.tyel_tyontekija)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(p.tvr_tyontekija)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:700;color:var(--fg3)">${fmt(p.nettopalkka)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:var(--inu)">${fmt((p.tyel_tyonantaja||0)+(p.sotu_tyonantaja||0)+(p.tvr_tyonantaja||0)+(p.tapaturma||0))}</td>
+        </tr>`;
+      }).join('');
+    }
+  } catch(e) {}
 }
 
 // ── MYYNTIRESKONTRA ──────────────────────────────────────────
