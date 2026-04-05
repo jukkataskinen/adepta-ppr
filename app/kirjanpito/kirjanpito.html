@@ -6580,6 +6580,7 @@ async function lataaMlData() {
   } catch(e) {}
   mlRenderLista();
   mlRenderTuotteet();
+  lataaMlAsiakkaat();
 }
 
 function mlFilt(f) {
@@ -6636,7 +6637,48 @@ function mlNayta(id) {
   `;
 }
 
+let mlAsiakkaatLista = [];
+let mlValittuAsiakasId = null;
+
+async function lataaMlAsiakkaat() {
+  if (!curYritys) return;
+  try {
+    const res = await fetch('/api/ppr/asiakkaat');
+    if (res.ok) mlAsiakkaatLista = await res.json();
+  } catch(e) {}
+}
+
+function mlHaeAsiakkaatDropdown(haku) {
+  const dd = document.getElementById('ml-asiakas-dd');
+  if (!dd) return;
+  const q = (haku||'').toLowerCase();
+  const tulokset = q ? mlAsiakkaatLista.filter(a => (a.nimi||'').toLowerCase().includes(q)) : mlAsiakkaatLista.slice(0, 20);
+  if (!tulokset.length) { dd.style.display='none'; return; }
+  dd.innerHTML = tulokset.map(a =>
+    '<div onmousedown="mlValitseAsiakasDD(\''+a.id+'\',\''+a.nimi.replace(/'/g,'')+'\')" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bd)" onmouseover="this.style.background=\'var(--fpale)\'" onmouseout="this.style.background=\'\'">' +
+    '<div style="font-weight:600;color:var(--ink)">'+a.nimi+'</div>' +
+    (a.y_tunnus ? '<div style="font-size:10px;color:var(--inu)">'+a.y_tunnus+'</div>' : '') +
+    '</div>'
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function mlValitseAsiakasDD(id, nimi) {
+  mlValittuAsiakasId = id;
+  document.getElementById('ml-asiakas').value = nimi;
+  document.getElementById('ml-asiakas-dd').style.display = 'none';
+}
+
+// Sulje dropdown klikatessa muualle
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#ml-asiakas') && !e.target.closest('#ml-asiakas-dd')) {
+    const dd = document.getElementById('ml-asiakas-dd');
+    if (dd) dd.style.display = 'none';
+  }
+});
+
 function mlUusiLasku() {
+  mlValittuAsiakasId = null;
   document.getElementById('ml-ei-valittu').style.display='none';
   const lom = document.getElementById('ml-lomake');
   lom.style.display='block';
@@ -6646,7 +6688,7 @@ function mlUusiLasku() {
   lom.innerHTML = `
     <h3 style="margin-bottom:12px">Uusi myyntilasku</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;font-size:12px">
-      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Asiakas</label><input id="ml-asiakas" placeholder="Asiakkaan nimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div style="position:relative"><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Asiakas</label><input id="ml-asiakas" placeholder="Hae asiakasta..." autocomplete="off" oninput="mlHaeAsiakkaatDropdown(this.value)" onfocus="mlHaeAsiakkaatDropdown(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"><div id="ml-asiakas-dd" style="display:none;position:absolute;top:100%;left:0;width:100%;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;margin-top:2px"></div></div>
       <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Laskupäivä</label><input id="ml-pvm" type="date" value="${tanaan}" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
       <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Eräpäivä</label><input id="ml-era" type="date" value="${era14}" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
     </div>
