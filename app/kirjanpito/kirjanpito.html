@@ -6651,26 +6651,34 @@ async function luoPalkkalaskelma(p) {
   // ── PALKKAERITTELY-TAULUKKO ──
   y = Math.min(y, yR) - 30;
   const TL = M, TR = RX;
-  const cols = [TL, TL+180, TL+280, TL+340, TL+410, TR]; // Palkkalaji, Selite, Määrä, Kerroin, À-hinta, Summa
+  // Sarakkeiden OIKEAT REUNAT (oikealle tasatuille sarakkeille)
+  const cMaaraR = TL + 310;   // Määrä oikea reuna
+  const cKerrR  = TL + 370;   // Kerroin oikea reuna
+  const cAhintR = TL + 450;   // À-hinta oikea reuna
+  const cSummaR = TR - 4;     // Summa oikea reuna
 
-  // Otsikkopalkki
+  // Otsikkopalkki — kaikki otsikot tasattu samaan kohtaan kuin data
   pg.drawRectangle({x:TL, y:y-4, width:TR-TL, height:18, color:dark});
-  const hdr = ['Palkkalaji','Selite','Määrä','Kerroin','À-hinta EUR','Summa EUR'];
-  hdr.forEach((h,i) => {
-    const x = i<5?cols[i]+4:0;
-    if (i<5) pg.drawText(h, {x, y:y, size:7, font:fb, color:wh});
-    else { const w2=fb.widthOfTextAtSize(h,7); pg.drawText(h, {x:TR-4-w2, y:y, size:7, font:fb, color:wh}); }
-  }); lf(18);
+  const hS = 7;
+  pg.drawText('Palkkalaji', {x:TL+4, y, size:hS, font:fb, color:wh});
+  pg.drawText('Selite', {x:TL+180, y, size:hS, font:fb, color:wh});
+  // Oikea-tasatut otsikot:
+  let hw;
+  hw = fb.widthOfTextAtSize('Määrä',hS);     pg.drawText('Määrä',     {x:cMaaraR-hw, y, size:hS, font:fb, color:wh});
+  hw = fb.widthOfTextAtSize('Kerroin',hS);   pg.drawText('Kerroin',   {x:cKerrR-hw,  y, size:hS, font:fb, color:wh});
+  hw = fb.widthOfTextAtSize('À-hinta EUR',hS); pg.drawText('À-hinta EUR', {x:cAhintR-hw, y, size:hS, font:fb, color:wh});
+  hw = fb.widthOfTextAtSize('Summa EUR',hS); pg.drawText('Summa EUR', {x:cSummaR-hw, y, size:hS, font:fb, color:wh});
+  lf(18);
 
   const tblRow = (laji, sel, maara, kerroin, ahinta, summa, isBold, isAlt) => {
+    const f = isBold ? fb : fn; const ds = 8;
     if (isAlt) pg.drawRectangle({x:TL, y:y-4, width:TR-TL, height:16, color:alt});
-    pg.drawText(String(laji), {x:TL+4, y, size:8, font:isBold?fb:fn, color:ink});
-    if (sel) pg.drawText(String(sel), {x:cols[1]+4, y, size:8, font:fn, color:gr});
-    if (maara) pg.drawText(String(maara), {x:cols[2]+4, y, size:8, font:fn, color:ink});
-    if (ahinta) { const w3=fn.widthOfTextAtSize(String(ahinta),8); pg.drawText(String(ahinta), {x:cols[4]-4-w3, y, size:8, font:fn, color:ink}); }
-    const sumStr = String(summa); const col = Number(summa)<-0.005 ? rd : ink;
-    const wS = (isBold?fb:fn).widthOfTextAtSize(sumStr, 8);
-    pg.drawText(sumStr, {x:TR-4-wS, y, size:8, font:isBold?fb:fn, color:col});
+    pg.drawText(String(laji), {x:TL+4, y, size:ds, font:f, color:ink});
+    if (sel) pg.drawText(String(sel), {x:TL+180, y, size:ds, font:fn, color:gr});
+    if (maara) { const w1=fn.widthOfTextAtSize(String(maara),ds); pg.drawText(String(maara), {x:cMaaraR-w1, y, size:ds, font:fn, color:ink}); }
+    if (kerroin) { const w2=fn.widthOfTextAtSize(String(kerroin),ds); pg.drawText(String(kerroin), {x:cKerrR-w2, y, size:ds, font:fn, color:ink}); }
+    if (ahinta) { const w3=fn.widthOfTextAtSize(String(ahinta),ds); pg.drawText(String(ahinta), {x:cAhintR-w3, y, size:ds, font:fn, color:ink}); }
+    if (summa) { const sumStr=String(summa); const col=sumStr.startsWith('-')?rd:ink; const wS=f.widthOfTextAtSize(sumStr,ds); pg.drawText(sumStr, {x:cSummaR-wS, y, size:ds, font:f, color:col}); }
     lf(16);
   };
 
@@ -6697,21 +6705,25 @@ async function luoPalkkalaskelma(p) {
   } catch(e) {}
   if (kBrutto < p.bruttopalkka - 0.01) { kBrutto+=p.bruttopalkka; kPid+=p.ennakonpidatys; kTyel+=p.tyel_tt; kTvr+=p.tvr_tt; kNetto+=p.netto; }
 
-  const SL = TL, SM = TL + 220, SR = TR;
+  const SL = TL, SR = TR;
+  const sJaksoR = SL + 360;  // Palkkajakso oikea reuna
+  const sVuosiR = SR - 4;    // Vuoden alusta oikea reuna
+
   pg.drawRectangle({x:SL, y:y-4, width:SR-SL, height:18, color:dark});
   pg.drawText('Nimike', {x:SL+4, y, size:7, font:fb, color:wh});
-  const sH1 = 'Palkkajakso EUR', sH2 = 'Vuoden alusta EUR';
-  pg.drawText(sH1, {x:SM+4, y, size:7, font:fb, color:wh});
-  const wH2 = fb.widthOfTextAtSize(sH2,7); pg.drawText(sH2, {x:SR-4-wH2, y, size:7, font:fb, color:wh});
+  let shw;
+  shw = fb.widthOfTextAtSize('Palkkajakso EUR',7); pg.drawText('Palkkajakso EUR', {x:sJaksoR-shw, y, size:7, font:fb, color:wh});
+  shw = fb.widthOfTextAtSize('Vuoden alusta EUR',7); pg.drawText('Vuoden alusta EUR', {x:sVuosiR-shw, y, size:7, font:fb, color:wh});
   lf(18);
 
   const sumRow = (lbl, jakso, vuosi, isAlt, isBold) => {
+    const sf = isBold ? fb : fn; const ss = 8;
     if (isAlt) pg.drawRectangle({x:SL, y:y-4, width:SR-SL, height:15, color:alt});
-    pg.drawText(lbl, {x:SL+4, y, size:8, font:isBold?fb:fn, color:ink});
-    const jS = fE(jakso); const wJ = fn.widthOfTextAtSize(jS,8);
-    pg.drawText(jS, {x:SM+100-wJ, y, size:8, font:isBold?fb:fn, color:Number(jakso)<-0.005?rd:ink});
-    const vS = fE(vuosi); const wV = fn.widthOfTextAtSize(vS,8);
-    pg.drawText(vS, {x:SR-4-wV, y, size:8, font:isBold?fb:fn, color:Number(vuosi)<-0.005?rd:ink});
+    pg.drawText(lbl, {x:SL+4, y, size:ss, font:sf, color:ink});
+    const jS = fE(jakso); const wJ = sf.widthOfTextAtSize(jS,ss);
+    pg.drawText(jS, {x:sJaksoR-wJ, y, size:ss, font:sf, color:Number(jakso)<-0.005?rd:ink});
+    const vS = fE(vuosi); const wV = sf.widthOfTextAtSize(vS,ss);
+    pg.drawText(vS, {x:sVuosiR-wV, y, size:ss, font:sf, color:Number(vuosi)<-0.005?rd:ink});
     lf(15);
   };
 
