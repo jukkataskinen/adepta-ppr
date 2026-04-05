@@ -6772,7 +6772,7 @@ async function mlHaeYritys() {
   const statusEl = document.getElementById('mla-prh-status');
   statusEl.innerHTML = '<span style="color:var(--amber)">Haetaan...</span>';
   try {
-    const res = await fetch('https://avoindata.prh.fi/bis/v1/' + ytunnus.replace('-',''));
+    const res = await fetch('/api/prh?ytunnus=' + encodeURIComponent(ytunnus));
     const data = await res.json();
     const yritys = data.results?.[0];
     if (yritys) {
