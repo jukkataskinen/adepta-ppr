@@ -6626,12 +6626,19 @@ async function luoPATositteet() {
   // Kirjanpitorivit
   const rivit = [];
   plLasketut.forEach(p => {
+    // Debet: kulut
     rivit.push({tili:'5000',selite:'Palkka '+p.henkilo_nimi,saldo:p.bruttopalkka});
     rivit.push({tili:'6130',selite:'TyEL ta '+p.henkilo_nimi,saldo:p.tyel_ta});
     rivit.push({tili:'6300',selite:'Sotu '+p.henkilo_nimi,saldo:p.sotu_ta});
+    rivit.push({tili:'6400',selite:'TVR ta '+p.henkilo_nimi,saldo:p.tvr_ta});
+    rivit.push({tili:'7414',selite:'Tapaturmavak. '+p.henkilo_nimi,saldo:p.tapaturma});
+    // Kredit: velat
     rivit.push({tili:'2939',selite:'Ennakonpid. '+p.henkilo_nimi,saldo:-p.ennakonpidatys});
     rivit.push({tili:'29391',selite:'TyEL '+p.henkilo_nimi,saldo:-(p.tyel_tt+p.tyel_ta)});
     rivit.push({tili:'29392',selite:'Sotu '+p.henkilo_nimi,saldo:-p.sotu_ta});
+    rivit.push({tili:'2943',selite:'TVR '+p.henkilo_nimi,saldo:-(p.tvr_tt+p.tvr_ta)});
+    rivit.push({tili:'2944',selite:'Tapaturmavak. '+p.henkilo_nimi,saldo:-p.tapaturma});
+    // Kredit: pankki
     rivit.push({tili:'1910',selite:'Nettopalkka '+p.henkilo_nimi,saldo:-p.netto});
   });
 
