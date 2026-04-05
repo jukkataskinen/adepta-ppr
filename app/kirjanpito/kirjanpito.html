@@ -6963,18 +6963,18 @@ async function tallennaTositteet() {
       rivit.push({
         tili: r.tili,
         selite: r.sel || null,
-        saldo: parseFi(r.debet) > 0 ? parseFi(r.debet) : -parseFi(r.kredit),
+        saldo: tsParseFi(r.debet) > 0 ? tsParseFi(r.debet) : -tsParseFi(r.kredit),
         alv_prosentti: null
       });
     });
   }
-  
+
   // Balancing row
   if (tositeBalancingRow && tositeBalancingRow.tili && (tositeBalancingRow.debet || tositeBalancingRow.kredit)) {
     rivit.push({
       tili: tositeBalancingRow.tili,
       selite: null,
-      saldo: parseFi(tositeBalancingRow.debet) > 0 ? parseFi(tositeBalancingRow.debet) : -parseFi(tositeBalancingRow.kredit),
+      saldo: tsParseFi(tositeBalancingRow.debet) > 0 ? tsParseFi(tositeBalancingRow.debet) : -tsParseFi(tositeBalancingRow.kredit),
       alv_prosentti: null
     });
   }
@@ -6982,6 +6982,15 @@ async function tallennaTositteet() {
   const tarkistusSumma = rivit.reduce((s,r) => s + r.saldo, 0);
   console.log('Tallenna tosite:', tosite_nro, rivit.length, 'riviä, asiakas:', curYritys.id, 'tasapaino:', tarkistusSumma.toFixed(4));
   console.log('Rivit:', rivit.map(r => r.tili + ': ' + r.saldo.toFixed(2)));
+
+  // Tallenna vanhat arvot palautusta varten
+  const vanhatRivit = [...tositeRivit];
+  const vanhatAlv = [...tositeAlvRivit];
+  const vanhaBalancing = tositeBalancingRow ? {...tositeBalancingRow} : null;
+  const tallennettuPvm = paivamaara;
+
+  // Nollaa lomake optimistisesti — palauttaa jos epäonnistuu
+  naytaTositeTallennettu(tosite_nro, rivit.length, tallennettuPvm);
 
   try {
     const res = await fetch('/api/ppr/paivakirja', {
@@ -6991,16 +7000,32 @@ async function tallennaTositteet() {
     });
     const json = await res.json();
     if (res.ok) {
-      const tallennettuPvm = paivamaara;
-      await lataaRivit(curYritys.id); // odota ennen numeron hakua
-      naytaTositeTallennettu(tosite_nro, json.tallennettu, tallennettuPvm);
+      await lataaRivit(curYritys.id);
+      // Päivitä numero nyt kun data on kannassa
+      paivitaTositeNro();
     } else {
+      // Palauta rivit
       console.error('Tallennus epäonnistui:', res.status, json);
       toast('Virhe: ' + (json.error || 'Tuntematon virhe'));
+      document.getElementById('tosite-tallennettu-bar')?.remove();
+      tositeRivit = vanhatRivit;
+      tositeAlvRivit = vanhatAlv;
+      tositeBalancingRow = vanhaBalancing;
+      tositeDirty = true;
+      renderTositeRivit();
+      paivitaTositeTotals();
+      document.getElementById('ts-nro').value = tosite_nro;
       btn.disabled = false;
     }
   } catch(e) {
-    toast('Verkkovirhe');
+    toast('Verkkovirhe: ' + e.message);
+    document.getElementById('tosite-tallennettu-bar')?.remove();
+    tositeRivit = vanhatRivit;
+    tositeAlvRivit = vanhatAlv;
+    tositeBalancingRow = vanhaBalancing;
+    tositeDirty = true;
+    renderTositeRivit();
+    paivitaTositeTotals();
     btn.disabled = false;
   }
 }
