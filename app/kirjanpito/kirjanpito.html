@@ -6774,16 +6774,12 @@ async function mlHaeYritys() {
   try {
     const res = await fetch('/api/prh?ytunnus=' + encodeURIComponent(ytunnus));
     const data = await res.json();
-    const yritys = data.results?.[0];
-    if (yritys) {
-      document.getElementById('mla-nimi').value = yritys.name || '';
-      const osoite = yritys.addresses?.find(a => a.type === 1 && !a.endDate) || yritys.addresses?.[0];
-      if (osoite) {
-        document.getElementById('mla-osoite').value = osoite.street || '';
-        document.getElementById('mla-postinro').value = osoite.postCode || '';
-        document.getElementById('mla-kaupunki').value = osoite.city || '';
-      }
-      statusEl.innerHTML = '<span style="color:var(--fg3)">✓ ' + yritys.name + '</span>';
+    if (data.nimi) {
+      document.getElementById('mla-nimi').value = data.nimi || '';
+      document.getElementById('mla-osoite').value = data.katuosoite || '';
+      document.getElementById('mla-postinro').value = data.postinro || '';
+      document.getElementById('mla-kaupunki').value = data.kaupunki || '';
+      statusEl.innerHTML = '<span style="color:var(--fg3)">✓ ' + data.nimi + (data.yritysmuoto ? ' (' + data.yritysmuoto + ')' : '') + '</span>';
     } else {
       statusEl.innerHTML = '<span style="color:var(--red)">Yritystä ei löytynyt</span>';
     }
