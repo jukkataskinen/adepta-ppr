@@ -6504,6 +6504,16 @@ function tsKey(e, rowIdx, col) {
 
 function tositeUpdField(i, f, v) {
   tositeRivit[i][f] = v;
+  // Debet ja kredit eksklusiiviset — toinen tyhjenee
+  if (f === 'debet' && parseFloat(v) > 0) {
+    tositeRivit[i].kredit = '';
+    const kInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
+    if (kInput) kInput.value = '';
+  } else if (f === 'kredit' && parseFloat(v) > 0) {
+    tositeRivit[i].debet = '';
+    const dInput = document.querySelector('[data-row="' + i + '"][data-col="2"]');
+    if (dInput) dInput.value = '';
+  }
   tositeDirty = true;
   paivitaTositeTotals();
 }
