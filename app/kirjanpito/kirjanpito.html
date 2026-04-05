@@ -6247,23 +6247,9 @@ function renderTositeRivit() {
 }
 
 function generateUserRow(r, i) {
-  // Calculate display values - always show net amounts when ALV is selected
-  let displayDebet = r.debet || '';
-  let displayKredit = r.kredit || '';
-  
-  if ((parseFloat(r.alvp) || 0) > 0) {
-    const grossDebet = parseFloat(r.debet) || 0;
-    const grossKredit = parseFloat(r.kredit) || 0;
-    const gross = grossDebet || grossKredit;
-    if (gross > 0) {
-      const net = gross / (1 + parseFloat(r.alvp) / 100);
-      if (grossDebet > 0) {
-        displayDebet = net.toFixed(2);
-      } else if (grossKredit > 0) {
-        displayKredit = net.toFixed(2);
-      }
-    }
-  }
+  // Näytä käyttäjän syöttämä bruttosumma sellaisenaan
+  const displayDebet = r.debet || '';
+  const displayKredit = r.kredit || '';
   
   return '<tr style="border-bottom:1px solid var(--bd)">' +
     '<td style="padding:4px 6px"><div class="kat-wrap" style="position:relative">' +
@@ -6392,38 +6378,24 @@ function paivitaTositeTotals() {
     kredit: r.kredit > 0.01 ? fmt(r.kredit) : ''
   }));
   
-  // Calculate NET totals from user rows and ALV rows
-  let userNetD = 0, userNetK = 0;
+  // Laske käyttäjärivien bruttosummat (= mitä käyttäjä syötti)
+  let userBruttoD = 0, userBruttoK = 0;
   tositeRivit.forEach(r => {
-    const alvp = parseFloat(r.alvp) || 0;
-    const debet = parseFloat(r.debet) || 0;
-    const kredit = parseFloat(r.kredit) || 0;
-    const gross = debet || kredit;
-    const net = alvp > 0 && gross > 0 ? gross / (1 + alvp / 100) : gross;
-    if (debet > 0) {
-      userNetD += net;
-    } else if (kredit > 0) {
-      userNetK += net;
-    }
+    userBruttoD += parseFloat(r.debet) || 0;
+    userBruttoK += parseFloat(r.kredit) || 0;
   });
-  
-  // ALV totals (parse formatted strings for calculation)
+
+  // ALV totals
   let alvTotD = 0, alvTotK = 0;
   tositeAlvRivit.forEach(r => {
-    const debet = r.debet ? parseFloat(r.debet.replace(/\s/g, '').replace(',', '.')) : 0;
-    const kredit = r.kredit ? parseFloat(r.kredit.replace(/\s/g, '').replace(',', '.')) : 0;
-    alvTotD += debet;
-    alvTotK += kredit;
+    const parseFi = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
+    alvTotD += parseFi(r.debet);
+    alvTotK += parseFi(r.kredit);
   });
   
-  // Calculate balancing row based on net totals
-  const totalNetD = userNetD + alvTotD;
-  const totalNetK = userNetK + alvTotK;
-  const erotus = totalNetD - totalNetK;
-  
-  // Display totals (brutto-pohjaiset käyttäjälle näkyvät summat)
-  const dispTotD = tositeRivit.reduce((s, r) => s + (parseFloat(r.debet) || 0), 0) + alvTotD;
-  const dispTotK = tositeRivit.reduce((s, r) => s + (parseFloat(r.kredit) || 0), 0) + alvTotK;
+  // Display totals: käyttäjärivien brutto + ALV-rivit
+  const dispTotD = userBruttoD + alvTotD;
+  const dispTotK = userBruttoK + alvTotK;
   const dispErotus = dispTotD - dispTotK;
 
   // Tasausrivi-logiikka perustuu näkyvään erotukseen
