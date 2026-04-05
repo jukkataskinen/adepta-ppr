@@ -457,29 +457,9 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button onclick="document.getElementById('pk-filter-alku').value='';document.getElementById('pk-filter-loppu').value='';document.getElementById('pk-filter-tili').value='';render()" style="font-size:11px;padding:3px 8px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inu);cursor:pointer">Tyhjennä</button>
       </div>
 
-      <!-- Balance alert -->
-      <div class="bal-alert" id="bal-alert"></div>
-      <!-- Table -->
-      <div class="tw" id="tw">
-        <table class="jt" id="jt" style="table-layout:fixed">
-          <colgroup>
-            <col style="width:90px"><col style="width:70px"><col>
-            <col style="width:80px"><col style="width:160px">
-            <col style="width:110px"><col style="width:110px">
-          </colgroup>
-          <thead class="jh">
-            <tr>
-              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500;white-space:nowrap;width:90px">Päivä</th>
-              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tosite</th>
-              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Selite</th>
-              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tili</th>
-              <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tilin nimi</th>
-              <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Debet</th>
-              <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Kredit</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+      <!-- Päiväkirja tositteittain -->
+      <div class="tw" id="tw" style="overflow-y:auto;flex:1;padding:0 12px 12px">
+        <div id="pk-tositteet-content"></div>
       </div>
       <!-- Bottom bar -->
       <div class="bb" id="bb">
@@ -1711,13 +1691,12 @@ const NC = 7;
 
 // ── RENDER TABLE ─────────────────────────────────────────────
 function render() {
-  const tbody = document.getElementById('tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
+  const container = document.getElementById('pk-tositteet-content');
+  if (!container) return;
   const alku  = document.getElementById('pk-filter-alku')?.value  || '';
   const loppu = document.getElementById('pk-filter-loppu')?.value || '';
   const tiliF = document.getElementById('pk-filter-tili')?.value  || '';
-  const displayRows = rows
+  const filtered = rows
     .filter(r =>
       (!alku  || r.pv >= alku) &&
       (!loppu || r.pv <= loppu) &&
@@ -1725,42 +1704,77 @@ function render() {
     )
     .sort((a, b) => (a.pv || '').localeCompare(b.pv || '') || (a.ts || '').localeCompare(b.ts || ''));
 
-  const fv = v => v.toLocaleString('fi-FI', {minimumFractionDigits:2, maximumFractionDigits:2});
+  // Ryhmittele tositteittain
+  const tositeMap = {};
+  filtered.forEach(r => {
+    const nro = r.ts || '—';
+    if (!tositeMap[nro]) tositeMap[nro] = { nro, pv: r.pv, rivit: [] };
+    tositeMap[nro].rivit.push(r);
+  });
+  const tositteet = Object.values(tositeMap).sort((a,b) => (a.pv||'').localeCompare(b.pv||'') || (a.nro||'').localeCompare(b.nro||''));
 
-  let totDebet = 0, totKredit = 0;
-  displayRows.forEach(r => {
-    const tili     = r.d || r.k || '';
-    const tiliNimi = TILIT.find(t => t.nro === tili)?.lbl || '';
-    const debet    = r.d ? r.netto : 0;
-    const kredit   = r.k ? r.netto : 0;
-    totDebet  += debet;
-    totKredit += kredit;
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid var(--bd)';
-    tr.innerHTML =
-      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);white-space:nowrap">${fmtPv(r.pv)}</td>` +
-      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${r.ts||''}</td>` +
-      `<td style="padding:7px 12px;font-size:12px;color:var(--ink)">${r.sel||''}</td>` +
-      `<td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${tili}</td>` +
-      `<td style="padding:7px 12px;font-size:12px;color:var(--inu)">${tiliNimi}</td>` +
-      `<td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${debet>0.005?fv(debet):''}</td>` +
-      `<td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#c0392b">${kredit>0.005?fv(kredit):''}</td>`;
-    tbody.appendChild(tr);
+  const fv = v => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits:2, maximumFractionDigits:2});
+  let grandD = 0, grandK = 0;
+  let html = '';
+
+  tositteet.forEach(t => {
+    let tosD = 0, tosK = 0;
+    const tbody = t.rivit.map(r => {
+      const tili = r.d || r.k || '';
+      const tiliNimi = TILIT.find(tl => tl.nro === tili)?.lbl || '';
+      const debet = r.d ? r.netto : 0;
+      const kredit = r.k ? r.netto : 0;
+      tosD += debet; tosK += kredit;
+      return `<tr style="border-bottom:1px solid var(--bd)">
+        <td style="padding:7px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${tili}</td>
+        <td style="padding:7px 12px;font-size:12px;color:var(--inu)">${tiliNimi}</td>
+        <td style="padding:7px 12px;font-size:12px;color:var(--ink)">${r.sel||''}</td>
+        <td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${debet>0.005?fv(debet):''}</td>
+        <td style="padding:7px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#c0392b">${kredit>0.005?fv(kredit):''}</td>
+      </tr>`;
+    }).join('');
+    grandD += tosD; grandK += tosK;
+    const tasmaa = Math.abs(tosD - tosK) < 0.01;
+
+    html += `<div class="rpt-section" style="margin-bottom:16px">
+      <div class="rpt-hdr">
+        <div class="rpt-hdr-t">${t.nro}</div>
+        <div class="rpt-hdr-s">${fmtPv(t.pv)} · ${t.rivit.length} vientiä${!tasmaa?' · <span style="color:var(--red)">⚠ Erotus</span>':''}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:80px"><col style="width:160px"><col><col style="width:110px"><col style="width:110px"></colgroup>
+        <thead><tr style="background:var(--ppw)">
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tili</th>
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Tilin nimi</th>
+          <th style="text-align:left;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Selite</th>
+          <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Debet</th>
+          <th style="text-align:right;padding:6px 12px;font-size:11px;color:var(--inu);font-weight:500">Kredit</th>
+        </tr></thead>
+        <tbody>${tbody}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+          <td colspan="3" style="padding:7px 12px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä</td>
+          <td style="padding:7px 12px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${fv(tosD)}</td>
+          <td style="padding:7px 12px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${fv(tosK)}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
   });
 
-  // Yhteensä-rivi
-  const table = document.getElementById('jt');
-  const oldFoot = table.querySelector('tfoot.filter-total');
-  if (oldFoot) oldFoot.remove();
-  const tfoot = document.createElement('tfoot');
-  tfoot.className = 'filter-total';
-  tfoot.innerHTML = `<tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
-    <td colspan="5" style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--inm)">Yhteensä — ${displayRows.length} vientiä</td>
-    <td style="padding:8px 12px;font-size:12px;font-weight:600;text-align:right;color:#2a7a4f">${totDebet>0.005?fv(totDebet):''}</td>
-    <td style="padding:8px 12px;font-size:12px;font-weight:600;text-align:right;color:#c0392b">${totKredit>0.005?fv(totKredit):''}</td>
-  </tr>`;
-  table.appendChild(tfoot);
-  updateTotals();
+  if (grandD > 0.005 || grandK > 0.005) {
+    html += `<div class="rpt-section">
+      <div class="rpt-hdr"><div class="rpt-hdr-t">Yhteensä — ${filtered.length} vientiä · ${tositteet.length} tositetta</div></div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:80px"><col style="width:160px"><col><col style="width:110px"><col style="width:110px"></colgroup>
+        <tr style="background:var(--ppw)">
+          <td colspan="3" style="padding:10px 14px;font-size:13px;font-weight:600;color:var(--inm)">Kaikki tositteet</td>
+          <td style="padding:10px 14px;font-size:13px;font-weight:600;text-align:right;color:#2a7a4f">${fv(grandD)}</td>
+          <td style="padding:10px 14px;font-size:13px;font-weight:600;text-align:right;color:#c0392b">${fv(grandK)}</td>
+        </tr>
+      </table>
+    </div>`;
+  }
+
+  container.innerHTML = html || '<div style="text-align:center;padding:32px;color:var(--inu)">Ei kirjauksia valitulla aikavälillä</div>';
 }
 
 // ── FIELD CHANGES ─────────────────────────────────────────────
