@@ -2320,10 +2320,15 @@ function curRptName() {
   return t.includes('tulos') ? 'tulos' : t.includes('tase') ? 'tase' : 'alv';
 }
 function renderRpt(name) {
+  // Tuloslaskelma ja ALV: vain valittu aikaväli
   rptRows = rows.filter(r => r.pv >= rptAlku && r.pv <= rptLoppu);
   const el = document.getElementById('rpt-content');
   if (name === 'tulos') el.innerHTML = rptTulos();
-  else if (name === 'tase') el.innerHTML = rptTase();
+  else if (name === 'tase') {
+    // Tase: kaikki rivit alusta loppupäivään (tasetilit kumulatiivisia)
+    rptRows = rows.filter(r => r.pv <= rptLoppu);
+    el.innerHTML = rptTase();
+  }
   else if (name === 'alv') el.innerHTML = rptAlv();
 }
 function rptTiliRivi(nro, normaali) {
