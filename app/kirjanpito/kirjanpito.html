@@ -926,7 +926,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <!-- ─── RAPORTIT PANEL ─── -->
     <div id="panel-raportit" class="panel">
       <h2>Raportit</h2>
-      <div class="panel-sub" id="rpt-sub">Virtanen Ky · Tilikausi 2025</div>
+      <div class="panel-sub" id="rpt-sub"></div>
       <div class="rpt-tabs">
         <button class="rpt-tab act" onclick="showRpt('tulos',this)">Tuloslaskelma</button>
         <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
@@ -1608,6 +1608,11 @@ function showPanel(name) {
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') renderTositteet();
+  if (name === 'raportit') {
+    const rptSub = document.getElementById('rpt-sub');
+    if (rptSub) rptSub.textContent = (curYritys?.nimi || '') + ' · Tilikausi ' + (curTilikausiVuosi || new Date().getFullYear());
+    renderRpt(curRptName ? curRptName() : 'tulos');
+  }
   if (name === 'paivak') {
     // Täytä päiväkirja-tilidropdown
     const tilit = [...new Set([...rows.map(r=>r.d), ...rows.map(r=>r.k)].filter(Boolean))].sort();
