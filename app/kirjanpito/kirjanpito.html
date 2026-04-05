@@ -6202,12 +6202,18 @@ async function alustaTositeNro() {
 async function seuraavaTositeNroLaji(laji) {
   if (!curYritys) return laji + '1';
   try {
+    // Käytä Supabase RPC:tä atomiseen numerointiin
+    const { data, error } = await _sb.rpc('seuraava_tosite_nro', {
+      p_asiakas_id: curYritys.id,
+      p_laji: laji
+    });
+    if (!error && data) return data;
+    // Fallback: laske JS:ssä
     const res = await fetch('/api/ppr/paivakirja?asiakas_id=' + curYritys.id);
     if (!res.ok) return laji + '1';
-    const data = await res.json();
-    // Etsi suurin numero tällä lajilla
+    const rows2 = await res.json();
     let maxNro = 0;
-    data.forEach(r => {
+    rows2.forEach(r => {
       const tn = String(r.tosite_nro || '');
       if (tn.startsWith(laji)) {
         const num = parseInt(tn.replace(laji, '')) || 0;
