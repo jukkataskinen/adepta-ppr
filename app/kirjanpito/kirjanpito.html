@@ -4124,6 +4124,7 @@ function vtSearch(val) {
 function vtKey(e) {
   const res = document.getElementById('vt-results');
   const items = res.querySelectorAll('div');
+  console.log('vtKey:', e.key, 'tuloksia:', items.length, 'dropdown:', res.style.display, 'hiIdx:', vtHiIdx, 'val:', document.getElementById('vt-search').value);
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     vtHiIdx = Math.min(vtHiIdx+1, items.length-1);
