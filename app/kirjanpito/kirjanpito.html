@@ -1360,7 +1360,24 @@ async function lataaYritykset() {
     const found = savedId ? YRITYKSET.find(y => y.id === savedId) : null;
     curYritys = found || YRITYKSET[0];
     renderCo();
-    lataaRivit(curYritys.id).then(() => { lataaEtusivu(); showPanel('etusivu'); });
+    lataaRivit(curYritys.id).then(() => {
+      lataaEtusivu();
+      // Tarkista hash-parametri: #tosite=MU1
+      const hash = window.location.hash;
+      const tositeM = hash.match(/tosite=([^&]+)/);
+      if (tositeM) {
+        const nro = decodeURIComponent(tositeM[1]);
+        showPanel('tositteet');
+        tosValittuNro = nro;
+        renderTositteet();
+        setTimeout(() => {
+          const tr = rows.filter(r => r.ts === nro);
+          if (tr.length) tosNaytaTiedot({nro, pv:tr[0].pv, rivit:tr, debetYht:tr.filter(r=>r.d).reduce((s,r)=>s+r.netto,0), kreditYht:tr.filter(r=>r.k).reduce((s,r)=>s+r.netto,0), selitteet:[...new Set(tr.map(r=>r.sel).filter(Boolean))]});
+        }, 100);
+      } else {
+        showPanel('etusivu');
+      }
+    });
   } else {
     renderCo();
   }
@@ -2395,22 +2412,9 @@ function rptRow(l, v, cls='', indent=false, sub='') {
   </div>`;
 }
 function siirryTositteeseen(tositeNro) {
-  showPanel('tositteet');
-  tosValittuNro = tositeNro;
-  renderTositteet();
-  setTimeout(() => {
-    const tositeRivit = rows.filter(r => r.ts === tositeNro);
-    if (tositeRivit.length) {
-      tosNaytaTiedot({
-        nro: tositeNro,
-        pv: tositeRivit[0].pv,
-        rivit: tositeRivit,
-        debetYht: tositeRivit.filter(r=>r.d).reduce((s,r)=>s+r.netto,0),
-        kreditYht: tositeRivit.filter(r=>r.k).reduce((s,r)=>s+r.netto,0),
-        selitteet: [...new Set(tositeRivit.map(r=>r.sel).filter(Boolean))]
-      });
-    }
-  }, 100);
+  // Avaa uuteen välilehteen — välitä tositenumero URL:ssa
+  const url = '/kirjanpito#tosite=' + encodeURIComponent(tositeNro);
+  window.open(url, '_blank');
 }
 
 function suljeKaikkiModalit() {
