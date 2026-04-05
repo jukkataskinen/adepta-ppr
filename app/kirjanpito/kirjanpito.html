@@ -6978,9 +6978,7 @@ async function tallennaTositteet() {
     });
   }
 
-  console.log('Lähetettävä data:', JSON.stringify({asiakas_id: curYritys.id, tosite_nro, paivamaara, rivit}, null, 2));
-
-  console.log('Lähetettävä:', JSON.stringify({asiakas_id: curYritys.id, tosite_nro, paivamaara, rivit}));
+  console.log('Tallenna tosite:', tosite_nro, rivit.length, 'riviä, asiakas:', curYritys.id);
 
   try {
     const res = await fetch('/api/ppr/paivakirja', {
@@ -6991,7 +6989,7 @@ async function tallennaTositteet() {
     const json = await res.json();
     if (res.ok) {
       const tallennettuPvm = paivamaara;
-      lataaRivit(curYritys.id);
+      await lataaRivit(curYritys.id); // odota ennen numeron hakua
       naytaTositeTallennettu(tosite_nro, json.tallennettu, tallennettuPvm);
     } else {
       toast('Virhe: ' + json.error);
