@@ -2616,29 +2616,10 @@ function rptTase() {
   const vaihtuvatYht = vaihtuvatTilit.reduce((s,t) => s + saldoD(t), 0);
   const vastaavaaYht = pysyvatYht + vaihtuvatYht;
 
-  // Tilikauden tulos — sama sumAlue-kaava kuin rptTulos
-  const sumAlue = (alku, loppu) => rptRows.filter(r => {
-    const n = parseInt((r.d||r.k)||'0');
-    return n >= alku && n <= loppu;
-  }).reduce((s,r) => s + (r.d ? r.netto : -r.netto), 0);
-  const tuotot     = -sumAlue(3000, 3999);
-  const aineet     =  sumAlue(4000, 4999);
-  const henk       =  sumAlue(5000, 6499);
-  const poistot    =  sumAlue(6800, 6899);
-  const toimitila  =  sumAlue(7200, 7499);
-  const ajoneuvot  =  sumAlue(7500, 7599);
-  const itkulut    =  sumAlue(7600, 7699);
-  const konekulut  =  sumAlue(7700, 7799);
-  const matkat     =  sumAlue(7800, 7899);
-  const myyntimark =  sumAlue(7900, 7999);
-  const hallinto   =  sumAlue(8000, 8499);
-  const muutkulut  =  sumAlue(8500, 8899);
-  const korot_t    = -sumAlue(8650, 8699);
-  const korot_k    =  sumAlue(8700, 8799);
-  const verot      =  sumAlue(9000, 9099);
-  const muutVerot = rptRows.filter(r => { const n=parseInt((r.d||r.k)||'0'); return n>=9100&&n<=9999; }).reduce((s,r) => s + (r.k ? r.netto : -r.netto), 0);
-  const liiketkulut = aineet + henk + poistot + toimitila + konekulut + ajoneuvot + itkulut + matkat + myyntimark + hallinto + muutkulut;
-  const tulos = tuotot - liiketkulut + korot_t - korot_k - verot + muutVerot;
+  // Tilikauden voitto/tappio: tilit 3000-9999 kredit - debet
+  const tulos = rptRows.filter(r => {
+    const n = parseInt((r.d||r.k)||'0'); return n >= 3000 && n <= 9999;
+  }).reduce((s,r) => s + (r.k ? r.netto : -r.netto), 0);
 
   // VASTATTAVAA: tilit 2000-2999 joilla positiivinen kredit-saldo
   const vastattavaaTilit = kaikkiTilit.filter(t => {
