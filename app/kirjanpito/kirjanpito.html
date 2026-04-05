@@ -6328,14 +6328,17 @@ function generateBalancingRow(r) {
     'oninput="tositeHakuBalancingTili(this)" ' +
     'onfocus="tositeAvaaBalancingLista(this)" ' +
     'onblur="setTimeout(()=>tositeSubjatBalancingLista(),200)" ' +
+    'onkeydown="tsTiliKeyBalancing(event)" ' +
     'style="width:200px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
     '<div id="ts-tili-lista-balancing" style="display:none;position:absolute;top:100%;left:0;width:300px;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;font-size:12px"></div>' +
     '</div></td>' +
     '<td style="padding:4px 6px"><input type="text" value="" style="width:100%;min-width:180px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;background:#fff" readonly></td>' +
-    '<td style="padding:4px 6px"><input type="text" value="' + (r.debet||'') + '" ' +
-    'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f;background:#fff" readonly></td>' +
-    '<td style="padding:4px 6px"><input type="text" value="' + (r.kredit||'') + '" ' +
-    'style="width:100px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:right;color:#c0392b;background:#fff" readonly></td>' +
+    '<td style="padding:4px 6px"><input type="number" class="tasaus-summa-input" value="' + (r.debet||'') + '" ' +
+    'oninput="tasausSummaChanged(\'debet\',this.value)" onkeydown="tasausSummaKey(event)" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#2a7a4f"></td>' +
+    '<td style="padding:4px 6px"><input type="number" class="tasaus-summa-input" value="' + (r.kredit||'') + '" ' +
+    'oninput="tasausSummaChanged(\'kredit\',this.value)" onkeydown="tasausSummaKey(event)" ' +
+    'style="width:100px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;text-align:right;color:#c0392b"></td>' +
     '<td style="padding:4px 6px;color:#4a90e2;font-size:12px">Tasaus</td>' +
     '<td style="padding:4px 6px"></td>' +
     '</tr>';
@@ -6481,6 +6484,11 @@ function updateAutoRowsInDOM() {
 function tsKey(e, rowIdx, col) {
   if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
     e.preventDefault();
+    // Viimeisen käyttäjärivin summa-kentästä → hyppää tasausriville
+    if (rowIdx === tositeRivit.length - 1 && (col === 2 || col === 3)) {
+      const tasausInput = document.querySelector('.tasaus-summa-input');
+      if (tasausInput && tasausInput.value) { tasausInput.focus(); tasausInput.select(); return; }
+    }
     if (col < 4) {
       const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col+1) + '"]');
       if (next) next.focus();
@@ -6525,6 +6533,66 @@ function tsTiliKey(e, rowIdx) {
     }
   } else if (e.key === 'Escape') {
     tositeSubjatLista(rowIdx);
+  }
+}
+
+function tasausSummaChanged(suunta, val) {
+  if (!tositeBalancingRow) return;
+  const v = parseFloat(val) || 0;
+  if (suunta === 'debet') { tositeBalancingRow.debet = v > 0 ? v.toFixed(2) : ''; tositeBalancingRow.kredit = ''; }
+  else { tositeBalancingRow.kredit = v > 0 ? v.toFixed(2) : ''; tositeBalancingRow.debet = ''; }
+  tositeDirty = true;
+}
+
+function tasausSummaKey(e) {
+  if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+    e.preventDefault();
+    // Tarkista täsmääkö tosite muokkauksen jälkeen
+    const parseFi = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
+    let totD = 0, totK = 0;
+    tositeRivit.forEach(r => {
+      const alvp = parseFloat(r.alvp) || 0;
+      const d = parseFloat(r.debet) || 0;
+      const k = parseFloat(r.kredit) || 0;
+      const gross = d || k;
+      const net = alvp > 0 && gross > 0 ? gross / (1 + alvp/100) : gross;
+      if (d > 0) totD += net; else if (k > 0) totK += net;
+    });
+    tositeAlvRivit.forEach(r => {
+      totD += parseFi(r.debet); totK += parseFi(r.kredit);
+    });
+    if (tositeBalancingRow) {
+      totD += parseFi(tositeBalancingRow.debet);
+      totK += parseFi(tositeBalancingRow.kredit);
+    }
+    const erotus = totD - totK;
+    if (Math.abs(erotus) > 0.01 && tositeBalancingRow?.tili) {
+      // Luo uusi tasausrivi erotukselle
+      tositeRivit.push({
+        id: Date.now(), tili: tositeBalancingRow.tili, tiliLbl: tositeBalancingRow.tiliLbl,
+        sel: '', debet: erotus < 0 ? Math.abs(erotus).toFixed(2) : '', kredit: erotus > 0 ? erotus.toFixed(2) : '', alvp: ''
+      });
+      tositeDirty = true;
+      paivitaTositeTotals();
+      renderTositeRivit();
+    }
+  }
+}
+
+function tsTiliKeyBalancing(e) {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const l = document.getElementById('ts-tili-lista-balancing');
+    if (l && l.firstElementChild) l.firstElementChild.focus();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = e.target.value.trim().toLowerCase();
+    const exact = TILIT.find(t => t.nro === val);
+    if (exact) { tositeBalancingRow.tili = exact.nro; tositeBalancingRow.tiliLbl = exact.lbl; paivitaTositeTotals(); renderTositeRivit(); return; }
+    const filtered = TILIT.filter(t => t.nro.startsWith(val) || t.lbl.toLowerCase().includes(val));
+    if (filtered.length === 1) { tositeBalancingRow.tili = filtered[0].nro; tositeBalancingRow.tiliLbl = filtered[0].lbl; paivitaTositeTotals(); renderTositeRivit(); return; }
+  } else if (e.key === 'Escape') {
+    tositeSubjatBalancingLista();
   }
 }
 
