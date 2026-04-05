@@ -337,7 +337,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   <div class="main" id="main">
 
     <!-- ─── ETUSIVU PANEL ─── -->
-    <div id="panel-etusivu" class="panel" style="display:block;overflow-y:auto;padding:28px 32px">
+    <div id="panel-etusivu" class="panel" style="overflow-y:auto;padding:28px 32px">
       <div id="etusivu-header" style="margin-bottom:24px">
         <h2 id="etusivu-nimi" style="font-size:22px;font-weight:600;margin:0">—</h2>
         <div id="etusivu-tilikausi" style="font-size:13px;color:var(--inu);margin-top:4px"></div>
@@ -422,7 +422,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   </table>
 </div>
 
-    <div id="panel-paivak" class="panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div id="panel-paivak" class="panel" style="flex-direction:column;flex:1;overflow:hidden">
       <!-- Keyboard hints -->
       <div class="kb">
         <div class="kb-i"><kbd>Tab</kbd> seuraava kenttä</div>
@@ -1029,7 +1029,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     </div>
 
     <!-- ─── ASIAKASREKISTERI PANEL ─── -->
-    <div id="panel-asiakasrek" class="panel" style="overflow:hidden;display:none">
+    <div id="panel-asiakasrek" class="panel" style="overflow:hidden">
       <div style="display:grid;grid-template-columns:320px 1fr;height:100%;overflow:hidden">
         <!-- VASEN: asiakaslistaus -->
         <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
@@ -6171,6 +6171,7 @@ function reskRenderAvoimet() {
 document.getElementById('sb-user-name').textContent = window._PPR?.email || '—';
 document.getElementById('sb-user-role').textContent = window._PPR?.rooli === 'paakayttaja' ? 'Pääkäyttäjä' : 'Kirjanpitäjä';
 toggleNavGroup('kirjanpito');
+showPanel('etusivu'); // näytä heti, data ladataan taustalla
 lataaYritykset();
 haeApiAvain();
 
