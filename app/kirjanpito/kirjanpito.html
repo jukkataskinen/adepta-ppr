@@ -7455,6 +7455,8 @@ async function tallennaTositteet() {
   const vanhatAlv = [...tositeAlvRivit];
   const vanhaBalancing = tositeBalancingRow ? {...tositeBalancingRow} : null;
   const tallennettuPvm = paivamaara;
+  // Tallenna pending-liitteet ennen lomakkeen nollausta
+  const tallennettavatLiitteet = [...pendingLiitteet];
 
   // Nollaa lomake optimistisesti — palauttaa jos epäonnistuu
   naytaTositeTallennettu(tosite_nro, rivit.length, tallennettuPvm);
@@ -7467,8 +7469,9 @@ async function tallennaTositteet() {
     });
     const json = await res.json();
     if (res.ok) {
-      // Tallenna pending-liitteet Storageen
-      console.log('Kutsutaan tsTallennaPendingLiitteet, tositeNro:', tosite_nro, 'pending:', pendingLiitteet.length);
+      // Tallenna liitteet Storageen (käytä tallennettua kopiota)
+      console.log('Tallennetaan liitteet, tositeNro:', tosite_nro, 'kpl:', tallennettavatLiitteet.length);
+      pendingLiitteet = tallennettavatLiitteet;
       await tsTallennaPendingLiitteet(tosite_nro);
       await lataaRivit(curYritys.id);
       await paivitaTositeNro();
