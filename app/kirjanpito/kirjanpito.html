@@ -366,62 +366,73 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     </div>
 
     <!-- ─── PÄIVÄKIRJA PANEL ─── -->
-    <div id="panel-tosite" class="panel">
-  <h2>Tositteen syöttö</h2>
-  <div class="panel-sub">Syötä kirjanpitovientejä — debet positiivinen, kredit negatiivinen</div>
-
-  <!-- Tositteen otsikko -->
-  <div style="display:flex;gap:16px;margin-bottom:20px;align-items:center;padding:12px 16px;background:var(--ppw);border-radius:8px;border:1px solid var(--bd)">
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tositelajl</label>
-      <select id="ts-laji" onchange="paivitaTositeNro()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff;cursor:pointer">
-        <option value="MU">MU — Muistio</option>
-        <option value="ML">ML — Myyntilasku</option>
-        <option value="OL">OL — Ostolasku</option>
-      </select>
+    <div id="panel-tosite" class="panel" style="overflow:hidden;padding:0">
+  <div style="display:grid;grid-template-columns:2fr 1fr;height:100%;overflow:hidden">
+    <!-- VASEN: syöttölomake -->
+    <div style="overflow-y:auto;padding:28px 24px 48px">
+      <h2>Tositteen syöttö</h2>
+      <div class="panel-sub" style="margin-bottom:16px">Syötä kirjanpitovientejä — debet positiivinen, kredit negatiivinen</div>
+      <div style="display:flex;gap:16px;margin-bottom:20px;align-items:center;padding:12px 16px;background:var(--ppw);border-radius:8px;border:1px solid var(--bd)">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tositelajl</label>
+          <select id="ts-laji" onchange="paivitaTositeNro()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff;cursor:pointer">
+            <option value="MU">MU — Muistio</option>
+            <option value="ML">ML — Myyntilasku</option>
+            <option value="OL">OL — Ostolasku</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite nro</label>
+          <input type="text" id="ts-nro" placeholder="(automaattinen)" readonly style="width:100px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffm);font-size:13px;background:var(--ppw);color:var(--fl);font-weight:600">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Päiväys</label>
+          <input type="date" id="ts-pvm" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff">
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end">
+          <button onclick="lisaaTositeRivi()" style="padding:6px 16px;background:#1D9E75;color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">+ Rivi</button>
+          <button onclick="tallennaTositteet()" id="tosite-save-btn" disabled style="padding:6px 18px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer;opacity:0.4">Tallenna</button>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);width:220px">Tili</th>
+            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Selite</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#2a7a4f;width:110px">Debet €</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#c0392b;width:110px">Kredit €</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);width:80px">ALV %</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="tosite-tbody"></tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+            <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inu)">Tositteen erotus</td>
+            <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#2a7a4f" id="ts-tot-debet">0,00</td>
+            <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#c0392b" id="ts-tot-kredit">0,00</td>
+            <td></td><td></td>
+          </tr>
+          <tr><td colspan="5" style="padding:4px 10px 8px"><span id="ts-tasapaino" style="font-size:12px;font-weight:600"></span></td></tr>
+        </tfoot>
+      </table>
     </div>
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite nro</label>
-      <input type="text" id="ts-nro" placeholder="(automaattinen)" readonly style="width:100px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffm);font-size:13px;background:var(--ppw);color:var(--fl);font-weight:600">
-    </div>
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Päiväys</label>
-      <input type="date" id="ts-pvm" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff">
-    </div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end">
-      <button onclick="lisaaTositeRivi()" style="padding:6px 16px;background:#1D9E75;color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer">+ Rivi</button>
-      <button onclick="tallennaTositteet()" id="tosite-save-btn" disabled style="padding:6px 18px;background:var(--fd);color:#fff;border:none;border-radius:5px;font-family:var(--ffb);font-size:13px;font-weight:500;cursor:pointer;opacity:0.4">Tallenna</button>
+    <!-- OIKEA: liitteet -->
+    <div style="border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase">Liitteet</span>
+        <span id="ts-liite-lkm" style="font-size:10px;color:var(--inu)">0 kpl</span>
+      </div>
+      <div id="ts-liite-lista" style="max-height:130px;overflow-y:auto;padding:6px 10px"></div>
+      <div style="padding:8px 10px">
+        <div onclick="document.getElementById('ts-liite-file').click()" style="border:2px dashed var(--bd2);border-radius:6px;padding:10px;text-align:center;cursor:pointer;font-size:12px;color:var(--fg)">+ Lisää liite</div>
+        <input type="file" id="ts-liite-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="tsLisaaPendingLiite(event)">
+      </div>
+      <div id="ts-liite-preview" style="flex:1;overflow-y:auto;padding:8px;text-align:center;background:var(--ppw);min-height:80px">
+        <div style="padding:24px;color:var(--inu);font-size:11px">Lisää liite tositteelle</div>
+      </div>
     </div>
   </div>
-
-  <!-- Rivit -->
-  <table style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead>
-      <tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
-        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);width:220px">Tili</th>
-        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Selite</th>
-        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#2a7a4f;width:110px">Debet €</th>
-        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#c0392b;width:110px">Kredit €</th>
-        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);width:80px">ALV %</th>
-        <th style="width:36px"></th>
-      </tr>
-    </thead>
-    <tbody id="tosite-tbody"></tbody>
-    <tfoot>
-      <tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
-        <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--inu)">Tositteen erotus</td>
-        <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#2a7a4f" id="ts-tot-debet">0,00</td>
-        <td style="padding:8px 10px;text-align:right;font-weight:700;font-family:monospace;font-size:13px;color:#c0392b" id="ts-tot-kredit">0,00</td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td colspan="5" style="padding:4px 10px 8px">
-          <span id="ts-tasapaino" style="font-size:12px;font-weight:600"></span>
-        </td>
-      </tr>
-    </tfoot>
-  </table>
 </div>
 
     <div id="panel-paivak" class="panel" style="flex-direction:column;flex:1;overflow:hidden">
@@ -7278,7 +7289,75 @@ function uusiTosite(edellinenPvm) {
   lisaaTositeRivi();
 }
 
+// ── TOSITTEEN SYÖTÖN LIITTEET (pending) ──────────────────────
+let pendingLiitteet = [];
+let pendingValittu = null;
+
+function tsLisaaPendingLiite(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  pendingLiitteet.push({ file, nimi: file.name, koko: file.size, previewUrl: URL.createObjectURL(file) });
+  tsRenderPendingLiitteet();
+  tsNaytaPendingLiite(pendingLiitteet.length - 1);
+  event.target.value = '';
+}
+
+function tsRenderPendingLiitteet() {
+  document.getElementById('ts-liite-lkm').textContent = pendingLiitteet.length + ' kpl';
+  const lista = document.getElementById('ts-liite-lista');
+  lista.innerHTML = '';
+  pendingLiitteet.forEach((l, i) => {
+    const isPdf = l.nimi.toLowerCase().endsWith('.pdf');
+    const koko = l.koko > 1024 ? (l.koko/1024).toFixed(0)+' KB' : l.koko+' B';
+    const valittu = pendingValittu === i;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-bottom:2px;border:1px solid '+(valittu?'rgba(29,158,117,.3)':'transparent')+';background:'+(valittu?'var(--fmist)':'');
+    row.onmouseover = () => { if (!valittu) row.style.background='var(--fpale)'; };
+    row.onmouseout = () => { if (!valittu) row.style.background=''; };
+    row.onclick = () => tsNaytaPendingLiite(i);
+    row.innerHTML = '<span style="font-size:14px">'+(isPdf?'📄':'🖼️')+'</span>' +
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)">'+l.nimi+'</span>' +
+      '<span style="color:var(--inu);font-size:10px">'+koko+'</span>' +
+      '<button onclick="event.stopPropagation();pendingLiitteet.splice('+i+',1);if(pendingValittu>='+i+')pendingValittu=null;tsRenderPendingLiitteet()" style="background:none;border:none;color:var(--inu);cursor:pointer;font-size:14px">×</button>';
+    lista.appendChild(row);
+  });
+}
+
+function tsNaytaPendingLiite(idx) {
+  pendingValittu = idx;
+  tsRenderPendingLiitteet();
+  const l = pendingLiitteet[idx];
+  if (!l) return;
+  const preview = document.getElementById('ts-liite-preview');
+  if (l.nimi.toLowerCase().endsWith('.pdf')) {
+    preview.innerHTML = '<div style="padding:12px;color:var(--inu);font-size:11px">📄 '+l.nimi+'<br>PDF-esikatselu tallennuksen jälkeen</div>';
+  } else {
+    preview.innerHTML = '<img src="'+l.previewUrl+'" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px">';
+  }
+}
+
+async function tsTallennaPendingLiitteet(tositeNro) {
+  if (!pendingLiitteet.length || !curYritys) return;
+  for (const l of pendingLiitteet) {
+    const polku = curYritys.id+'/tositteet/'+tositeNro+'/'+l.nimi;
+    try {
+      await _sb.storage.from('tositteet').upload(polku, l.file, { upsert: true });
+      await _sb.from('ppr_tosite_liitteet').insert({
+        asiakas_id: curYritys.id, tosite_nro: tositeNro,
+        tiedostonimi: l.nimi, storage_path: polku, koko_bytes: l.koko
+      });
+    } catch(e) { console.warn('Liite tallennus:', e); }
+    if (l.previewUrl) URL.revokeObjectURL(l.previewUrl);
+  }
+  pendingLiitteet = [];
+  pendingValittu = null;
+}
+
 function tyhjennaTositelomake() {
+  pendingLiitteet.forEach(l => { if(l.previewUrl) URL.revokeObjectURL(l.previewUrl); });
+  pendingLiitteet = []; pendingValittu = null;
+  tsRenderPendingLiitteet();
+  document.getElementById('ts-liite-preview').innerHTML = '<div style="padding:24px;color:var(--inu);font-size:11px">Lisää liite tositteelle</div>';
   tositeRivit = [];
   tositeAlvRivit = [];
   tositeBalancingRow = null;
@@ -7384,10 +7463,10 @@ async function tallennaTositteet() {
     });
     const json = await res.json();
     if (res.ok) {
+      // Tallenna pending-liitteet Storageen
+      await tsTallennaPendingLiitteet(tosite_nro);
       await lataaRivit(curYritys.id);
-      // Päivitä numero nyt kun data on kannassa
       await paivitaTositeNro();
-      // Säilytä päivämäärä
       document.getElementById('ts-pvm').value = tallennettuPvm;
     } else {
       // Palauta rivit
