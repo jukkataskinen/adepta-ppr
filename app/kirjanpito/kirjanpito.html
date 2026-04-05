@@ -6349,13 +6349,13 @@ function paivitaTositeTotals() {
   
   tositeRivit.forEach(r => {
     if ((r.alvp || 0) > 0) {
-      const alvPct = parseFloat(r.alvp);
-      const brutto = r.bruttoSumma || parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+      const alvPct = tsParseFi(r.alvp);
+      const brutto = r.bruttoSumma || tsParseFi(r.debet) || tsParseFi(r.kredit) || 0;
       const veroton = brutto / (1 + alvPct / 100);
       const alvEuro = brutto - veroton;
       
       // Determine ALV account and direction
-      const isKredit = (parseFloat(r.kredit) || 0) > 0;
+      const isKredit = tsParseFi(r.kredit) > 0;
       const alvTili = isKredit ? '29390' : '1763';
       const alvKey = alvTili + (isKredit ? 'K' : 'D');
       
@@ -6385,8 +6385,8 @@ function paivitaTositeTotals() {
   // Laske käyttäjärivien bruttosummat (= mitä käyttäjä syötti)
   let userBruttoD = 0, userBruttoK = 0;
   tositeRivit.forEach(r => {
-    userBruttoD += parseFloat(r.debet) || 0;
-    userBruttoK += parseFloat(r.kredit) || 0;
+    userBruttoD += tsParseFi(r.debet);
+    userBruttoK += tsParseFi(r.kredit);
   });
 
   // ALV totals
@@ -6507,20 +6507,21 @@ function tsKey(e, rowIdx, col) {
   }
 }
 
+function tsParseFi(v) { return parseFloat(String(v||'').replace(/\s/g,'').replace(',','.')) || 0; }
+
 function tositeUpdField(i, f, v) {
   tositeRivit[i][f] = v;
   // Debet ja kredit eksklusiiviset
-  if (f === 'debet' && parseFloat(v) > 0) {
+  if (f === 'debet' && tsParseFi(v) > 0) {
     tositeRivit[i].kredit = '';
     const kInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
     if (kInput) kInput.value = '';
-    // Tallenna bruttosumma
-    tositeRivit[i].bruttoSumma = parseFloat(v) || 0;
-  } else if (f === 'kredit' && parseFloat(v) > 0) {
+    tositeRivit[i].bruttoSumma = tsParseFi(v);
+  } else if (f === 'kredit' && tsParseFi(v) > 0) {
     tositeRivit[i].debet = '';
     const dInput = document.querySelector('[data-row="' + i + '"][data-col="2"]');
     if (dInput) dInput.value = '';
-    tositeRivit[i].bruttoSumma = parseFloat(v) || 0;
+    tositeRivit[i].bruttoSumma = tsParseFi(v);
   }
   // ALV-valinta: laske veroton bruttosta
   if (f === 'alvp') {
@@ -6532,8 +6533,8 @@ function tositeUpdField(i, f, v) {
 
 function tositeLaskeVeroton(i) {
   const r = tositeRivit[i];
-  const alvp = parseFloat(r.alvp) || 0;
-  const brutto = r.bruttoSumma || parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+  const alvp = tsParseFi(r.alvp);
+  const brutto = r.bruttoSumma || tsParseFi(r.debet) || tsParseFi(r.kredit) || 0;
   if (!brutto) return;
   // Tallenna brutto jos ei vielä tallennettu
   if (!r.bruttoSumma) r.bruttoSumma = brutto;
@@ -6918,7 +6919,7 @@ async function tallennaTositteet() {
   if (!paivamaara) { console.log('STOP: ei päiväystä'); toast('Syötä päiväys'); btn.disabled = false; return; }
 
   // Suodata pois täysin tyhjät rivit
-  tositeRivit = tositeRivit.filter(r => r.tili || parseFloat(r.debet) > 0 || parseFloat(r.kredit) > 0);
+  tositeRivit = tositeRivit.filter(r => r.tili || tsParseFi(r.debet) > 0 || tsParseFi(r.kredit) > 0);
   // Tarkista että jäljellä olevilla riveillä on tili
   if (tositeRivit.some(r => !r.tili)) {
     console.log('STOP: rivi ilman tiliä', tositeRivit);
@@ -6942,11 +6943,11 @@ async function tallennaTositteet() {
   
   const rivit = [];
   
-  // User rows — käyttäjä syöttää verottoman, tallennetaan sellaisenaan
+  // User rows — tallennetaan sellaisenaan
   tositeRivit.forEach(r => {
-    const alvPct = parseFloat(r.alvp) || 0;
-    const debet = parseFloat(r.debet) || 0;
-    const kredit = parseFloat(r.kredit) || 0;
+    const alvPct = tsParseFi(r.alvp);
+    const debet = tsParseFi(r.debet);
+    const kredit = tsParseFi(r.kredit);
 
     rivit.push({
       tili: r.tili,
