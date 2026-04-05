@@ -5809,31 +5809,35 @@ function lataaEtusivu() {
   const opOma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0)) + tulosYtd;
   const opVieras = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2500&&n<3000;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2500&&n<3000;}).reduce((s,r)=>s+r.netto,0));
   const ovAste = taseSum > 0 ? (opOma / taseSum * 100) : 0;
+  const vierasAste = taseSum > 0 ? (opVieras / taseSum * 100) : 0;
   const fmtK = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1).replace('.',',') + 'K' : fmt(v);
-  const omaH = taseSum > 0 ? Math.max(40, Math.round(opOma / taseSum * 196)) : 98;
-  const vierasH = 196 - omaH;
+  const pylvasH = 200;
+  const omaFlex = Math.max(ovAste, 10); // vähintään 10% näkyvyys
+  const vierasFlex = Math.max(vierasAste, 10);
   document.getElementById('etusivu-omavaraisuus').innerHTML =
     '<h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Omavaraisuusaste</h3>' +
     '<div style="font-size:24px;font-weight:300;font-family:var(--ffd);margin-bottom:12px;color:' + (ovAste>=40?'var(--fg3)':ovAste>=20?'var(--fl)':'var(--red)') + '">' + ovAste.toFixed(1).replace('.',',') + ' %</div>' +
-    '<div style="display:flex;gap:4px;align-items:flex-start;height:200px">' +
-      '<div style="background:var(--fg);width:80px;height:200px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
+    '<div style="display:flex;gap:4px;align-items:stretch;height:' + pylvasH + 'px">' +
+      // Vasen: tase-pylväs
+      '<div style="background:var(--fg);width:80px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
         '<div style="font-size:18px;font-weight:700">' + fmtK(taseSum) + '</div>' +
         '<div style="font-size:11px;opacity:.7">Tase</div>' +
       '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:4px;width:80px">' +
-        '<div style="background:var(--fd);height:' + omaH + 'px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:40px">' +
-          '<div style="font-size:14px;font-weight:700">' + fmtK(opOma) + '</div>' +
-          '<div style="font-size:10px;opacity:.7">' + ovAste.toFixed(1).replace('.',',') + '%</div>' +
+      // Oikea: oma pääoma + vieras pääoma päällekkäin (sama kokonaiskorkeus)
+      '<div style="display:flex;flex-direction:column;gap:2px;width:80px">' +
+        '<div style="background:var(--fd);flex:' + omaFlex + ';border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:30px;overflow:hidden">' +
+          '<div style="font-size:13px;font-weight:700">' + fmtK(opOma) + '</div>' +
+          '<div style="font-size:9px;opacity:.7">' + ovAste.toFixed(1).replace('.',',') + '%</div>' +
         '</div>' +
-        (vierasH >= 30 ?
-          '<div style="background:rgba(255,255,255,.15);height:' + vierasH + 'px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:rgba(255,255,255,.7);min-height:30px">' +
-            '<div style="font-size:14px;font-weight:700">' + fmtK(opVieras) + '</div>' +
-            '<div style="font-size:10px;opacity:.7">' + (taseSum>0?(opVieras/taseSum*100).toFixed(1).replace('.',','):'0') + '%</div>' +
-          '</div>' : '') +
+        '<div style="background:var(--fg3);flex:' + vierasFlex + ';border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--fd);min-height:30px;overflow:hidden">' +
+          '<div style="font-size:13px;font-weight:700">' + fmtK(opVieras) + '</div>' +
+          '<div style="font-size:9px;opacity:.5">' + vierasAste.toFixed(1).replace('.',',') + '%</div>' +
+        '</div>' +
       '</div>' +
-      '<div style="display:flex;flex-direction:column;justify-content:space-between;height:200px;font-size:10px;color:var(--inu);padding:2px 0 2px 8px">' +
-        '<div>Oma pääoma</div>' +
-        '<div>Vieras pääoma</div>' +
+      // Labelit
+      '<div style="display:flex;flex-direction:column;height:' + pylvasH + 'px;font-size:10px;color:var(--inu);padding:2px 0 2px 8px">' +
+        '<div style="flex:' + omaFlex + ';display:flex;align-items:center">Oma pääoma</div>' +
+        '<div style="flex:' + vierasFlex + ';display:flex;align-items:center">Vieras pääoma</div>' +
       '</div>' +
     '</div>';
 
