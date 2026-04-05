@@ -6280,13 +6280,13 @@ function generateUserRow(r, i) {
     '<td style="padding:4px 6px"><select value="' + (r.alvp||'') + '" ' +
     'data-row="' + i + '" data-col="4" ' +
     'oninput="tositeUpdField(' + i + ',' + "'alvp'" + ',this.value)" ' +
-    'onkeydown="tsKey(event,' + i + ',4)" ' +
+    'onkeydown="tsAlvKey(event,' + i + ')" ' +
     'style="width:70px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px">' +
     '<option value=""' + (r.alvp == '' ? ' selected' : '') + '>--</option>' +
-    '<option value="0"' + (r.alvp == '0' ? ' selected' : '') + '>0%</option>' +
-    '<option value="10"' + (r.alvp == '10' ? ' selected' : '') + '>10%</option>' +
+    '<option value="25.5"' + (r.alvp == '25.5' ? ' selected' : '') + '>25,5%</option>' +
     '<option value="14"' + (r.alvp == '14' ? ' selected' : '') + '>14%</option>' +
-    '<option value="25.5"' + (r.alvp == '25.5' ? ' selected' : '') + '>25.5%</option>' +
+    '<option value="10"' + (r.alvp == '10' ? ' selected' : '') + '>10%</option>' +
+    '<option value="0"' + (r.alvp == '0' ? ' selected' : '') + '>0%</option>' +
     '</select></td>' +
     '<td style="padding:4px 6px"><button onclick="poistaTositeRivi(' + i + ')" style="background:transparent;border:none;cursor:pointer;color:#aaa;font-size:16px">×</button></td>' +
     '</tr>';
@@ -6553,6 +6553,36 @@ function tositeLaskeVeroton(i) {
   const kInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
   if (dInput) dInput.value = r.debet || '';
   if (kInput) kInput.value = r.kredit || '';
+}
+
+function tsAlvKey(e, rowIdx) {
+  const sel = e.target;
+  if (e.key === '2') { e.preventDefault(); sel.value = '25.5'; tositeUpdField(rowIdx, 'alvp', '25.5'); }
+  else if (e.key === '1') { e.preventDefault(); sel.value = '14'; tositeUpdField(rowIdx, 'alvp', '14'); }
+  else if (e.key === '0') { e.preventDefault(); sel.value = '0'; tositeUpdField(rowIdx, 'alvp', '0'); }
+  else if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+    e.preventDefault();
+    tositeUpdField(rowIdx, 'alvp', sel.value);
+    // Siirry: viimeinen rivi → tasausrivi, muu → seuraavan rivin tili
+    if (rowIdx === tositeRivit.length - 1) {
+      setTimeout(() => {
+        if (tositeBalancingRow?.tili) {
+          const tasausInput = document.querySelector('.tasaus-summa-input');
+          if (tasausInput) { tasausInput.focus(); tasausInput.select(); }
+        } else {
+          const tasausTili = document.querySelector('#ts-tili-lista-balancing')?.parentElement?.querySelector('input');
+          if (tasausTili) tasausTili.focus();
+        }
+      }, 50);
+    } else {
+      const next = document.querySelector('[data-row="' + (rowIdx + 1) + '"][data-col="0"]');
+      if (next) next.focus();
+    }
+  } else if (e.key === 'Tab' && e.shiftKey) {
+    e.preventDefault();
+    const prev = document.querySelector('[data-row="' + rowIdx + '"][data-col="3"]');
+    if (prev) prev.focus();
+  }
 }
 
 function tsTiliKey(e, rowIdx) {
