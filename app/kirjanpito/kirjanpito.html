@@ -2605,6 +2605,9 @@ function rptTase() {
 
   // Kaikki tilinumerot joita on käytetty
   const kaikkiTilit = [...new Set([...Object.keys(netD), ...Object.keys(netK)])].sort();
+  console.log('rptTase: rptRows:', rptRows.length, 'kaikkiTilit:', kaikkiTilit);
+  console.log('rptTase: vastaavaa-tilit (1xxx):', kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1000&&n<2000; }).map(t => t+':D='+((netD[t]||0)-(netK[t]||0)).toFixed(2)));
+  console.log('rptTase: vastattavaa-tilit (2xxx):', kaikkiTilit.filter(t => { const n=parseInt(t); return n>=2000&&n<3000; }).map(t => t+':K='+((netK[t]||0)-(netD[t]||0)).toFixed(2)));
 
   // VASTAAVAA: tilit 1000-1999 joilla positiivinen debet-saldo
   const vastaavaaTilit = kaikkiTilit.filter(t => {
