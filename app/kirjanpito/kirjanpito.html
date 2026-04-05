@@ -6002,50 +6002,80 @@ function lataaEtusivu() {
       (arrow ? '<div class="kpi-chg ' + cls + '">' + arrow + '</div>' : '') + '</div>';
   }).join('');
 
-  // Omavaraisuusgraafi — sama logiikka kuin rptTase
-  const ovTiliSaldot = {};
+  // Tunnusluvut — tiliSaldot aggregaatio
+  const kpiTiliSaldot = {};
   ytd.forEach(r => {
-    const tili = r.d || r.k;
-    if (!tili) return;
-    if (!ovTiliSaldot[tili]) ovTiliSaldot[tili] = 0;
-    ovTiliSaldot[tili] += r.d ? r.netto : -r.netto;
+    const tili = r.d || r.k; if (!tili) return;
+    if (!kpiTiliSaldot[tili]) kpiTiliSaldot[tili] = 0;
+    kpiTiliSaldot[tili] += r.d ? r.netto : -r.netto;
   });
-  const ovEka = t => t.charAt(0);
-  const ovTilit = Object.keys(ovTiliSaldot);
-  const taseSum = ovTilit.filter(t => ovEka(t)==='1').reduce((s,t) => s + (ovTiliSaldot[t]||0), 0);
-  const ovVierasSaldo = ovTilit.filter(t => ovEka(t)==='2').reduce((s,t) => s - (ovTiliSaldot[t]||0), 0);
-  const ovTulos = ovTilit.filter(t => ovEka(t)>='3').reduce((s,t) => s - (ovTiliSaldot[t]||0), 0);
-  const ovOmaPohja = ovTilit.filter(t => ovEka(t)==='2' && parseInt(t)<2500).reduce((s,t) => s - (ovTiliSaldot[t]||0), 0);
-  const opOma = ovOmaPohja + ovTulos;
-  const opVieras = ovVierasSaldo - ovOmaPohja;
-  const ovAste = taseSum > 0 ? (opOma / taseSum * 100) : 0;
-  const vierasAste = taseSum > 0 ? (opVieras / taseSum * 100) : 0;
-  const fmtK = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1).replace('.',',') + 'K' : fmt(v);
-  const pylvasH = 260;
-  const pylvasW = 120;
-  const omaFlex = Math.max(ovAste, 8);
-  const vierasFlex = Math.max(vierasAste, 8);
-  const omaKorkeus = pylvasH * omaFlex / (omaFlex + vierasFlex);
-  const vierasKorkeus = pylvasH - omaKorkeus;
-  const ovVari = ovAste >= 35 ? '#1D9E75' : ovAste >= 15 ? '#EF9F27' : '#E24B4A';
-  const ovSelite = ovAste >= 50 ? 'Erinomainen' : ovAste >= 35 ? 'Hyvä' : ovAste >= 25 ? 'Tyydyttävä' : ovAste >= 15 ? 'Välttävä' : 'Heikko';
+  const kpiEka = t => t.charAt(0);
+  const kpiTilit = Object.keys(kpiTiliSaldot);
+
+  // Omavaraisuus
+  const kpiTase = kpiTilit.filter(t => kpiEka(t)==='1').reduce((s,t) => s + (kpiTiliSaldot[t]||0), 0);
+  const kpiVierasSaldo = kpiTilit.filter(t => kpiEka(t)==='2').reduce((s,t) => s - (kpiTiliSaldot[t]||0), 0);
+  const kpiTulos2 = kpiTilit.filter(t => kpiEka(t)>='3').reduce((s,t) => s - (kpiTiliSaldot[t]||0), 0);
+  const kpiOmaPohja = kpiTilit.filter(t => kpiEka(t)==='2' && parseInt(t)<2500).reduce((s,t) => s - (kpiTiliSaldot[t]||0), 0);
+  const kpiOmaPaaoma = kpiOmaPohja + kpiTulos2;
+  const kpiOpVieras = kpiVierasSaldo - kpiOmaPohja;
+  const ovAste = kpiTase > 0 ? (kpiOmaPaaoma / kpiTase * 100) : 0;
+
+  // Nettotulos-%
+  const kpiNettotulos = kpiTulos2;
+  const nettoP = liikevaihto > 0 ? (kpiNettotulos / liikevaihto * 100) : 0;
+
+  // Current ratio
+  const kpiVaihtoOm = kpiTilit.filter(t => kpiEka(t)==='1').reduce((s,t) => s + (kpiTiliSaldot[t]||0), 0);
+  const kpiLyhytVelat = kpiTilit.filter(t => kpiEka(t)==='2' && parseInt(t)>=2800).reduce((s,t) => s - (kpiTiliSaldot[t]||0), 0);
+  const curRatio = kpiLyhytVelat > 0 ? kpiVaihtoOm / kpiLyhytVelat : 0;
+
+  // Gauge SVG helper
+  const DA = 204; // dasharray puolikaarelle r=65
+  function gaugeVari(arvo, rajat) { return arvo>=rajat[0]?'#1D9E75':arvo>=rajat[1]?'#EF9F27':'#E24B4A'; }
+  function gaugeSelite(arvo, rajat, nimet) { for(let i=0;i<rajat.length;i++) if(arvo>=rajat[i]) return nimet[i]; return nimet[nimet.length-1]; }
+  function gaugeSvg(arvo, maksimi, vari) {
+    const pct = Math.min(Math.max(arvo/maksimi,0),1);
+    const offset = DA*(1-pct);
+    return '<svg viewBox="0 0 150 85" style="width:100%;max-width:180px">' +
+      '<path d="M 10 80 A 65 65 0 0 1 140 80" fill="none" stroke="rgba(0,0,0,.06)" stroke-width="12" stroke-linecap="round"/>' +
+      '<path d="M 10 80 A 65 65 0 0 1 140 80" fill="none" stroke="'+vari+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+DA+'" stroke-dashoffset="'+offset.toFixed(1)+'"/>' +
+    '</svg>';
+  }
+
+  const nVari = gaugeVari(nettoP, [5,0]);
+  const nSelite = gaugeSelite(nettoP, [10,5,2,0], ['Erinomainen','Hyvä','Tyydyttävä','Välttävä','Heikko']);
+  const oVari = gaugeVari(ovAste, [35,15]);
+  const oSelite = gaugeSelite(ovAste, [50,35,25,15], ['Erinomainen','Hyvä','Tyydyttävä','Välttävä','Heikko']);
+  const cVari = gaugeVari(curRatio, [1.5,0.5]);
+  const cSelite = gaugeSelite(curRatio, [2,1.5,1,0.5], ['Erinomainen','Hyvä','Tyydyttävä','Välttävä','Heikko']);
+
   document.getElementById('etusivu-omavaraisuus').innerHTML =
-    '<h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Omavaraisuusaste</h3>' +
-    '<div style="margin-bottom:12px"><div style="font-size:24px;font-weight:300;font-family:var(--ffd);color:' + ovVari + '">' + ovAste.toFixed(1).replace('.',',') + ' %</div>' +
-    '<div style="font-size:11px;color:' + ovVari + ';opacity:.8">' + ovSelite + '</div></div>' +
-    '<div style="display:flex;gap:6px;align-items:stretch;height:' + pylvasH + 'px">' +
-      '<div style="background:var(--fg);width:' + pylvasW + 'px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
-        '<div style="font-size:22px;font-weight:700">' + fmtK(taseSum) + '</div>' +
-        '<div style="font-size:12px;opacity:.7">Tase</div>' +
-      '</div>' +
-      '<div style="display:flex;flex-direction:column;gap:3px;width:' + pylvasW + 'px">' +
-        '<div style="background:' + ovVari + ';flex:' + omaFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:24px;overflow:hidden">' +
-          (omaKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opOma) + '</div><div style="font-size:10px;opacity:.8">' + ovAste.toFixed(1).replace('.',',') + '% · Oma pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opOma) + '</div>') +
-        '</div>' +
-        '<div style="background:#1c2b1e;flex:' + vierasFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:24px;overflow:hidden">' +
-          (vierasKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opVieras) + '</div><div style="font-size:10px;opacity:.5">' + vierasAste.toFixed(1).replace('.',',') + '% · Vieras pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opVieras) + '</div>') +
-        '</div>' +
-      '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+    // Nettotulos-%
+    '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
+      '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Nettotulos-%</div>' +
+      gaugeSvg(nettoP, 20, nVari) +
+      '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+nVari+';margin-top:-8px">'+nettoP.toFixed(1).replace('.',',')+' %</div>' +
+      '<div style="font-size:11px;color:'+nVari+';opacity:.8">'+nSelite+'</div>' +
+      '<div style="margin-top:auto;padding-top:10px;font-size:9px;color:var(--inu);text-align:center">yli 10% erinomainen · 5-10% hyvä<br>2-5% tyydyttävä · alle 2% välttävä</div>' +
+    '</div>' +
+    // Omavaraisuus
+    '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
+      '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Omavaraisuusaste</div>' +
+      gaugeSvg(ovAste, 100, oVari) +
+      '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+oVari+';margin-top:-8px">'+ovAste.toFixed(1).replace('.',',')+' %</div>' +
+      '<div style="font-size:11px;color:'+oVari+';opacity:.8">'+oSelite+'</div>' +
+      '<div style="margin-top:auto;padding-top:10px;font-size:9px;color:var(--inu);text-align:center">yli 50% erinomainen · 35-50% hyvä<br>25-35% tyydyttävä · alle 15% heikko</div>' +
+    '</div>' +
+    // Current ratio
+    '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
+      '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Current ratio</div>' +
+      gaugeSvg(curRatio, 3, cVari) +
+      '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+cVari+';margin-top:-8px">'+curRatio.toFixed(2).replace('.',',')+'</div>' +
+      '<div style="font-size:11px;color:'+cVari+';opacity:.8">'+cSelite+'</div>' +
+      '<div style="margin-top:auto;padding-top:10px;font-size:9px;color:var(--inu);text-align:center">yli 2,0 erinomainen · 1,5-2,0 hyvä<br>1,0-1,5 tyydyttävä · alle 0,5 heikko</div>' +
+    '</div>' +
     '</div>';
 
   // Kuukausittainen liikevaihto SVG
