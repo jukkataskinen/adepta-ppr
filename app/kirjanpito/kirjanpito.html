@@ -6421,24 +6421,32 @@ function paivitaTositeTotals() {
   const totalNetK = userNetK + alvTotK;
   const erotus = totalNetD - totalNetK;
   
-  // Näytä tasausrivi vain jos erotus ja ei ole jo muutettu normaaliksi riviksi
-  if (Math.abs(erotus) > 0.01) {
-    // Tarkista onko tasausrivi jo normaalina rivinä (isTasaus)
-    const onJoTasausrivi = tositeRivit.some(r => r.isTasaus);
-    if (!onJoTasausrivi) {
-      tositeBalancingRow = { tili: prevTili, tiliLbl: prevTiliLbl, debet: '', kredit: '' };
-      if (erotus < -0.01) tositeBalancingRow.debet = fmt(Math.abs(erotus));
-      else if (erotus > 0.01) tositeBalancingRow.kredit = fmt(erotus);
-    } else {
-      tositeBalancingRow = null; // tasaus on jo normaalirivi
-    }
-  } else {
-    tositeBalancingRow = null; // ei erotusta → ei tasausriviä
-  }
-
-  // Display totals
+  // Display totals (brutto-pohjaiset käyttäjälle näkyvät summat)
   const dispTotD = tositeRivit.reduce((s, r) => s + (parseFloat(r.debet) || 0), 0) + alvTotD;
   const dispTotK = tositeRivit.reduce((s, r) => s + (parseFloat(r.kredit) || 0), 0) + alvTotK;
+  const dispErotus = dispTotD - dispTotK;
+
+  // Tasausrivi-logiikka perustuu näkyvään erotukseen
+  if (Math.abs(dispErotus) > 0.01) {
+    // Tarkista onko jo tyhjä tasausrivi (isTasaus ilman tiliä) → päivitä sen summa
+    const tyhja = tositeRivit.find(r => r.isTasaus && !r.tili);
+    if (tyhja) {
+      tyhja.debet = dispErotus < 0 ? Math.abs(dispErotus).toFixed(2) : '';
+      tyhja.kredit = dispErotus > 0 ? dispErotus.toFixed(2) : '';
+      tositeBalancingRow = null;
+    } else {
+      // Ei tyhjää tasausriviä → näytä placeholder
+      tositeBalancingRow = { tili: prevTili, tiliLbl: prevTiliLbl, debet: '', kredit: '' };
+      if (dispErotus < -0.01) tositeBalancingRow.debet = fmt(Math.abs(dispErotus));
+      else if (dispErotus > 0.01) tositeBalancingRow.kredit = fmt(dispErotus);
+    }
+  } else {
+    // Tosite täsmää → poista tyhjät tasausrivit
+    const ennenPituus = tositeRivit.length;
+    tositeRivit = tositeRivit.filter(r => !(r.isTasaus && !r.tili));
+    tositeBalancingRow = null;
+    if (tositeRivit.length !== ennenPituus) renderTositeRivit();
+  }
   document.getElementById('ts-tot-debet').textContent = fmt(dispTotD);
   document.getElementById('ts-tot-kredit').textContent = fmt(dispTotK);
   const tasaEl = document.getElementById('ts-tasapaino');
