@@ -6344,14 +6344,13 @@ function paivitaTositeTotals() {
   tositeRivit.forEach(r => {
     if ((r.alvp || 0) > 0) {
       const alvPct = parseFloat(r.alvp);
-      const grossDebet = parseFloat(r.debet) || 0;
-      const grossKredit = parseFloat(r.kredit) || 0;
-      const gross = grossDebet || grossKredit;
-      const net = gross / (1 + alvPct / 100);
-      const alvEuro = gross - net;
+      const verotD = parseFloat(r.debet) || 0;
+      const verotK = parseFloat(r.kredit) || 0;
+      const veroton = verotD || verotK;
+      const alvEuro = veroton * alvPct / 100; // käyttäjä syöttää verottoman
       
       // Determine ALV account and direction
-      const isKredit = grossKredit > 0;
+      const isKredit = verotK > 0;
       const alvTili = isKredit ? '29390' : '1763';
       const alvKey = alvTili + (isKredit ? 'K' : 'D');
       
@@ -6830,21 +6829,12 @@ async function tallennaTositteet() {
   
   const rivit = [];
   
-  // User rows with NET amounts
+  // User rows — käyttäjä syöttää verottoman, tallennetaan sellaisenaan
   tositeRivit.forEach(r => {
     const alvPct = parseFloat(r.alvp) || 0;
-    let debet = parseFloat(r.debet) || 0;
-    let kredit = parseFloat(r.kredit) || 0;
-    
-    // If ALV: convert gross to net
-    if (alvPct > 0) {
-      if (debet > 0) {
-        debet = debet / (1 + alvPct / 100);
-      } else if (kredit > 0) {
-        kredit = kredit / (1 + alvPct / 100);
-      }
-    }
-    
+    const debet = parseFloat(r.debet) || 0;
+    const kredit = parseFloat(r.kredit) || 0;
+
     rivit.push({
       tili: r.tili,
       selite: r.sel || null,
