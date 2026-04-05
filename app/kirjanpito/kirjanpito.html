@@ -4140,6 +4140,8 @@ function vtKey(e) {
     const exact = TILIT.find(t => t.nro === val);
     if (exact) { vtValitseTili(exact); return; }
     const filtered = TILIT.filter(t => t.nro.startsWith(val) || t.lbl.toLowerCase().includes(val.toLowerCase()));
+    // Täsmälleen yksi tulos → hyväksy automaattisesti
+    if (filtered.length === 1) { vtValitseTili(filtered[0]); return; }
     if (filtered[vtHiIdx]) vtValitseTili(filtered[vtHiIdx]);
   } else if (e.key === 'Escape') {
     e.preventDefault(); vtSulje();
