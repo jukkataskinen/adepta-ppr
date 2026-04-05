@@ -2662,18 +2662,21 @@ function rptTase() {
     return rptRow(nro + ' ' + nimi, s, '', true);
   };
 
-  // Vastaavaa: 1000-1999 (saldo näytetään sellaisenaan, positiivinen = debet-normaali)
-  const vastaavaaTilit = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1000&&n<2000; });
+  // Ryhmittely ensimmäisen numeron perusteella (1xxx, 2xxxx, 3xxx+)
+  const eka = t => t.charAt(0);
+
+  // Vastaavaa: tilit alkavat 1:llä (1000-1999)
+  const vastaavaaTilit = kaikkiTilit.filter(t => eka(t) === '1');
   const vastaavaaYht = vastaavaaTilit.reduce((s,t) => s + (tiliSaldot[t]||0), 0);
 
-  // Vastattavaa: 2000-2999 (saldo käännetään: negatiivinen → positiivinen kredit)
-  const vastattavaaTilit = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=2000&&n<3000; });
-  const omaPaaomaTilit = vastattavaaTilit.filter(t => parseInt(t) < 2500);
+  // Vastattavaa: tilit alkavat 2:lla (2000-2999, 29390 jne.)
+  const vastattavaaTilit = kaikkiTilit.filter(t => eka(t) === '2');
+  const omaPaaomaTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n<2500; });
   const pitkaVelatTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2500&&n<2800; });
-  const lyhytVelatTilit = vastattavaaTilit.filter(t => parseInt(t) >= 2800);
+  const lyhytVelatTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2800; });
 
-  // Tilikauden tulos: tilit 3000-9999, saldot käännettyinä (kredit=tulo=positiivinen)
-  const tulos = kaikkiTilit.filter(t => parseInt(t) >= 3000)
+  // Tilikauden tulos: tilit alkavat 3-9:llä
+  const tulos = kaikkiTilit.filter(t => eka(t) >= '3')
     .reduce((s,t) => s - (tiliSaldot[t]||0), 0);
 
   const omaPaaomaPohja = omaPaaomaTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
