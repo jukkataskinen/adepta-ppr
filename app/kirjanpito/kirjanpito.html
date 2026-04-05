@@ -5967,10 +5967,22 @@ function lataaEtusivu() {
       (arrow ? '<div class="kpi-chg ' + cls + '">' + arrow + '</div>' : '') + '</div>';
   }).join('');
 
-  // Omavaraisuusgraafi
-  const taseSum = rows.filter(r => r.d && parseInt(r.d)>=1000 && parseInt(r.d)<=1999).reduce((s,r)=>s+r.netto,0);
-  const opOma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0)) + tulosYtd;
-  const opVieras = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2500&&n<3000;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2500&&n<3000;}).reduce((s,r)=>s+r.netto,0));
+  // Omavaraisuusgraafi — sama logiikka kuin rptTase
+  const ovTiliSaldot = {};
+  ytd.forEach(r => {
+    const tili = r.d || r.k;
+    if (!tili) return;
+    if (!ovTiliSaldot[tili]) ovTiliSaldot[tili] = 0;
+    ovTiliSaldot[tili] += r.d ? r.netto : -r.netto;
+  });
+  const ovEka = t => t.charAt(0);
+  const ovTilit = Object.keys(ovTiliSaldot);
+  const taseSum = ovTilit.filter(t => ovEka(t)==='1').reduce((s,t) => s + (ovTiliSaldot[t]||0), 0);
+  const ovVierasSaldo = ovTilit.filter(t => ovEka(t)==='2').reduce((s,t) => s - (ovTiliSaldot[t]||0), 0);
+  const ovTulos = ovTilit.filter(t => ovEka(t)>='3').reduce((s,t) => s - (ovTiliSaldot[t]||0), 0);
+  const ovOmaPohja = ovTilit.filter(t => ovEka(t)==='2' && parseInt(t)<2500).reduce((s,t) => s - (ovTiliSaldot[t]||0), 0);
+  const opOma = ovOmaPohja + ovTulos;
+  const opVieras = ovVierasSaldo - ovOmaPohja;
   const ovAste = taseSum > 0 ? (opOma / taseSum * 100) : 0;
   const vierasAste = taseSum > 0 ? (opVieras / taseSum * 100) : 0;
   const fmtK = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1).replace('.',',') + 'K' : fmt(v);
