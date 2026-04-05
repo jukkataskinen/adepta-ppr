@@ -371,8 +371,16 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   <!-- Tositteen otsikko -->
   <div style="display:flex;gap:16px;margin-bottom:20px;align-items:center;padding:12px 16px;background:var(--ppw);border-radius:8px;border:1px solid var(--bd)">
     <div style="display:flex;flex-direction:column;gap:4px">
+      <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tositelajl</label>
+      <select id="ts-laji" onchange="paivitaTositeNro()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff;cursor:pointer">
+        <option value="MU">MU — Muistio</option>
+        <option value="ML">ML — Myyntilasku</option>
+        <option value="OL">OL — Ostolasku</option>
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
       <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Tosite nro</label>
-      <input type="text" id="ts-nro" placeholder="(automaattinen)" style="width:140px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffb);font-size:13px;background:#fff">
+      <input type="text" id="ts-nro" placeholder="(automaattinen)" readonly style="width:100px;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffm);font-size:13px;background:var(--ppw);color:var(--fl);font-weight:600">
     </div>
     <div style="display:flex;flex-direction:column;gap:4px">
       <label style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu)">Päiväys</label>
@@ -1608,6 +1616,7 @@ function showPanel(name) {
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') renderTositteet();
+  if (name === 'tosite') paivitaTositeNro();
   if (name === 'raportit') {
     const rptSub = document.getElementById('rpt-sub');
     if (rptSub) rptSub.textContent = (curYritys?.nimi || '') + ' · Tilikausi ' + (curTilikausiVuosi || new Date().getFullYear());
@@ -6183,6 +6192,31 @@ async function alustaTositeNro() {
   } catch(e) {}
 }
 
+async function seuraavaTositeNroLaji(laji) {
+  if (!curYritys) return laji + '1';
+  try {
+    const res = await fetch('/api/ppr/paivakirja?asiakas_id=' + curYritys.id);
+    if (!res.ok) return laji + '1';
+    const data = await res.json();
+    // Etsi suurin numero tällä lajilla
+    let maxNro = 0;
+    data.forEach(r => {
+      const tn = String(r.tosite_nro || '');
+      if (tn.startsWith(laji)) {
+        const num = parseInt(tn.replace(laji, '')) || 0;
+        if (num > maxNro) maxNro = num;
+      }
+    });
+    return laji + (maxNro + 1);
+  } catch(e) { return laji + '1'; }
+}
+
+async function paivitaTositeNro() {
+  const laji = document.getElementById('ts-laji')?.value || 'MU';
+  const nro = await seuraavaTositeNroLaji(laji);
+  document.getElementById('ts-nro').value = nro;
+}
+
 function lisaaTositeRivi() {
   // Aseta päivämäärä automaattisesti jos tyhjä
   const pvmEl = document.getElementById('ts-pvm');
@@ -6834,10 +6868,9 @@ function tyhjennaTositelomake() {
   tositeAlvRivit = [];
   tositeBalancingRow = null;
   tositeDirty = false;
-  document.getElementById('ts-nro').value = '';
   document.getElementById('ts-pvm').value = '';
   renderTositeRivit();
-  alustaTositeNro();
+  paivitaTositeNro();
 }
 
 async function tallennaTositteet() {
@@ -6847,8 +6880,10 @@ async function tallennaTositteet() {
 
   const parseFi = v => typeof v === 'string' ? parseFloat(v.replace(/\s/g,'').replace(',','.')) || 0 : parseFloat(v) || 0;
 
-  const nroEl = document.getElementById('ts-nro');
-  const tosite_nro = parseInt(nroEl.value) || seuraavaTositeNro || 1;
+  // Hae tuore tositenumero juuri ennen tallennusta (estää duplikaatit)
+  const laji = document.getElementById('ts-laji')?.value || 'MU';
+  const tosite_nro = await seuraavaTositeNroLaji(laji);
+  document.getElementById('ts-nro').value = tosite_nro;
   const paivamaara = document.getElementById('ts-pvm').value;
 
   if (!paivamaara) { console.log('STOP: ei päiväystä'); toast('Syötä päiväys'); btn.disabled = false; return; }
