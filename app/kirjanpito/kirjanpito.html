@@ -6486,11 +6486,18 @@ function tsKey(e, rowIdx, col) {
       const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col+1) + '"]');
       if (next) next.focus();
     } else if (rowIdx === tositeRivit.length - 1) {
-      // Viimeisen rivin ALV-kentästä → tasausriville
+      // Viimeisen rivin ALV-kentästä → tasausrivin tili-kenttään
       setTimeout(() => {
-        const tasausInputs = document.querySelectorAll('.tasaus-summa-input');
-        const aktiivinen = [...tasausInputs].find(i => i.value) || tasausInputs[0];
-        if (aktiivinen) { aktiivinen.focus(); aktiivinen.select(); }
+        // Jos tasausrivin tili jo valittu → hyppää summaan
+        if (tositeBalancingRow?.tili) {
+          const tasausInputs = document.querySelectorAll('.tasaus-summa-input');
+          const aktiivinen = [...tasausInputs].find(i => i.value) || tasausInputs[0];
+          if (aktiivinen) { aktiivinen.focus(); aktiivinen.select(); }
+        } else {
+          // Fokusoi tasausrivin tili-input
+          const tasausTili = document.querySelector('#ts-tili-lista-balancing')?.parentElement?.querySelector('input');
+          if (tasausTili) tasausTili.focus();
+        }
       }, 50);
     } else {
       lisaaTositeRivi();
@@ -6563,27 +6570,15 @@ function tasausSummaChanged(suunta, val) {
 function tasausSummaKey(e) {
   if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
     e.preventDefault();
-    // Tarkista täsmääkö tosite muokkauksen jälkeen
+    // Laske kokonaiserotus nykyisillä arvoilla
     const parseFi = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
     let totD = 0, totK = 0;
-    tositeRivit.forEach(r => {
-      const alvp = parseFloat(r.alvp) || 0;
-      const d = parseFloat(r.debet) || 0;
-      const k = parseFloat(r.kredit) || 0;
-      const gross = d || k;
-      const net = alvp > 0 && gross > 0 ? gross / (1 + alvp/100) : gross;
-      if (d > 0) totD += net; else if (k > 0) totK += net;
-    });
-    tositeAlvRivit.forEach(r => {
-      totD += parseFi(r.debet); totK += parseFi(r.kredit);
-    });
-    if (tositeBalancingRow) {
-      totD += parseFi(tositeBalancingRow.debet);
-      totK += parseFi(tositeBalancingRow.kredit);
-    }
+    tositeRivit.forEach(r => { totD += parseFloat(r.debet)||0; totK += parseFloat(r.kredit)||0; });
+    tositeAlvRivit.forEach(r => { totD += parseFi(r.debet); totK += parseFi(r.kredit); });
+    if (tositeBalancingRow) { totD += parseFi(tositeBalancingRow.debet); totK += parseFi(tositeBalancingRow.kredit); }
     const erotus = totD - totK;
     if (Math.abs(erotus) > 0.01 && tositeBalancingRow?.tili) {
-      // Luo uusi tasausrivi erotukselle
+      // Tosite ei täsmää → luo uusi käyttäjärivi erotukselle samalla tilillä
       tositeRivit.push({
         id: Date.now(), tili: tositeBalancingRow.tili, tiliLbl: tositeBalancingRow.tiliLbl,
         sel: '', debet: erotus < 0 ? Math.abs(erotus).toFixed(2) : '', kredit: erotus > 0 ? erotus.toFixed(2) : '', alvp: ''
@@ -6592,6 +6587,7 @@ function tasausSummaKey(e) {
       paivitaTositeTotals();
       renderTositeRivit();
     }
+    // Jos täsmää → ei tee mitään (tosite valmis tallennettavaksi)
   }
 }
 
