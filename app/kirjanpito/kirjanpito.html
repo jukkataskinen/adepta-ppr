@@ -322,6 +322,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="sb-sec">Hallinta</div>
     <a class="nav-item" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
     <div class="nav-item" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
+    <div class="nav-item" id="nav-myyntilaskut" onclick="showPanel('myyntilaskut');lataaMlData()">Myyntilaskut</div>
     <div class="nav-item" id="nav-palkat" onclick="showPanel('palkat');lataaHenkilot()">Palkat</div>
     <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
     <div class="sb-div"></div>
@@ -1077,6 +1078,48 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
     </div>
 
+    <!-- ─── MYYNTILASKUT PANEL ─── -->
+    <div id="panel-myyntilaskut" class="panel" style="overflow:hidden;padding:0">
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div style="display:flex;border-bottom:1px solid var(--bd);flex-shrink:0">
+          <button onclick="mlTab('laskut')" id="ml-tab-laskut" class="rpt-tab act" style="padding:10px 20px;font-size:13px">Laskut</button>
+          <button onclick="mlTab('asiakkaat2')" id="ml-tab-asiakkaat2" class="rpt-tab" style="padding:10px 20px;font-size:13px">Asiakkaat</button>
+          <button onclick="mlTab('tuotteet')" id="ml-tab-tuotteet" class="rpt-tab" style="padding:10px 20px;font-size:13px">Tuotteet</button>
+        </div>
+        <!-- Laskut -->
+        <div id="ml-laskut" style="flex:1;overflow:hidden;display:grid;grid-template-columns:320px 1fr">
+          <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:4px">
+                <button onclick="mlFilt('')" id="ml-f-all" class="tos-f-btn tos-f-act" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--fmist);color:var(--fg)">Kaikki</button>
+                <button onclick="mlFilt('luonnos')" id="ml-f-luonnos" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Luonnos</button>
+                <button onclick="mlFilt('lahetetty')" id="ml-f-lahetetty" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Lähetetty</button>
+                <button onclick="mlFilt('maksettu')" id="ml-f-maksettu" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Maksettu</button>
+              </div>
+              <button onclick="mlUusiLasku()" style="padding:8px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer;width:100%">+ Uusi lasku</button>
+            </div>
+            <div id="ml-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
+          </div>
+          <div id="ml-oikea" style="overflow-y:auto;padding:20px 24px">
+            <div id="ml-ei-valittu" style="text-align:center;padding:60px 20px;color:var(--inu);font-size:13px">Valitse lasku tai luo uusi</div>
+            <div id="ml-lomake" style="display:none"></div>
+          </div>
+        </div>
+        <!-- Asiakkaat -->
+        <div id="ml-asiakkaat2" style="flex:1;overflow-y:auto;padding:20px 24px;display:none">
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Laskutusasiakkaat</h3><button onclick="mlAvaaAsiakasModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää asiakas</button></div>
+          <div id="ml-asiakkaat-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+        </div>
+        <!-- Tuotteet -->
+        <div id="ml-tuotteet" style="flex:1;overflow-y:auto;padding:20px 24px;display:none">
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Tuotteet ja palvelut</h3><button onclick="mlAvaaTuoteModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää tuote</button></div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+            <th style="padding:8px;text-align:left">Nro</th><th style="padding:8px;text-align:left">Nimi</th><th style="padding:8px;text-align:left">Yksikkö</th><th style="padding:8px;text-align:right">À-hinta</th><th style="padding:8px;text-align:right">ALV%</th><th style="padding:8px;text-align:left">Tili</th>
+          </tr></thead><tbody id="ml-tuotteet-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── PALKAT PANEL ─── -->
     <div id="panel-palkat" class="panel" style="overflow:hidden;padding:0">
       <div style="display:flex;flex-direction:column;height:100%">
@@ -1705,7 +1748,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -6467,6 +6510,197 @@ async function arNaytaTiedot(o) {
       tbody.appendChild(tr);
     });
   } catch(e) { console.warn('arNaytaTiedot laskut:', e); }
+}
+
+// ── MYYNTILASKUT ─────────────────────────────────────────────
+let mlLaskut=[], mlTuotteet=[], mlFiltteri='', mlValittu=null;
+let mlLaskuRivit=[]; // välimuisti uuden laskun riveille
+
+function mlTab(tab) {
+  ['laskut','asiakkaat2','tuotteet'].forEach(t => {
+    document.getElementById('ml-'+t).style.display = t===tab ? (t==='laskut'?'grid':'block') : 'none';
+    document.getElementById('ml-tab-'+t).classList.toggle('act', t===tab);
+  });
+}
+
+async function lataaMlData() {
+  if (!curYritys) return;
+  try {
+    const [lr, tr] = await Promise.all([
+      fetch('/api/ppr/myyntilaskut?asiakas_id='+curYritys.id),
+      fetch('/api/ppr/tuotteet?asiakas_id='+curYritys.id)
+    ]);
+    if (lr.ok) mlLaskut = await lr.json();
+    if (tr.ok) mlTuotteet = await tr.json();
+  } catch(e) {}
+  mlRenderLista();
+  mlRenderTuotteet();
+}
+
+function mlFilt(f) {
+  mlFiltteri = f;
+  document.querySelectorAll('#ml-laskut .tos-f-btn').forEach(b => { b.style.background='var(--pp)'; b.style.color='var(--inu)'; });
+  const btn = document.getElementById('ml-f-'+(f||'all'));
+  if (btn) { btn.style.background='var(--fmist)'; btn.style.color='var(--fg)'; }
+  mlRenderLista();
+}
+
+function mlRenderLista() {
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let list = [...mlLaskut];
+  if (mlFiltteri) list = list.filter(l => l.tila === mlFiltteri);
+  const el = document.getElementById('ml-lista');
+  el.innerHTML = list.map(l => {
+    const brutto = (l.rivit||[]).reduce((s,r) => s+Number(r.summa_yhteensa||0),0);
+    const akt = mlValittu?.id===l.id;
+    return `<div onclick="mlNayta('${l.id}')" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid ${akt?'rgba(29,158,117,.2)':'transparent'};background:${akt?'var(--fmist)':''};margin-bottom:2px">
+      <div style="display:flex;justify-content:space-between"><span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">ML${l.lasku_nro}</span><span style="font-family:var(--ffm);font-size:11px">${fmt(brutto)} €</span></div>
+      <div style="font-size:11px;color:var(--ink);margin-top:2px">${l.asiakas_nimi||'—'}</div>
+      <div style="font-size:10px;color:var(--inu);margin-top:1px">${fmtPv(l.laskupaiva)} · <span style="color:${l.tila==='maksettu'?'var(--fg3)':l.tila==='lahetetty'?'var(--fl)':'var(--amber)'}">${l.tila||'luonnos'}</span></div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:24px;color:var(--inu);font-size:12px">Ei laskuja</div>';
+}
+
+function mlNayta(id) {
+  mlValittu = mlLaskut.find(l => l.id === id);
+  mlRenderLista();
+  if (!mlValittu) return;
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const rivit = mlValittu.rivit || [];
+  const brutto = rivit.reduce((s,r)=>s+Number(r.summa_yhteensa||0),0);
+  const netto = rivit.reduce((s,r)=>s+Number(r.summa_netto||0),0);
+  document.getElementById('ml-ei-valittu').style.display='none';
+  const lom = document.getElementById('ml-lomake');
+  lom.style.display='block';
+  lom.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div><h3>Lasku ML${mlValittu.lasku_nro}</h3><div style="font-size:12px;color:var(--inu)">${mlValittu.asiakas_nimi||''} · ${fmtPv(mlValittu.laskupaiva)} · Eräpäivä ${fmtPv(mlValittu.erapaiva)}</div></div>
+      <button onclick="mlTulostaPdf()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tulosta PDF</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+      <th style="padding:8px;text-align:left">Tuote</th><th style="padding:8px;text-align:left">Selite</th><th style="padding:8px;text-align:right">Lkm</th><th style="padding:8px;text-align:right">À-hinta</th><th style="padding:8px;text-align:right">ALV%</th><th style="padding:8px;text-align:right">Yhteensä</th>
+    </tr></thead><tbody>${rivit.map(r => `<tr style="border-bottom:1px solid var(--bd)">
+      <td style="padding:7px 8px">${r.tuote_nimi||''}</td><td style="padding:7px 8px;color:var(--inu)">${r.selite||''}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${r.maara||''}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(r.a_hinta)}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${r.alv_prosentti||0}%</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(r.summa_yhteensa)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr style="border-top:2px solid var(--bd2);background:var(--ppw)"><td colspan="4"></td><td style="padding:8px;text-align:right;font-weight:600;color:var(--inu)">Yhteensä</td><td style="padding:8px;text-align:right;font-weight:700;font-family:var(--ffm)">${fmt(brutto)} €</td></tr></tfoot></table>
+    <div style="font-size:12px;color:var(--inu)">Netto: ${fmt(netto)} € · ALV: ${fmt(brutto-netto)} € · Viite: ${mlValittu.viite||'—'}</div>
+  `;
+}
+
+function mlUusiLasku() {
+  document.getElementById('ml-ei-valittu').style.display='none';
+  const lom = document.getElementById('ml-lomake');
+  lom.style.display='block';
+  mlLaskuRivit = [{tuote:'',selite:'',maara:'1',yksikko:'kpl',a_hinta:'',alv:25.5}];
+  const tanaan = new Date().toISOString().slice(0,10);
+  const era14 = new Date(Date.now()+14*86400000).toISOString().slice(0,10);
+  lom.innerHTML = `
+    <h3 style="margin-bottom:12px">Uusi myyntilasku</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;font-size:12px">
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Asiakas</label><input id="ml-asiakas" placeholder="Asiakkaan nimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Laskupäivä</label><input id="ml-pvm" type="date" value="${tanaan}" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Eräpäivä</label><input id="ml-era" type="date" value="${era14}" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+    </div>
+    <div style="margin-bottom:12px"><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Laskutuskausi</label><input id="ml-kausi" placeholder="esim. Huhtikuu 2026" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+    <div style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;margin-bottom:6px">Laskurivit</div>
+    <div id="ml-rivit-container"></div>
+    <button onclick="mlLisaaRivi()" style="padding:6px 12px;font-size:11px;border:1px dashed var(--bd2);border-radius:5px;background:transparent;color:var(--fg);cursor:pointer;margin-bottom:16px">+ Lisää rivi</button>
+    <div style="display:flex;gap:8px">
+      <button onclick="mlTallenna('luonnos')" style="padding:8px 18px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Tallenna luonnos</button>
+      <button onclick="mlTallenna('lahetetty')" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna ja lähetä</button>
+    </div>
+  `;
+  mlRenderRivit();
+}
+
+function mlRenderRivit() {
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const c = document.getElementById('ml-rivit-container');
+  if (!c) return;
+  const tuoteOpts = mlTuotteet.map(t => '<option value="'+t.id+'">'+t.tuotenro+' '+t.nimi+'</option>').join('');
+  c.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px"><thead><tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)"><th style="padding:6px;text-align:left;font-size:10px;color:var(--inu)">Tuote</th><th style="padding:6px;text-align:left;font-size:10px;color:var(--inu)">Selite</th><th style="padding:6px;text-align:right;font-size:10px;color:var(--inu);width:60px">Lkm</th><th style="padding:6px;text-align:right;font-size:10px;color:var(--inu);width:80px">À-hinta</th><th style="padding:6px;text-align:right;font-size:10px;color:var(--inu);width:60px">ALV%</th><th style="padding:6px;text-align:right;font-size:10px;color:var(--inu);width:90px">Yhteensä</th><th style="width:24px"></th></tr></thead><tbody>' +
+    mlLaskuRivit.map((r,i) => {
+      const netto = (Number(r.maara)||0) * (Number(r.a_hinta)||0);
+      const yht = netto * (1 + (Number(r.alv)||0)/100);
+      return '<tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px"><select onchange="mlTuoteValittu('+i+',this.value)" style="width:100%;padding:4px;font-size:11px;border:1px solid var(--bd);border-radius:4px"><option value="">—</option>'+tuoteOpts+'</select></td>' +
+        '<td style="padding:4px"><input value="'+(r.selite||'')+'" oninput="mlLaskuRivit['+i+'].selite=this.value" style="width:100%;padding:4px;font-size:11px;border:1px solid var(--bd);border-radius:4px"></td>' +
+        '<td style="padding:4px"><input type="number" value="'+(r.maara||'')+'" oninput="mlLaskuRivit['+i+'].maara=this.value;mlRenderRivit()" style="width:100%;padding:4px;font-size:11px;border:1px solid var(--bd);border-radius:4px;text-align:right"></td>' +
+        '<td style="padding:4px"><input type="number" step="0.01" value="'+(r.a_hinta||'')+'" oninput="mlLaskuRivit['+i+'].a_hinta=this.value;mlRenderRivit()" style="width:100%;padding:4px;font-size:11px;border:1px solid var(--bd);border-radius:4px;text-align:right"></td>' +
+        '<td style="padding:4px"><select onchange="mlLaskuRivit['+i+'].alv=parseFloat(this.value);mlRenderRivit()" style="width:100%;padding:4px;font-size:11px;border:1px solid var(--bd);border-radius:4px"><option value="25.5"'+(r.alv==25.5?' selected':'')+'>25,5%</option><option value="14"'+(r.alv==14?' selected':'')+'>14%</option><option value="10"'+(r.alv==10?' selected':'')+'>10%</option><option value="0"'+(r.alv==0?' selected':'')+'>0%</option></select></td>' +
+        '<td style="padding:4px;text-align:right;font-family:var(--ffm);font-weight:600">'+fmt(yht)+'</td>' +
+        '<td style="padding:4px"><button onclick="mlLaskuRivit.splice('+i+',1);mlRenderRivit()" style="background:none;border:none;color:var(--inu);cursor:pointer">×</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function mlTuoteValittu(i, tuoteId) {
+  const t = mlTuotteet.find(tt => tt.id === tuoteId);
+  if (!t) return;
+  mlLaskuRivit[i].selite = t.nimi; mlLaskuRivit[i].a_hinta = t.a_hinta; mlLaskuRivit[i].alv = t.alv_prosentti || 25.5; mlLaskuRivit[i].yksikko = t.yksikko || 'kpl'; mlLaskuRivit[i].tili = t.tili || '3000';
+  mlRenderRivit();
+}
+
+function mlLisaaRivi() { mlLaskuRivit.push({tuote:'',selite:'',maara:'1',yksikko:'kpl',a_hinta:'',alv:25.5}); mlRenderRivit(); }
+
+function laskeViite(nro) {
+  const pohja = String(nro);
+  const kertoimet = [7,3,1]; let summa=0, ki=0;
+  for (let i=pohja.length-1; i>=0; i--) { summa += parseInt(pohja[i]) * kertoimet[ki%3]; ki++; }
+  return pohja + ((10-(summa%10))%10);
+}
+
+async function mlTallenna(tila) {
+  if (!curYritys) return;
+  const asiakas = document.getElementById('ml-asiakas')?.value?.trim();
+  if (!asiakas) { toast('Syötä asiakas'); return; }
+  // Hae seuraava numero
+  const maxNro = mlLaskut.reduce((m,l) => Math.max(m, Number(l.lasku_nro)||0), 0);
+  const nro = maxNro + 1;
+  const viite = laskeViite(nro);
+  const rivit = mlLaskuRivit.filter(r => Number(r.a_hinta)>0).map(r => {
+    const netto = (Number(r.maara)||0)*(Number(r.a_hinta)||0);
+    const yht = Math.round(netto*(1+(Number(r.alv)||0)/100)*100)/100;
+    return { tuote_nimi:r.selite, selite:r.selite, maara:Number(r.maara)||1, yksikko:r.yksikko||'kpl', a_hinta:Number(r.a_hinta), alv_prosentti:Number(r.alv)||0, summa_netto:Math.round(netto*100)/100, summa_yhteensa:yht };
+  });
+  if (!rivit.length) { toast('Lisää vähintään yksi rivi'); return; }
+  try {
+    const res = await fetch('/api/ppr/myyntilaskut', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      asiakas_id:curYritys.id, lasku_nro:nro, viite, asiakas_nimi:asiakas,
+      laskupaiva:document.getElementById('ml-pvm')?.value, erapaiva:document.getElementById('ml-era')?.value,
+      laskutuskausi:document.getElementById('ml-kausi')?.value, tila, rivit
+    })});
+    if (res.ok) { toast('Lasku ML'+nro+' tallennettu'); await lataaMlData(); mlValittu=null; }
+    else { const j=await res.json(); toast('Virhe: '+(j.error||'')); }
+  } catch(e) { toast('Virhe: '+e.message); }
+}
+
+function mlRenderTuotteet() {
+  const fmt = v => Number(v||0).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('ml-tuotteet-tbody').innerHTML = mlTuotteet.map(t => `<tr style="border-bottom:1px solid var(--bd)">
+    <td style="padding:7px 8px;font-family:var(--ffm);color:var(--fl)">${t.tuotenro||''}</td>
+    <td style="padding:7px 8px">${t.nimi||''}</td><td style="padding:7px 8px;color:var(--inu)">${t.yksikko||''}</td>
+    <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(t.a_hinta)}</td>
+    <td style="padding:7px 8px;text-align:right">${t.alv_prosentti||0}%</td>
+    <td style="padding:7px 8px;font-family:var(--ffm);color:var(--inu)">${t.tili||'3000'}</td>
+  </tr>`).join('') || '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--inu)">Ei tuotteita</td></tr>';
+}
+
+function mlAvaaTuoteModal() {
+  const m = prompt('Tuote (muoto: nro;nimi;yksikkö;hinta;alv%;tili)\nesim: 001;Hoitovastike;kpl;11.50;0;3000');
+  if (!m) return;
+  const [tuotenro,nimi,yksikko,a_hinta,alv_prosentti,tili] = m.split(';');
+  fetch('/api/ppr/tuotteet', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+    asiakas_id:curYritys.id, tuotenro:tuotenro?.trim(), nimi:nimi?.trim(), yksikko:yksikko?.trim(),
+    a_hinta:parseFloat(a_hinta)||0, alv_prosentti:parseFloat(alv_prosentti)||0, tili:tili?.trim()||'3000'
+  })}).then(()=>{ toast('Tuote lisätty'); lataaMlData(); });
+}
+
+async function mlTulostaPdf() {
+  if (!mlValittu) return;
+  toast('PDF-tulostus tulossa myöhemmin');
 }
 
 // ── PALKANLASKENTA ───────────────────────────────────────────
