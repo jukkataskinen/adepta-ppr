@@ -6421,34 +6421,45 @@ function paivitaTositeTotals() {
   const totalNetK = userNetK + alvTotK;
   const erotus = totalNetD - totalNetK;
   
-  // Set balancing row automatically
-  tositeBalancingRow = { tili: prevTili, tiliLbl: prevTiliLbl, debet: '', kredit: '' };
-  if (erotus < -0.01) tositeBalancingRow.debet = fmt(Math.abs(erotus));
-  else if (erotus > 0.01) tositeBalancingRow.kredit = fmt(erotus);
-  
+  // Näytä tasausrivi vain jos erotus ja ei ole jo muutettu normaaliksi riviksi
+  if (Math.abs(erotus) > 0.01) {
+    // Tarkista onko tasausrivi jo normaalina rivinä (isTasaus)
+    const onJoTasausrivi = tositeRivit.some(r => r.isTasaus);
+    if (!onJoTasausrivi) {
+      tositeBalancingRow = { tili: prevTili, tiliLbl: prevTiliLbl, debet: '', kredit: '' };
+      if (erotus < -0.01) tositeBalancingRow.debet = fmt(Math.abs(erotus));
+      else if (erotus > 0.01) tositeBalancingRow.kredit = fmt(erotus);
+    } else {
+      tositeBalancingRow = null; // tasaus on jo normaalirivi
+    }
+  } else {
+    tositeBalancingRow = null; // ei erotusta → ei tasausriviä
+  }
+
   // Display totals
   const dispTotD = tositeRivit.reduce((s, r) => s + (parseFloat(r.debet) || 0), 0) + alvTotD;
   const dispTotK = tositeRivit.reduce((s, r) => s + (parseFloat(r.kredit) || 0), 0) + alvTotK;
   document.getElementById('ts-tot-debet').textContent = fmt(dispTotD);
   document.getElementById('ts-tot-kredit').textContent = fmt(dispTotK);
   const tasaEl = document.getElementById('ts-tasapaino');
-  if (prevTili) {
+  const tasmaa = Math.abs(dispTotD - dispTotK) < 0.01;
+  const hasUserRows = tositeRivit.some(r => r.tili);
+  if (tasmaa && hasUserRows) {
     tasaEl.textContent = '✓ Tosite täsmää';
     tasaEl.style.color = '#1D9E75';
+  } else if (!hasUserRows) {
+    tasaEl.textContent = 'Lisää rivejä tositteeseen';
+    tasaEl.style.color = 'var(--inu)';
   } else {
-    tasaEl.textContent = 'Valitse tasaustilin tili';
+    tasaEl.textContent = 'Erotus: ' + fmt(Math.abs(dispTotD - dispTotK)) + ' €';
     tasaEl.style.color = '#c0392b';
   }
-  
+
   // Update button state
   const btn = document.getElementById('tosite-save-btn');
-  const hasUserRows = tositeRivit.some(r => r.tili);
-  const isBlanaced = !!prevTili;
-  const voidaan = tositeDirty && hasUserRows && isBlanaced;
+  const voidaan = tositeDirty && hasUserRows && tasmaa;
   btn.disabled = !voidaan;
   btn.style.opacity = voidaan ? '1' : '0.4';
-
-  console.log('Tasapaino:', erotus, 'tositeDirty:', tositeDirty, 'hasUserRows:', tositeRivit.some(r => r.tili), 'prevTili:', prevTili, 'voidaan:', tositeDirty && tositeRivit.some(r => r.tili) && !!prevTili);
 
   // Update auto rows in DOM without regenerating user rows
   updateAutoRowsInDOM();
@@ -6600,9 +6611,9 @@ function tsTiliKeyBalancing(e) {
     e.preventDefault();
     const val = e.target.value.trim().toLowerCase();
     const exact = TILIT.find(t => t.nro === val);
-    if (exact) { tositeBalancingRow.tili = exact.nro; tositeBalancingRow.tiliLbl = exact.lbl; paivitaTositeTotals(); renderTositeRivit(); return; }
+    if (exact) { tositeValitseBalancingTili(exact.nro, exact.lbl); return; }
     const filtered = TILIT.filter(t => t.nro.startsWith(val) || t.lbl.toLowerCase().includes(val));
-    if (filtered.length === 1) { tositeBalancingRow.tili = filtered[0].nro; tositeBalancingRow.tiliLbl = filtered[0].lbl; paivitaTositeTotals(); renderTositeRivit(); return; }
+    if (filtered.length === 1) { tositeValitseBalancingTili(filtered[0].nro, filtered[0].lbl); return; }
   } else if (e.key === 'Escape') {
     tositeSubjatBalancingLista();
   }
@@ -6717,13 +6728,39 @@ function tositeRenderBalancingLista(q) {
 }
 
 function tositeValitseBalancingTili(nro, lbl) {
-  tositeBalancingRow.tili = nro;
-  tositeBalancingRow.tiliLbl = lbl;
-  const input = document.querySelector('#ts-tili-lista-balancing').previousElementSibling;
-  if (input) input.value = nro + ' ' + lbl;
   tositeSubjatBalancingLista();
+
+  // Ota tasausrivin erotussumma talteen
+  const parseFi = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
+  const debetVal = parseFi(tositeBalancingRow?.debet);
+  const kreditVal = parseFi(tositeBalancingRow?.kredit);
+
+  // Muunna tasausrivi normaaliksi käyttäjäriviksi
+  const uusiRivi = {
+    id: Date.now(),
+    tili: nro,
+    tiliLbl: lbl,
+    sel: '',
+    debet: debetVal > 0 ? debetVal.toFixed(2) : '',
+    kredit: kreditVal > 0 ? kreditVal.toFixed(2) : '',
+    alvp: '',
+    isTasaus: true,
+  };
+  tositeRivit.push(uusiRivi);
+
+  // Tyhjennä erillinen tasausrivi — se on nyt tositeRivit-arrayssä
+  tositeBalancingRow = null;
   tositeDirty = true;
   paivitaTositeTotals();
+  renderTositeRivit();
+
+  // Fokusoi uuden rivin summa-kenttä
+  const rivinIdx = tositeRivit.length - 1;
+  const col = debetVal > 0 ? 2 : 3;
+  setTimeout(() => {
+    const input = document.querySelector('[data-row="' + rivinIdx + '"][data-col="' + col + '"]');
+    if (input) { input.focus(); input.select(); }
+  }, 50);
 }
 
 function handleBalancingListKey(e, el) {
