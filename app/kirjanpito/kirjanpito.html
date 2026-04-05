@@ -6898,9 +6898,8 @@ function tyhjennaTositelomake() {
   tositeAlvRivit = [];
   tositeBalancingRow = null;
   tositeDirty = false;
-  document.getElementById('ts-pvm').value = '';
   renderTositeRivit();
-  paivitaTositeNro();
+  paivitaTositeTotals();
 }
 
 let _tallennusMeneillaan = false;
@@ -7006,7 +7005,9 @@ async function tallennaTositteet() {
     if (res.ok) {
       await lataaRivit(curYritys.id);
       // Päivitä numero nyt kun data on kannassa
-      paivitaTositeNro();
+      await paivitaTositeNro();
+      // Säilytä päivämäärä
+      document.getElementById('ts-pvm').value = tallennettuPvm;
     } else {
       // Palauta rivit
       console.error('Tallennus epäonnistui:', res.status, json);
