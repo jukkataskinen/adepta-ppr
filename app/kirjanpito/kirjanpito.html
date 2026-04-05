@@ -5811,33 +5811,27 @@ function lataaEtusivu() {
   const ovAste = taseSum > 0 ? (opOma / taseSum * 100) : 0;
   const vierasAste = taseSum > 0 ? (opVieras / taseSum * 100) : 0;
   const fmtK = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1).replace('.',',') + 'K' : fmt(v);
-  const pylvasH = 200;
-  const omaFlex = Math.max(ovAste, 10); // vähintään 10% näkyvyys
-  const vierasFlex = Math.max(vierasAste, 10);
+  const pylvasH = 260;
+  const pylvasW = 120;
+  const omaFlex = Math.max(ovAste, 8);
+  const vierasFlex = Math.max(vierasAste, 8);
+  const omaKorkeus = pylvasH * omaFlex / (omaFlex + vierasFlex);
+  const vierasKorkeus = pylvasH - omaKorkeus;
   document.getElementById('etusivu-omavaraisuus').innerHTML =
     '<h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Omavaraisuusaste</h3>' +
     '<div style="font-size:24px;font-weight:300;font-family:var(--ffd);margin-bottom:12px;color:' + (ovAste>=40?'var(--fg3)':ovAste>=20?'var(--fl)':'var(--red)') + '">' + ovAste.toFixed(1).replace('.',',') + ' %</div>' +
-    '<div style="display:flex;gap:4px;align-items:stretch;height:' + pylvasH + 'px">' +
-      // Vasen: tase-pylväs
-      '<div style="background:var(--fg);width:80px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
-        '<div style="font-size:18px;font-weight:700">' + fmtK(taseSum) + '</div>' +
-        '<div style="font-size:11px;opacity:.7">Tase</div>' +
+    '<div style="display:flex;gap:6px;align-items:stretch;height:' + pylvasH + 'px">' +
+      '<div style="background:var(--fg);width:' + pylvasW + 'px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
+        '<div style="font-size:22px;font-weight:700">' + fmtK(taseSum) + '</div>' +
+        '<div style="font-size:12px;opacity:.7">Tase</div>' +
       '</div>' +
-      // Oikea: oma pääoma + vieras pääoma päällekkäin (sama kokonaiskorkeus)
-      '<div style="display:flex;flex-direction:column;gap:2px;width:80px">' +
-        '<div style="background:var(--fd);flex:' + omaFlex + ';border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:30px;overflow:hidden">' +
-          '<div style="font-size:13px;font-weight:700">' + fmtK(opOma) + '</div>' +
-          '<div style="font-size:9px;opacity:.7">' + ovAste.toFixed(1).replace('.',',') + '%</div>' +
+      '<div style="display:flex;flex-direction:column;gap:3px;width:' + pylvasW + 'px">' +
+        '<div style="background:var(--fd);flex:' + omaFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:24px;overflow:hidden">' +
+          (omaKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opOma) + '</div><div style="font-size:10px;opacity:.7">' + ovAste.toFixed(1).replace('.',',') + '% · Oma pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opOma) + '</div>') +
         '</div>' +
-        '<div style="background:var(--fg3);flex:' + vierasFlex + ';border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--fd);min-height:30px;overflow:hidden">' +
-          '<div style="font-size:13px;font-weight:700">' + fmtK(opVieras) + '</div>' +
-          '<div style="font-size:9px;opacity:.5">' + vierasAste.toFixed(1).replace('.',',') + '%</div>' +
+        '<div style="background:var(--fg3);flex:' + vierasFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--fd);min-height:24px;overflow:hidden">' +
+          (vierasKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opVieras) + '</div><div style="font-size:10px;opacity:.5">' + vierasAste.toFixed(1).replace('.',',') + '% · Vieras pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opVieras) + '</div>') +
         '</div>' +
-      '</div>' +
-      // Labelit
-      '<div style="display:flex;flex-direction:column;height:' + pylvasH + 'px;font-size:10px;color:var(--inu);padding:2px 0 2px 8px">' +
-        '<div style="flex:' + omaFlex + ';display:flex;align-items:center">Oma pääoma</div>' +
-        '<div style="flex:' + vierasFlex + ';display:flex;align-items:center">Vieras pääoma</div>' +
       '</div>' +
     '</div>';
 
