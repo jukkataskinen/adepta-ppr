@@ -344,22 +344,24 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
       <div class="kpi-grid" id="etusivu-kpi"></div>
       <div id="etusivu-omavaraisuus" style="margin-bottom:24px"></div>
-      <div style="margin-bottom:24px">
-        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Kuukausittainen liikevaihto</h3>
-        <div id="etusivu-chart" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px"></div>
-      </div>
-      <div>
-        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Viimeisimmät tositteet</h3>
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
-            <th style="padding:8px;text-align:left">Tosite</th>
-            <th style="padding:8px;text-align:left">Päivämäärä</th>
-            <th style="padding:8px;text-align:left">Selite</th>
-            <th style="padding:8px;text-align:left">Tili</th>
-            <th style="padding:8px;text-align:right">Summa</th>
-          </tr></thead>
-          <tbody id="etusivu-tositteet"></tbody>
-        </table>
+      <div id="etusivu-data" style="display:none">
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Kuukausittainen liikevaihto</h3>
+          <div id="etusivu-chart" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px"></div>
+        </div>
+        <div>
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Viimeisimmät tositteet</h3>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+              <th style="padding:8px;text-align:left">Tosite</th>
+              <th style="padding:8px;text-align:left">Päivämäärä</th>
+              <th style="padding:8px;text-align:left">Selite</th>
+              <th style="padding:8px;text-align:left">Tili</th>
+              <th style="padding:8px;text-align:right">Summa</th>
+            </tr></thead>
+            <tbody id="etusivu-tositteet"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -5870,6 +5872,10 @@ function lataaEtusivu() {
       '<td style="padding:7px 8px;font-family:var(--ffm);font-size:11px">' + tili + '</td>' +
       '<td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">' + fmtE(summa) + '</td></tr>';
   }).join('');
+
+  // Näytä data-osio vasta kun ladattu
+  const dataEl = document.getElementById('etusivu-data');
+  if (dataEl) dataEl.style.display = rows.length > 0 ? 'block' : 'none';
 }
 
 // ── ASIAKASREKISTERI (OSAKKAAT) ──────────────────────────────
