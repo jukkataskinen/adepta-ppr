@@ -2246,6 +2246,16 @@ function tosFiltteri(laji) {
   document.querySelectorAll('.tos-f-btn').forEach(b => { b.style.background = 'var(--pp)'; b.style.color = 'var(--inu)'; });
   const aktBtn = document.getElementById('tos-f-' + (laji ? laji.toLowerCase() : 'all'));
   if (aktBtn) { aktBtn.style.background = 'var(--fmist)'; aktBtn.style.color = 'var(--fg)'; }
+  tosValittuNro = null;
+  document.getElementById('tos-tiedot').style.display = 'none';
+  const ei = document.getElementById('tos-ei-valittu');
+  if (laji === 'ML' || laji === 'OL') {
+    ei.style.display = 'block';
+    ei.textContent = 'Ei ' + laji + '-tositteita vielä';
+  } else {
+    ei.style.display = 'block';
+    ei.textContent = 'Valitse tosite vasemmalta';
+  }
   renderTositteet();
 }
 
