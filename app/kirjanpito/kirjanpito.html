@@ -1714,7 +1714,7 @@ function render() {
       const saldoColor = juokseva < -0.005 ? 'color:#c0392b' : '';
       return `<tr style="border-bottom:1px solid var(--bd)">
         <td style="padding:6px 12px;font-size:12px;font-family:var(--ffm);white-space:nowrap;color:var(--inu)">${fmtPv(r.pv)}</td>
-        <td style="padding:6px 12px;font-size:12px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${r.ts||''}</td>
+        <td style="padding:6px 12px;font-size:12px;font-family:var(--ffm);font-weight:600"><a href="/kirjanpito#tosite=${r.ts||''}" target="_blank" style="color:var(--fl);text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer">${r.ts||''}</a></td>
         <td style="padding:6px 12px;font-size:12px"><span style="font-family:var(--ffm);color:var(--fl)">${tili}</span> <span style="color:var(--inu)">${tiliNimi}</span></td>
         <td style="padding:6px 12px;font-size:12px;color:var(--ink)">${r.sel||''}</td>
         <td style="padding:6px 12px;font-size:12px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${debet>0.005?fv(debet):''}</td>
@@ -2916,7 +2916,7 @@ function renderPaakirja() {
       const saldoColor = saldo < -0.005 ? 'color:#c0392b' : '';
       return `<tr style="border-bottom:1px solid var(--bd)">
         <td style="padding:7px 12px;font-size:12px;white-space:nowrap">${fmtPv(r.pv)}</td>
-        <td style="padding:7px 12px;font-size:12px">${r.ts||''}</td>
+        <td style="padding:7px 12px;font-size:12px"><a href="/kirjanpito#tosite=${r.ts||''}" target="_blank" style="color:var(--fl);text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer">${r.ts||''}</a></td>
         <td style="padding:7px 12px;font-size:12px;color:var(--inu)">${r.sel||''}</td>
         <td style="padding:7px 12px;font-size:12px;text-align:right;color:#2a7a4f">${dAmt>0.005?fv(dAmt):''}</td>
         <td style="padding:7px 12px;font-size:12px;text-align:right;color:#c0392b">${kAmt>0.005?fv(kAmt):''}</td>
