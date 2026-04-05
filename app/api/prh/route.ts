@@ -13,19 +13,16 @@ export async function GET(request: NextRequest) {
     const teksti = await res.text()
     console.log('PRH vastaus:', teksti.substring(0, 1000))
 
-    // Yritä parsata JSON
     let data: any = {}
-    try { data = JSON.parse(teksti) } catch(e) { return NextResponse.json({ error: 'Ei JSON-vastausta', debug: teksti.substring(0, 500), status: res.status }, { status: 502 }) }
+    try { data = JSON.parse(teksti) } catch(e) { return NextResponse.json({ error: 'Ei JSON-vastausta', debug: teksti.substring(0, 500) }, { status: 502 }) }
 
     const yritys = data.companies?.[0] || data.results?.[0] || data
+    console.log('Yritys keys:', JSON.stringify(Object.keys(yritys || {})))
+    console.log('Yritys data:', JSON.stringify(yritys).substring(0, 2000))
+
     return NextResponse.json({
-      nimi: yritys?.name || yritys?.nimi || null,
-      katuosoite: yritys?.addresses?.[0]?.street || null,
-      postinro: yritys?.addresses?.[0]?.postCode || null,
-      kaupunki: yritys?.addresses?.[0]?.city || null,
-      yritysmuoto: yritys?.companyForm || null,
-      debug_keys: Object.keys(data),
-      debug_status: res.status,
+      yritys_keys: Object.keys(yritys || {}),
+      yritys_data: yritys
     })
   } catch (e: any) {
     console.error('PRH virhe:', e)
