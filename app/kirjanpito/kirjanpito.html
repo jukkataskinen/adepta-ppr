@@ -6573,7 +6573,7 @@ async function lataaMlData() {
   try {
     const [lr, tr] = await Promise.all([
       fetch('/api/ppr/myyntilaskut?asiakas_id='+curYritys.id),
-      fetch('/api/ppr/tuotteet?asiakas_id='+curYritys.id)
+      fetch('/api/ppr/tuotteet?kirjanpitoasiakas_id='+curYritys.id)
     ]);
     if (lr.ok) mlLaskut = await lr.json();
     if (tr.ok) mlTuotteet = await tr.json();
@@ -6746,7 +6746,7 @@ async function mlTallennaTuote() {
   if (!nimi) { toast('Nimi vaaditaan'); return; }
   try {
     const res = await fetch('/api/ppr/tuotteet', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
-      asiakas_id:curYritys.id,
+      kirjanpitoasiakas_id:curYritys.id,
       tuotenro: document.getElementById('tm-nro')?.value?.trim() || '',
       nimi,
       yksikko: document.getElementById('tm-yksikko')?.value || 'kpl',
