@@ -6482,19 +6482,16 @@ function updateAutoRowsInDOM() {
 function tsKey(e, rowIdx, col) {
   if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) {
     e.preventDefault();
-    // Viimeisen käyttäjärivin summa-kentästä → hyppää tasausriville
-    if (rowIdx === tositeRivit.length - 1 && (col === 2 || col === 3)) {
-      setTimeout(() => {
-        const tasausInputs = document.querySelectorAll('.tasaus-summa-input');
-        // Fokusoi se jossa on arvo, tai ensimmäinen
-        const aktiivinen = [...tasausInputs].find(i => i.value) || tasausInputs[0];
-        if (aktiivinen) { aktiivinen.focus(); aktiivinen.select(); }
-      }, 50);
-      return;
-    }
     if (col < 4) {
       const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col+1) + '"]');
       if (next) next.focus();
+    } else if (rowIdx === tositeRivit.length - 1) {
+      // Viimeisen rivin ALV-kentästä → tasausriville
+      setTimeout(() => {
+        const tasausInputs = document.querySelectorAll('.tasaus-summa-input');
+        const aktiivinen = [...tasausInputs].find(i => i.value) || tasausInputs[0];
+        if (aktiivinen) { aktiivinen.focus(); aktiivinen.select(); }
+      }, 50);
     } else {
       lisaaTositeRivi();
     }
