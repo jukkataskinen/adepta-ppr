@@ -16,13 +16,21 @@ export async function GET(request: NextRequest) {
     let data: any = {}
     try { data = JSON.parse(teksti) } catch(e) { return NextResponse.json({ error: 'Ei JSON-vastausta', debug: teksti.substring(0, 500) }, { status: 502 }) }
 
-    const yritys = data.companies?.[0] || data.results?.[0] || data
-    console.log('Yritys keys:', JSON.stringify(Object.keys(yritys || {})))
-    console.log('Yritys data:', JSON.stringify(yritys).substring(0, 2000))
+    const yritys = data.companies?.[0]
+    if (!yritys) return NextResponse.json({ error: 'Yritystä ei löytynyt' }, { status: 404 })
+
+    const nimiObj = yritys.names?.find((n: any) => n.type === '1' && !n.endDate)
+    const osoite = yritys.addresses?.[0]
+    const kaupunki = osoite?.postOffices?.find((p: any) => p.languageCode === '1')?.city
+    const muoto = yritys.companyForms?.[0]?.descriptions?.find((d: any) => d.languageCode === '1')?.description
 
     return NextResponse.json({
-      yritys_keys: Object.keys(yritys || {}),
-      yritys_data: yritys
+      nimi: nimiObj?.name || null,
+      katuosoite: osoite ? ((osoite.street || '') + ' ' + (osoite.buildingNumber || '')).trim() : null,
+      postinro: osoite?.postCode || null,
+      kaupunki: kaupunki || null,
+      yritysmuoto: muoto || null,
+      ytunnus: yritys.businessId?.value || null,
     })
   } catch (e: any) {
     console.error('PRH virhe:', e)
