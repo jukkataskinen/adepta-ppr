@@ -2293,8 +2293,10 @@ async function tosLisaaLiite(event) {
   const file = event.target.files?.[0];
   if (!file || !tosValittuNro || !curYritys) return;
   const polku = curYritys.id + '/tositteet/' + tosValittuNro + '/' + file.name;
+  console.log('Storage upload:', { bucket: 'tositteet', polku, tiedosto: file.name, koko: file.size, tyyppi: file.type });
   try {
-    const { error: upErr } = await _sb.storage.from('tositteet').upload(polku, file, { upsert: true });
+    const { data: upData, error: upErr } = await _sb.storage.from('tositteet').upload(polku, file, { upsert: true });
+    console.log('Upload tulos:', upData, 'virhe:', upErr);
     if (upErr) { toast('Latausvirhe: ' + upErr.message); return; }
     const { error: dbErr } = await _sb.from('ppr_tosite_liitteet').insert({
       asiakas_id: curYritys.id,
