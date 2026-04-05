@@ -1431,6 +1431,51 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   </div>
 </div>
 
+<!-- Tuote-modal -->
+<div id="tuote-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:420px;padding:24px">
+    <h3 style="margin-bottom:16px">Uusi tuote</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Tuotenro</label><input id="tm-nro" placeholder="esim. 201" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Nimi</label><input id="tm-nimi" placeholder="Tuotteen nimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Yksikkö</label><select id="tm-yksikko" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"><option value="kpl">kpl</option><option value="kk">kk</option><option value="h">h</option><option value="km">km</option></select></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">À-hinta €</label><input id="tm-hinta" type="number" step="0.01" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">ALV %</label><select id="tm-alv" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"><option value="25.5">25,5%</option><option value="14">14%</option><option value="10">10%</option><option value="0">0%</option></select></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Tili</label><input id="tm-tili" value="3000" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button onclick="document.getElementById('tuote-modal').style.display='none'" style="padding:7px 16px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Peruuta</button>
+      <button onclick="mlTallennaTuote()" style="padding:7px 16px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<!-- Asiakas-modal (myyntilaskut) -->
+<div id="ml-asiakas-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:480px;padding:24px">
+    <h3 style="margin-bottom:16px">Uusi laskutusasiakas</h3>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input id="mla-ytunnus" placeholder="Y-tunnus (esim. 1234567-8)" style="flex:1;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px">
+      <button onclick="mlHaeYritys()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer;white-space:nowrap">Hae PRH</button>
+    </div>
+    <div id="mla-prh-status" style="font-size:11px;color:var(--inu);margin-bottom:10px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+      <div style="grid-column:1/-1"><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Nimi</label><input id="mla-nimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div style="grid-column:1/-1"><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Katuosoite</label><input id="mla-osoite" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Postinro</label><input id="mla-postinro" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Kaupunki</label><input id="mla-kaupunki" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Email</label><input id="mla-email" type="email" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Puhelin</label><input id="mla-puhelin" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Maksuehto (pv)</label><input id="mla-maksuehto" type="number" value="14" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">OVT-tunnus</label><input id="mla-ovt" placeholder="003712345678" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button onclick="document.getElementById('ml-asiakas-modal').style.display='none'" style="padding:7px 16px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Peruuta</button>
+      <button onclick="mlTallennaAsiakas()" style="padding:7px 16px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna</button>
+    </div>
+  </div>
+</div>
+
 <!-- Henkilö-modal -->
 <div id="henkilo-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:12px;width:480px;padding:24px">
@@ -6689,13 +6734,78 @@ function mlRenderTuotteet() {
 }
 
 function mlAvaaTuoteModal() {
-  const m = prompt('Tuote (muoto: nro;nimi;yksikkö;hinta;alv%;tili)\nesim: 001;Hoitovastike;kpl;11.50;0;3000');
-  if (!m) return;
-  const [tuotenro,nimi,yksikko,a_hinta,alv_prosentti,tili] = m.split(';');
-  fetch('/api/ppr/tuotteet', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
-    asiakas_id:curYritys.id, tuotenro:tuotenro?.trim(), nimi:nimi?.trim(), yksikko:yksikko?.trim(),
-    a_hinta:parseFloat(a_hinta)||0, alv_prosentti:parseFloat(alv_prosentti)||0, tili:tili?.trim()||'3000'
-  })}).then(()=>{ toast('Tuote lisätty'); lataaMlData(); });
+  ['tm-nro','tm-nimi','tm-hinta','tm-tili'].forEach(id => { const e=document.getElementById(id); if(e) e.value=id==='tm-tili'?'3000':''; });
+  document.getElementById('tm-yksikko').value='kpl';
+  document.getElementById('tm-alv').value='25.5';
+  document.getElementById('tuote-modal').style.display='flex';
+}
+
+async function mlTallennaTuote() {
+  if (!curYritys) return;
+  const nimi = document.getElementById('tm-nimi')?.value?.trim();
+  if (!nimi) { toast('Nimi vaaditaan'); return; }
+  try {
+    const res = await fetch('/api/ppr/tuotteet', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      asiakas_id:curYritys.id,
+      tuotenro: document.getElementById('tm-nro')?.value?.trim() || '',
+      nimi,
+      yksikko: document.getElementById('tm-yksikko')?.value || 'kpl',
+      a_hinta: parseFloat(document.getElementById('tm-hinta')?.value) || 0,
+      alv_prosentti: parseFloat(document.getElementById('tm-alv')?.value) || 0,
+      tili: document.getElementById('tm-tili')?.value?.trim() || '3000'
+    })});
+    if (res.ok) { document.getElementById('tuote-modal').style.display='none'; toast('Tuote lisätty'); await lataaMlData(); }
+    else { const j=await res.json(); toast('Virhe: '+(j.error||'')); }
+  } catch(e) { toast('Virhe: '+e.message); }
+}
+
+function mlAvaaAsiakasModal() {
+  ['mla-ytunnus','mla-nimi','mla-osoite','mla-postinro','mla-kaupunki','mla-email','mla-puhelin','mla-ovt'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
+  document.getElementById('mla-maksuehto').value='14';
+  document.getElementById('mla-prh-status').textContent='';
+  document.getElementById('ml-asiakas-modal').style.display='flex';
+}
+
+async function mlHaeYritys() {
+  const ytunnus = document.getElementById('mla-ytunnus')?.value?.trim();
+  if (!ytunnus) { toast('Syötä Y-tunnus'); return; }
+  const statusEl = document.getElementById('mla-prh-status');
+  statusEl.innerHTML = '<span style="color:var(--amber)">Haetaan...</span>';
+  try {
+    const res = await fetch('https://avoindata.prh.fi/bis/v1/' + ytunnus.replace('-',''));
+    const data = await res.json();
+    const yritys = data.results?.[0];
+    if (yritys) {
+      document.getElementById('mla-nimi').value = yritys.name || '';
+      const osoite = yritys.addresses?.find(a => a.type === 1 && !a.endDate) || yritys.addresses?.[0];
+      if (osoite) {
+        document.getElementById('mla-osoite').value = osoite.street || '';
+        document.getElementById('mla-postinro').value = osoite.postCode || '';
+        document.getElementById('mla-kaupunki').value = osoite.city || '';
+      }
+      statusEl.innerHTML = '<span style="color:var(--fg3)">✓ ' + yritys.name + '</span>';
+    } else {
+      statusEl.innerHTML = '<span style="color:var(--red)">Yritystä ei löytynyt</span>';
+    }
+  } catch(e) {
+    statusEl.innerHTML = '<span style="color:var(--red)">Hakuvirhe: ' + e.message + '</span>';
+  }
+}
+
+async function mlTallennaAsiakas() {
+  if (!curYritys) return;
+  const nimi = document.getElementById('mla-nimi')?.value?.trim();
+  if (!nimi) { toast('Nimi vaaditaan'); return; }
+  try {
+    const res = await fetch('/api/ppr/asiakkaat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      nimi,
+      y_tunnus: document.getElementById('mla-ytunnus')?.value?.trim() || null,
+      sahkoposti: document.getElementById('mla-email')?.value?.trim() || null,
+      puhelin: document.getElementById('mla-puhelin')?.value?.trim() || null,
+    })});
+    if (res.ok) { document.getElementById('ml-asiakas-modal').style.display='none'; toast('Asiakas lisätty: '+nimi); }
+    else { const j=await res.json(); toast('Virhe: '+(j.error||'')); }
+  } catch(e) { toast('Virhe: '+e.message); }
 }
 
 async function mlTulostaPdf() {
