@@ -6564,54 +6564,86 @@ async function luoPalkkalaskelma(p) {
   if (typeof PDFLib === 'undefined') { toast('pdf-lib ei ladattu'); return; }
   const { PDFDocument, rgb, StandardFonts } = PDFLib;
   const doc = await PDFDocument.create();
-  const page = doc.addPage([595, 842]); // A4
+  const page = doc.addPage([595, 842]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const fmt = v => Number(v||0).toFixed(2).replace('.', ',') + ' €';
-  let y = 780;
-  const lf = (sz=10) => { y -= sz * 1.6; };
-  const txt = (t, x, opts={}) => page.drawText(t, { x, y, size: opts.size||10, font: opts.bold?bold:font, color: opts.color||rgb(0.1,0.1,0.15) });
+  const M = 40; // marginaali
+  const W = 595 - M*2;
+  const dark = rgb(0.11, 0.17, 0.12); // #1c2b1e
+  const white = rgb(1,1,1);
+  const grey = rgb(0.45, 0.5, 0.55);
+  const ink = rgb(0.11, 0.14, 0.2);
+  const fmtE = v => { const a=Math.abs(Number(v||0)); const s=a.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,' '); return (v<-0.005?'- ':'')+s+' \u20ac'; };
+  let y = 802;
+  const lf = (h=16) => { y -= h; };
+  const txt = (t, x, opts={}) => page.drawText(String(t), { x, y, size:opts.size||10, font:opts.bold?bold:font, color:opts.color||ink });
+  const txtR = (t, opts={}) => { const w=(opts.bold?bold:font).widthOfTextAtSize(String(t),opts.size||10); txt(t, 595-M-w, opts); };
+  const line = () => page.drawLine({start:{x:M,y:y+4},end:{x:595-M,y:y+4},thickness:0.5,color:rgb(0.82,0.84,0.87)});
+  const bar = (h=24) => { page.drawRectangle({x:M,y:y-4,width:W,height:h,color:dark}); };
 
-  // Header
-  txt(curYritys?.nimi || '', 50, {size:14, bold:true}); lf(14);
-  txt('Palkkalaskelma', 50, {size:12, bold:true}); lf(12);
-  lf();
-  txt(p.henkilo_nimi, 50, {size:11, bold:true}); lf(11);
   const kausi = document.getElementById('pt-kausi')?.value || '';
-  txt('Kausi: ' + kausi + '  ·  Palkkapäivä: ' + (kausi?kausi+'-15':''), 50); lf();
-  lf(); lf();
+  const kkNimet = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu','Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu'];
+  const [kVuosi, kKk] = kausi.split('-');
+  const kkNimi = kkNimet[parseInt(kKk||1)-1] || '';
 
-  // Taulukko
-  const row = (label, val, isBold) => {
-    txt(label, 50, {bold:isBold}); txt(fmt(val), 400, {bold:isBold}); lf();
-  };
-  txt('PALKKAERITTELY', 50, {size:10, bold:true, color:rgb(0.4,0.4,0.5)}); lf(); lf();
-  row('Bruttopalkka', p.bruttopalkka, true);
-  lf(5);
-  row('– TyEL (7,15 %)', -p.tyel_tt);
-  row('– TVR (0,79 %)', -p.tvr_tt);
-  row('– Ennakonpidätys', -p.ennakonpidatys);
-  lf(5);
-  page.drawLine({start:{x:50,y:y+6},end:{x:500,y:y+6},thickness:1,color:rgb(0.8,0.8,0.85)});
+  // Yrityksen nimi otsikkopalkki
+  bar(28); txt(curYritys?.nimi || '', M+8, {size:13, bold:true, color:white}); lf(28);
+  bar(22); txt('Palkkalaskelma', M+8, {size:10, bold:true, color:white}); lf(22);
+  lf(12);
+
+  // Henkilö + kausi
+  txt(p.henkilo_nimi, M, {size:12, bold:true}); lf(12);
+  txt('Kausi: '+kkNimi+' '+kVuosi+'  \u00b7  Palkkapäivä: 25.'+kKk+'.'+kVuosi, M, {color:grey}); lf();
+  lf(8);
+
+  // PALKKAERITTELY
+  line(); lf(6);
+  txt('PALKKAERITTELY', M, {size:9, bold:true, color:grey}); txtR('Tämä kuukausi', {size:9, color:grey}); lf(); lf(4);
+
+  const row = (label, val, isBold) => { txt(label, M, {bold:isBold}); txtR(fmtE(val), {bold:isBold}); lf(); };
+
+  row('Bruttopalkka', p.bruttopalkka, true); lf(2);
+  row('- TyEL (7,15 %)', -p.tyel_tt);
+  row('- TVR (0,79 %)', -p.tvr_tt);
+  row('- Ennakonpidätys', -p.ennakonpidatys);
+  lf(4); line(); lf(6);
   row('= Nettopalkka', p.netto, true);
-  lf(); lf();
+  lf(12);
 
-  txt('TYÖNANTAJAN OSUUDET', 50, {size:10, bold:true, color:rgb(0.4,0.4,0.5)}); lf(); lf();
-  row('TyEL työnantaja (17,39 %)', p.tyel_ta);
-  row('Sotu (1,16 %)', p.sotu_ta);
-  row('TVR työnantaja (0,43 %)', p.tvr_ta);
-  row('Tapaturmavakuutus', p.tapaturma);
-  lf(5);
-  page.drawLine({start:{x:50,y:y+6},end:{x:500,y:y+6},thickness:1,color:rgb(0.8,0.8,0.85)});
-  row('Työnantajakulut yhteensä', p.ta_yht, true);
-  lf();
-  row('Kokonaiskustannus', p.bruttopalkka + p.ta_yht, true);
+  // VUODEN KERTYMÄT — hae kannasta
+  let kBrutto=0, kPid=0, kTyel=0, kTvr=0, kNetto=0;
+  try {
+    const res = await fetch('/api/ppr/palkat?asiakas_id='+curYritys.id);
+    if (res.ok) {
+      const kaikki = await res.json();
+      const vuosiData = kaikki.filter(r => r.henkilo_id===p.henkilo.id && (r.kausi||'').startsWith(kVuosi));
+      vuosiData.forEach(r => { kBrutto+=Number(r.bruttopalkka)||0; kPid+=Number(r.ennakonpidatys)||0; kTyel+=Number(r.tyel_tyontekija)||0; kTvr+=Number(r.tvr_tyontekija)||0; kNetto+=Number(r.nettopalkka)||0; });
+    }
+  } catch(e) {}
+  // Lisää nykyinen kuukausi jos ei vielä kannassa
+  if (kBrutto < p.bruttopalkka - 0.01) {
+    kBrutto += p.bruttopalkka; kPid += p.ennakonpidatys; kTyel += p.tyel_tt; kTvr += p.tvr_tt; kNetto += p.netto;
+  }
+
+  line(); lf(6);
+  txt('VUODEN KERTYMÄT 1.1.\u2013'+(parseInt(kKk)>9?'':'0')+parseInt(kKk)+'.'+kKk+'.'+kVuosi, M, {size:9, bold:true, color:grey}); lf(); lf(4);
+  row('Bruttopalkka yhteensä', kBrutto);
+  row('Ennakonpidätys yhteensä', -kPid);
+  row('TyEL yhteensä', -kTyel);
+  row('TVR yhteensä', -kTvr);
+  lf(4); line(); lf(6);
+  row('Nettopalkka yhteensä', kNetto, true);
+  lf(16);
+
+  // Tilinumero
+  line(); lf(6);
+  txt('Maksettu tilille: '+(p.henkilo.tilinumero||'—'), M, {size:9, color:grey});
 
   const bytes = await doc.save();
   const blob = new Blob([bytes], {type:'application/pdf'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'palkkalaskelma_' + p.henkilo_nimi.replace(/\s/g,'_') + '_' + kausi + '.pdf';
+  a.href = url; a.download = 'palkkalaskelma_'+p.henkilo_nimi.replace(/\s/g,'_')+'_'+kausi+'.pdf';
   a.click(); URL.revokeObjectURL(url);
 }
 
