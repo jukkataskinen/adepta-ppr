@@ -2394,6 +2394,25 @@ function rptRow(l, v, cls='', indent=false, sub='') {
     <div class="rpt-row-v"${poraudu}>${vStr}</div>
   </div>`;
 }
+function siirryTositteeseen(tositeNro) {
+  showPanel('tositteet');
+  tosValittuNro = tositeNro;
+  renderTositteet();
+  setTimeout(() => {
+    const tositeRivit = rows.filter(r => r.ts === tositeNro);
+    if (tositeRivit.length) {
+      tosNaytaTiedot({
+        nro: tositeNro,
+        pv: tositeRivit[0].pv,
+        rivit: tositeRivit,
+        debetYht: tositeRivit.filter(r=>r.d).reduce((s,r)=>s+r.netto,0),
+        kreditYht: tositeRivit.filter(r=>r.k).reduce((s,r)=>s+r.netto,0),
+        selitteet: [...new Set(tositeRivit.map(r=>r.sel).filter(Boolean))]
+      });
+    }
+  }, 100);
+}
+
 function suljeKaikkiModalit() {
   document.querySelectorAll('.tosite-modal, .poraudu-modal').forEach(m => m.remove());
 }
@@ -2448,7 +2467,7 @@ function avaaTositeModal(tositeNro, lahdeTili, lahdeNimi) {
       </div>
       <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:rgba(255,255,255,.4)">
         <span>${rivit.length} vientiä · ${Math.abs(totD-totK)<0.01?'<span style="color:var(--fg3)">✓ Täsmää</span>':'<span style="color:var(--red)">Erotus '+fmt(Math.abs(totD-totK))+'</span>'}</span>
-        <button onclick="document.querySelector('.tosite-modal')?.remove();document.querySelector('.poraudu-modal')?.remove();tosValittuNro='${tositeNro}';showPanel('tositteet');renderTositteet();const t=Object.values({}).length;setTimeout(()=>{const m=rows.filter(r=>r.ts==='${tositeNro}');if(m.length)tosNaytaTiedot({nro:'${tositeNro}',pv:m[0].pv,rivit:m,debetYht:0,kreditYht:0,selitteet:[]})},100)" style="padding:5px 12px;font-size:11px;border:1px solid rgba(255,255,255,.15);border-radius:5px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Avaa tositteissa →</button>
+        <button onclick="suljeKaikkiModalit();siirryTositteeseen('${tositeNro}')" style="padding:5px 12px;font-size:11px;border:1px solid rgba(255,255,255,.15);border-radius:5px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Avaa tositteissa →</button>
       </div>
     </div>
   `;
