@@ -6060,14 +6060,43 @@ function lataaEtusivu() {
       '<div style="font-size:11px;color:'+nVari+';opacity:.8">'+nSelite+'</div>' +
       '<div style="margin-top:auto;padding-top:10px;font-size:9px;color:var(--inu);text-align:center">yli 10% erinomainen · 5-10% hyvä<br>2-5% tyydyttävä · alle 2% välttävä</div>' +
     '</div>' +
-    // Omavaraisuus
-    '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
-      '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Omavaraisuusaste</div>' +
-      gaugeSvg(ovAste, 100, oVari) +
-      '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+oVari+';margin-top:-8px">'+ovAste.toFixed(1).replace('.',',')+' %</div>' +
-      '<div style="font-size:11px;color:'+oVari+';opacity:.8">'+oSelite+'</div>' +
-      '<div style="margin-top:auto;padding-top:10px;font-size:9px;color:var(--inu);text-align:center">yli 50% erinomainen · 35-50% hyvä<br>25-35% tyydyttävä · alle 15% heikko</div>' +
-    '</div>' +
+    // Omavaraisuus — pylväsgraafi
+    (function(){
+      const fK = v => Math.abs(v)>=1000?(v/1000).toFixed(1).replace('.',',')+' K':fmt(v);
+      const bH = 140;
+      const oF = Math.max(ovAste, 5);
+      const vF = Math.max(100-ovAste, 5);
+      const vAste = kpiTase>0?(kpiOpVieras/kpiTase*100):0;
+      return '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
+        '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px">Omavaraisuusaste</div>' +
+        '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+oVari+'">'+ovAste.toFixed(1).replace('.',',')+' %</div>' +
+        '<div style="font-size:11px;color:'+oVari+';opacity:.8;margin-bottom:10px">'+oSelite+'</div>' +
+        '<div style="display:flex;gap:8px;align-items:flex-end;height:'+bH+'px;margin-bottom:6px">' +
+          '<div style="display:flex;flex-direction:column;align-items:center;width:50px">' +
+            '<div style="background:var(--fg);width:50px;height:'+bH+'px;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
+              '<div style="font-size:13px;font-weight:700">'+fK(kpiTase)+'</div>' +
+            '</div>' +
+            '<div style="font-size:9px;color:var(--inu);margin-top:4px">Tase</div>' +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:center;width:50px">' +
+            '<div style="display:flex;flex-direction:column;gap:2px;height:'+bH+'px;width:50px">' +
+              '<div style="background:'+oVari+';flex:'+oF+';border-radius:6px 6px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:16px;overflow:hidden">' +
+                '<div style="font-size:11px;font-weight:700">'+fK(kpiOmaPaaoma)+'</div>' +
+              '</div>' +
+              '<div style="background:#1c2b1e;flex:'+vF+';border-radius:0 0 6px 6px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:16px;overflow:hidden">' +
+                '<div style="font-size:11px;font-weight:700">'+fK(kpiOpVieras)+'</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="font-size:9px;color:var(--inu);margin-top:4px">Rakenne</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:12px;font-size:9px;color:var(--inu);margin-bottom:4px">' +
+          '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+oVari+';margin-right:3px"></span>Oma</span>' +
+          '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#1c2b1e;margin-right:3px"></span>Vieras</span>' +
+        '</div>' +
+        '<div style="margin-top:auto;padding-top:6px;font-size:9px;color:var(--inu);text-align:center">yli 50% erinomainen · 35-50% hyvä<br>25-35% tyydyttävä · alle 15% heikko</div>' +
+      '</div>';
+    })() +
     // Current ratio
     '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
       '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Current ratio</div>' +
