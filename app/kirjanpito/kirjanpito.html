@@ -885,51 +885,52 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     </div>
 
     <!-- ─── TOSITTEET PANEL ─── -->
-    <div id="panel-tositteet" class="panel">
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:6px">
-        <div>
-          <h2>Tositteet</h2>
-          <div class="panel-sub">Kirjanpidon tapahtumat ja niihin kohdistuneet tositteet · <span id="tos-cnt"></span></div>
+    <div id="panel-tositteet" class="panel" style="overflow:hidden;padding:0">
+      <div style="display:grid;grid-template-columns:320px 1fr;height:100%;overflow:hidden">
+        <!-- VASEN: tosittelista -->
+        <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:16px 14px 10px">
+            <h2 style="font-size:16px;margin-bottom:4px">Tositteet</h2>
+            <div style="font-size:11px;color:var(--inu);margin-bottom:10px" id="tos-cnt"></div>
+            <input id="tos-search" type="text" placeholder="Hae numerolla tai selitteellä..." oninput="renderTositteet()" style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--bd);border-radius:6px;outline:none;margin-bottom:6px">
+            <div style="display:flex;gap:4px">
+              <button onclick="tosFiltteri('')" id="tos-f-all" class="tos-f-btn tos-f-act" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--fmist);color:var(--fg)">Kaikki</button>
+              <button onclick="tosFiltteri('MU')" id="tos-f-mu" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">MU</button>
+              <button onclick="tosFiltteri('ML')" id="tos-f-ml" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">ML</button>
+              <button onclick="tosFiltteri('OL')" id="tos-f-ol" class="tos-f-btn" style="flex:1;padding:4px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">OL</button>
+            </div>
+          </div>
+          <div id="tos-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="tos-search" placeholder="Hae selitteellä tai tositteella…"
-            oninput="renderTositteet()"
-            style="padding:7px 12px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--ink);outline:none;width:220px">
-          <select id="tos-filter" onchange="renderTositteet()"
-            style="padding:7px 10px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--ink);outline:none">
-            <option value="kaikki">Kaikki rivit</option>
-            <option value="tosite">Tosite liitetty ✓</option>
-            <option value="ei-tosite">Ei tositetta ⚠</option>
-          </select>
+        <!-- OIKEA: tositteen tiedot -->
+        <div style="overflow-y:auto;padding:20px 24px">
+          <div id="tos-ei-valittu" style="text-align:center;padding:60px 20px;color:var(--inu);font-size:13px">Valitse tosite vasemmalta</div>
+          <div id="tos-tiedot" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div>
+                <h3 id="tos-otsikko" style="font-size:16px;margin-bottom:2px"></h3>
+                <div id="tos-pvm-teksti" style="font-size:12px;color:var(--inu)"></div>
+              </div>
+              <button id="tos-muokkaa-btn" onclick="tosMuokkaa()" style="padding:6px 14px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inm);cursor:pointer">Muokkaa</button>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
+              <thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+                <th style="padding:8px;text-align:left">Tili</th>
+                <th style="padding:8px;text-align:left">Selite</th>
+                <th style="padding:8px;text-align:right">Debet</th>
+                <th style="padding:8px;text-align:right">Kredit</th>
+                <th style="padding:8px;text-align:right">ALV%</th>
+              </tr></thead>
+              <tbody id="tos-rivit-tbody"></tbody>
+              <tfoot><tr style="border-top:2px solid var(--bd2);background:var(--ppw)">
+                <td colspan="2" style="padding:8px;font-weight:600;color:var(--inu)">Yhteensä</td>
+                <td id="tos-tot-d" style="padding:8px;text-align:right;font-weight:700;font-family:var(--ffm);color:#2a7a4f"></td>
+                <td id="tos-tot-k" style="padding:8px;text-align:right;font-weight:700;font-family:var(--ffm);color:#c0392b"></td>
+                <td id="tos-tasma" style="padding:8px;text-align:right;font-size:11px"></td>
+              </tr></tfoot>
+            </table>
+          </div>
         </div>
-      </div>
-
-      <!-- Yhteenveto-palkki -->
-      <div id="tos-summary" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap"></div>
-
-      <!-- Tositetaulukko -->
-      <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;overflow:hidden">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:var(--fd)">
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:90px">Päivä</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:72px">Tosite</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5)">Selite</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:80px">D-tili</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:80px">K-tili</th>
-              <th style="padding:9px 14px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:90px">Brutto €</th>
-              <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);width:200px">Liitetty tosite</th>
-              <th style="padding:9px 14px;width:70px"></th>
-            </tr>
-          </thead>
-          <tbody id="tos-tbody"></tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:12px;padding:12px 16px;background:var(--pp);border:1px solid var(--bd);border-radius:8px;font-size:11px;color:var(--inu);line-height:1.7">
-        <strong style="color:var(--ink)">Tositteen liittäminen:</strong>
-        Siirry Pankkituonti-välilehdelle ja lataa PDF-aineisto. Claude tunnistaa laskut automaattisesti ja täsmäyttää ne tiliotteen tapahtumiin summan ja viitteen perusteella.
-        Voit myös liittää tositteen manuaalisesti klikkaamalla "+ Liitä"-nappia taulukossa.
       </div>
     </div>
 
@@ -2138,6 +2139,67 @@ function renderTK() {
 function copyTxt(t) { navigator.clipboard.writeText(t).catch(()=>{}); toast(`${t} kopioitu`); }
 
 // ── TOSITTEET ─────────────────────────────────────────────────
+function tosNaytaTiedot(t) {
+  document.getElementById('tos-ei-valittu').style.display = 'none';
+  document.getElementById('tos-tiedot').style.display = 'block';
+  document.getElementById('tos-otsikko').textContent = 'Tosite ' + t.nro;
+  document.getElementById('tos-pvm-teksti').textContent = fmtPv(t.pv);
+
+  const fmt = v => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const tbody = document.getElementById('tos-rivit-tbody');
+  tbody.innerHTML = '';
+  let totD = 0, totK = 0;
+  t.rivit.forEach(r => {
+    const tili = r.d || r.k || '—';
+    const tiliInfo = TILIT.find(tl => tl.nro === tili);
+    const debet = r.d ? r.netto : 0;
+    const kredit = r.k ? r.netto : 0;
+    totD += debet; totK += kredit;
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--bd)';
+    tr.innerHTML = `
+      <td style="padding:7px 8px"><span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">${tili}</span> <span style="font-size:11px;color:var(--inu)">${tiliInfo?.lbl || ''}</span></td>
+      <td style="padding:7px 8px;color:var(--ink);font-size:12px">${r.sel || ''}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${debet > 0 ? fmt(debet) : ''}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:#c0392b">${kredit > 0 ? fmt(kredit) : ''}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:var(--inu);font-size:11px">${r.alvp > 0 ? r.alvp + '%' : ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('tos-tot-d').textContent = fmt(totD);
+  document.getElementById('tos-tot-k').textContent = fmt(totK);
+  const erotus = Math.abs(totD - totK);
+  const tasmaEl = document.getElementById('tos-tasma');
+  if (erotus < 0.01) { tasmaEl.textContent = '✓ Täsmää'; tasmaEl.style.color = 'var(--fg3)'; }
+  else { tasmaEl.textContent = 'Erotus ' + fmt(erotus); tasmaEl.style.color = 'var(--red)'; }
+}
+
+function tosMuokkaa() {
+  if (!tosValittuNro) return;
+  // Lataa valitun tositteen rivit tositteen syöttöön
+  const tositeRivitSrc = rows.filter(r => r.ts === tosValittuNro);
+  if (!tositeRivitSrc.length) return;
+  showPanel('tosite');
+  tositeRivit = tositeRivitSrc.map(r => ({
+    id: Date.now() + Math.random(),
+    tili: r.d || r.k || '',
+    tiliLbl: TILIT.find(t => t.nro === (r.d || r.k))?.lbl || '',
+    sel: r.sel || '',
+    debet: r.d ? String(r.netto) : '',
+    kredit: r.k ? String(r.netto) : '',
+    alvp: r.alvp > 0 ? String(r.alvp) : '',
+  }));
+  tositeAlvRivit = [];
+  tositeBalancingRow = null;
+  tositeDirty = true;
+  document.getElementById('ts-nro').value = tosValittuNro;
+  document.getElementById('ts-pvm').value = tositeRivitSrc[0]?.pv || '';
+  renderTositeRivit();
+  paivitaTositeTotals();
+  toast('Tosite ' + tosValittuNro + ' avattu muokattavaksi');
+}
+
 async function naytaTositePdf(pdfPath) {
   try {
     const { data } = _sb.storage.from('tositteet').getPublicUrl(pdfPath);
@@ -2169,105 +2231,65 @@ async function naytaTositePdf(pdfPath) {
   } catch(e) { console.warn('naytaTositePdf virhe:', e); toast('PDF:n avaus epäonnistui'); }
 }
 
+let tosValittuNro = null;
+let tosFilt = '';
+
+function tosFiltteri(laji) {
+  tosFilt = laji;
+  document.querySelectorAll('.tos-f-btn').forEach(b => { b.style.background = 'var(--pp)'; b.style.color = 'var(--inu)'; });
+  const aktBtn = document.getElementById('tos-f-' + (laji ? laji.toLowerCase() : 'all'));
+  if (aktBtn) { aktBtn.style.background = 'var(--fmist)'; aktBtn.style.color = 'var(--fg)'; }
+  renderTositteet();
+}
+
 function renderTositteet() {
-  const q     = (document.getElementById('tos-search')?.value||'').trim().toLowerCase();
-  const filt  = document.getElementById('tos-filter')?.value || 'kaikki';
-  const tbody = document.getElementById('tos-tbody');
-  if (!tbody) return;
+  const q = (document.getElementById('tos-search')?.value || '').trim().toLowerCase();
+  const fmt = v => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-  let list = [...rows];
-  if (q) list = list.filter(r =>
-    r.sel.toLowerCase().includes(q) ||
-    (r.ts||'').toLowerCase().includes(q) ||
-    (r.tosite_nro||'').toLowerCase().includes(q) ||
-    (r.tosite_tmttja||'').toLowerCase().includes(q)
-  );
-  if (filt === 'tosite')    list = list.filter(r => r.tosite_nro || r.tosite_tmttja);
-  if (filt === 'ei-tosite') list = list.filter(r => !r.tosite_nro && !r.tosite_tmttja);
-
-  // Yhteenveto
-  const total     = rows.length;
-  const withDoc   = rows.filter(r => r.tosite_nro || r.tosite_tmttja).length;
-  const fromBank  = rows.filter(r => r.pankkisumma !== undefined).length;
-  const noDoc     = fromBank - withDoc;
-  const summaryEl = document.getElementById('tos-summary');
-  if (summaryEl) summaryEl.innerHTML = `
-    <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;min-width:110px">
-      <div style="font-size:20px;font-weight:300;font-family:var(--ffd)">${total}</div>
-      <div style="font-size:10px;color:var(--inu);margin-top:2px">Kirjanpitorivejä</div>
-    </div>
-    <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;min-width:110px">
-      <div style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--fg3)">${fromBank}</div>
-      <div style="font-size:10px;color:var(--inu);margin-top:2px">Pankkituonnista</div>
-    </div>
-    <div style="background:#e4f4ec;border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:10px 14px;min-width:110px">
-      <div style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--fg3)">${withDoc}</div>
-      <div style="font-size:10px;color:var(--fg3);margin-top:2px">📎 Tosite liitetty</div>
-    </div>
-    ${noDoc > 0 ? `<div style="background:var(--ambl);border:1px solid rgba(160,92,26,.2);border-radius:8px;padding:10px 14px;min-width:110px">
-      <div style="font-size:20px;font-weight:300;font-family:var(--ffd);color:var(--amber)">${noDoc}</div>
-      <div style="font-size:10px;color:var(--amber);margin-top:2px">⚠ Tosite puuttuu</div>
-    </div>` : ''}
-  `;
-  const cntEl = document.getElementById('tos-cnt');
-  if (cntEl) cntEl.textContent = `${list.length} riviä näkyvissä`;
-
-  tbody.innerHTML = '';
-  list.forEach((r, i) => {
-    const harTosite = r.tosite_nro || r.tosite_tmttja;
-    const br = brutto(r.netto, r.alvp);
-    const pos = r.pankkisumma !== undefined ? r.pankkisumma > 0 : true;
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid var(--bd)';
-    tr.style.transition = 'background .06s';
-    tr.onmouseover = () => tr.style.background = 'var(--fpale)';
-    tr.onmouseout  = () => tr.style.background = '';
-    tr.innerHTML = `
-      <td style="padding:10px 14px;font-family:var(--ffm);font-size:11px;color:var(--inu);white-space:nowrap">${r.pv}</td>
-      <td style="padding:10px 14px;font-family:var(--ffm);font-size:11px;font-weight:600;color:var(--fl);white-space:nowrap">${r.ts||'—'}</td>
-      <td style="padding:10px 14px;font-size:12px;color:var(--ink);max-width:200px">
-        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.sel}</div>
-      </td>
-      <td style="padding:10px 14px;font-family:var(--ffm);font-size:10px;color:var(--fl)">${r.d||'—'}</td>
-      <td style="padding:10px 14px;font-family:var(--ffm);font-size:10px;color:var(--inu)">${r.k||'—'}</td>
-      <td style="padding:10px 14px;text-align:right;font-family:var(--ffm);font-size:12px;font-weight:600;color:${pos?'var(--fg3)':'var(--red)'}">
-        ${(pos?'+':'-')}${br.toLocaleString('fi-FI',{minimumFractionDigits:2})} €
-      </td>
-      <td style="padding:10px 14px">
-        ${harTosite || r.tosite_pdf_path ? `
-          <div style="display:flex;flex-direction:column;gap:2px">
-            <div style="display:flex;align-items:center;gap:5px">
-              <span style="font-size:12px">📎</span>
-              <span style="font-size:11px;font-weight:600;color:var(--ink)">${r.tosite_nro||r.tosite_tmttja||'—'}</span>
-              ${r.tosite_pdf_path ? `<a href="#" onclick="event.preventDefault();naytaTositePdf('${r.tosite_pdf_path}')" style="font-size:10px;color:var(--fl)" title="Avaa PDF">📄</a>` : ''}
-            </div>
-            ${r.tosite_tmttja&&r.tosite_nro?`<div style="font-size:10px;color:var(--inu)">${r.tosite_tmttja}</div>`:''}
-            ${r.tosite_summa?`<div style="font-size:10px;color:var(--inu);font-family:var(--ffm)">${r.tosite_summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} € · ${r.tosite_pvm||''}</div>`:''}
-            ${r.tosite_viite?`<div style="font-size:10px;color:var(--inf)">Viite: ${r.tosite_viite}</div>`:''}
-            ${r.tosite_kuvaus?`<div style="font-size:10px;color:var(--inu);font-style:italic;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.tosite_kuvaus}</div>`:''}
-          </div>
-        ` : `<span style="font-size:11px;color:var(--inf)">—</span>`}
-      </td>
-      <td style="padding:10px 14px;text-align:right">
-        ${harTosite
-          ? `<button onclick="poistaTositeViite(${r.id})"
-               style="padding:2px 7px;font-size:10px;border:1px solid var(--bd);border-radius:4px;background:transparent;color:var(--inf);cursor:pointer"
-               title="Poista tositteen linkitys">×</button>`
-          : `<button onclick="lisaaTositeManual(${r.id})"
-               style="padding:2px 8px;font-size:10px;font-weight:500;border:1px solid rgba(160,92,26,.25);border-radius:4px;background:var(--ambl);color:var(--amber);cursor:pointer">
-               + Liitä</button>`
-        }
-      </td>
-    `;
-    tbody.appendChild(tr);
+  // Ryhmittele tosite_nro:n mukaan
+  const tositeMap = {};
+  rows.forEach(r => {
+    const nro = r.ts || '—';
+    if (!tositeMap[nro]) tositeMap[nro] = { nro, pv: r.pv, rivit: [], debetYht: 0, kreditYht: 0, selitteet: [] };
+    tositeMap[nro].rivit.push(r);
+    if (r.d) tositeMap[nro].debetYht += r.netto;
+    if (r.k) tositeMap[nro].kreditYht += r.netto;
+    if (r.sel && !tositeMap[nro].selitteet.includes(r.sel)) tositeMap[nro].selitteet.push(r.sel);
+    if (r.pv < tositeMap[nro].pv) tositeMap[nro].pv = r.pv;
   });
 
-  if (!list.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="8" style="padding:32px;text-align:center;font-size:13px;color:var(--inf)">
-      ${filt==='tosite' ? 'Ei liitettyjä tositteita' : filt==='ei-tosite' ? 'Kaikilla riveillä on tosite — hienoa!' : 'Ei kirjanpitorivejä'}
-    </td>`;
-    tbody.appendChild(tr);
+  let tositteet = Object.values(tositeMap).sort((a, b) => (b.pv || '').localeCompare(a.pv || '') || (b.nro || '').localeCompare(a.nro || ''));
+  if (tosFilt) tositteet = tositteet.filter(t => t.nro.startsWith(tosFilt));
+  if (q) tositteet = tositteet.filter(t => t.nro.toLowerCase().includes(q) || t.selitteet.some(s => s.toLowerCase().includes(q)));
+
+  const cntEl = document.getElementById('tos-cnt');
+  if (cntEl) cntEl.textContent = tositteet.length + ' tositetta';
+
+  const lista = document.getElementById('tos-lista');
+  if (!lista) return;
+  lista.innerHTML = '';
+  tositteet.forEach(t => {
+    const card = document.createElement('div');
+    const aktiivi = tosValittuNro === t.nro;
+    card.style.cssText = 'display:flex;gap:10px;padding:9px 12px;border-radius:6px;cursor:pointer;transition:background .1s;border:1px solid ' + (aktiivi ? 'rgba(29,158,117,.2)' : 'transparent') + ';background:' + (aktiivi ? 'var(--fmist)' : '') + ';margin-bottom:2px';
+    card.onmouseover = () => { if (!aktiivi) card.style.background = 'var(--fpale)'; };
+    card.onmouseout = () => { if (!aktiivi) card.style.background = ''; };
+    card.onclick = () => { tosValittuNro = t.nro; renderTositteet(); tosNaytaTiedot(t); };
+    card.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-family:var(--ffm);font-size:12px;font-weight:600;color:var(--fl)">${t.nro}</span>
+          <span style="font-family:var(--ffm);font-size:11px;font-weight:600">${fmt(t.debetYht)} €</span>
+        </div>
+        <div style="font-size:11px;color:var(--inu);margin-top:2px">${fmtPv(t.pv)} · ${t.rivit.length} vientiä</div>
+        <div style="font-size:10px;color:var(--inf);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.selitteet[0] || ''}</div>
+      </div>
+    `;
+    lista.appendChild(card);
+  });
+
+  if (!tositteet.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--inu);font-size:12px">Ei tositteita</div>';
   }
 }
 
