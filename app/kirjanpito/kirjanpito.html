@@ -6188,7 +6188,8 @@ let tositeBalancingRow = null;
 let tositeDirty = false;
 async function seuraavaTositeNroLaji(laji) {
   if (!curYritys) return laji + '1';
-  console.log('seuraavaTositeNroLaji:', laji, 'asiakas_id:', curYritys.id);
+  console.log('seuraavaTositeNroLaji:', laji, 'curYritys.id:', curYritys.id, 'window._PPR.orgId:', window._PPR?.orgId);
+  console.log('Ruokorannan id: 722b98e6-c6c1-43c5-b65a-60178eff72c3, täsmääkö:', curYritys.id === '722b98e6-c6c1-43c5-b65a-60178eff72c3');
   try {
     const { data, error } = await _sb.rpc('seuraava_tosite_nro', {
       p_asiakas_id: curYritys.id,
