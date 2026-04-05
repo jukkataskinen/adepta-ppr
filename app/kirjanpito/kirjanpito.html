@@ -7337,15 +7337,19 @@ function tsNaytaPendingLiite(idx) {
 }
 
 async function tsTallennaPendingLiitteet(tositeNro) {
+  console.log('tsTallennaPendingLiitteet:', tositeNro, 'liitteitä:', pendingLiitteet.length);
   if (!pendingLiitteet.length || !curYritys) return;
   for (const l of pendingLiitteet) {
     const polku = curYritys.id+'/tositteet/'+tositeNro+'/'+l.nimi;
+    console.log('Uploading:', polku, 'koko:', l.koko);
     try {
-      await _sb.storage.from('tositteet').upload(polku, l.file, { upsert: true });
-      await _sb.from('ppr_tosite_liitteet').insert({
+      const { data: upData, error: upErr } = await _sb.storage.from('tositteet').upload(polku, l.file, { upsert: true });
+      console.log('Upload:', upData, 'virhe:', upErr);
+      const { data: dbData, error: dbErr } = await _sb.from('ppr_tosite_liitteet').insert({
         asiakas_id: curYritys.id, tosite_nro: tositeNro,
         tiedostonimi: l.nimi, storage_path: polku, koko_bytes: l.koko
       });
+      console.log('DB insert:', dbData, 'virhe:', dbErr);
     } catch(e) { console.warn('Liite tallennus:', e); }
     if (l.previewUrl) URL.revokeObjectURL(l.previewUrl);
   }
@@ -7464,6 +7468,7 @@ async function tallennaTositteet() {
     const json = await res.json();
     if (res.ok) {
       // Tallenna pending-liitteet Storageen
+      console.log('Kutsutaan tsTallennaPendingLiitteet, tositeNro:', tosite_nro, 'pending:', pendingLiitteet.length);
       await tsTallennaPendingLiitteet(tosite_nro);
       await lataaRivit(curYritys.id);
       await paivitaTositeNro();
