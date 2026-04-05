@@ -6344,13 +6344,12 @@ function paivitaTositeTotals() {
   tositeRivit.forEach(r => {
     if ((r.alvp || 0) > 0) {
       const alvPct = parseFloat(r.alvp);
-      const verotD = parseFloat(r.debet) || 0;
-      const verotK = parseFloat(r.kredit) || 0;
-      const veroton = verotD || verotK;
-      const alvEuro = veroton * alvPct / 100; // käyttäjä syöttää verottoman
+      const brutto = r.bruttoSumma || parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+      const veroton = brutto / (1 + alvPct / 100);
+      const alvEuro = brutto - veroton;
       
       // Determine ALV account and direction
-      const isKredit = verotK > 0;
+      const isKredit = (parseFloat(r.kredit) || 0) > 0;
       const alvTili = isKredit ? '29390' : '1763';
       const alvKey = alvTili + (isKredit ? 'K' : 'D');
       
@@ -6504,18 +6503,56 @@ function tsKey(e, rowIdx, col) {
 
 function tositeUpdField(i, f, v) {
   tositeRivit[i][f] = v;
-  // Debet ja kredit eksklusiiviset — toinen tyhjenee
+  // Debet ja kredit eksklusiiviset
   if (f === 'debet' && parseFloat(v) > 0) {
     tositeRivit[i].kredit = '';
     const kInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
     if (kInput) kInput.value = '';
+    // Tallenna bruttosumma
+    tositeRivit[i].bruttoSumma = parseFloat(v) || 0;
   } else if (f === 'kredit' && parseFloat(v) > 0) {
     tositeRivit[i].debet = '';
     const dInput = document.querySelector('[data-row="' + i + '"][data-col="2"]');
     if (dInput) dInput.value = '';
+    tositeRivit[i].bruttoSumma = parseFloat(v) || 0;
+  }
+  // ALV-valinta: laske veroton bruttosta
+  if (f === 'alvp') {
+    tositeLaskeVeroton(i);
   }
   tositeDirty = true;
   paivitaTositeTotals();
+}
+
+function tositeLaskeVeroton(i) {
+  const r = tositeRivit[i];
+  const alvp = parseFloat(r.alvp) || 0;
+  const brutto = r.bruttoSumma || parseFloat(r.debet) || parseFloat(r.kredit) || 0;
+  if (!brutto) return;
+  // Tallenna brutto jos ei vielä tallennettu
+  if (!r.bruttoSumma) r.bruttoSumma = brutto;
+  if (alvp > 0) {
+    const veroton = +(brutto / (1 + alvp / 100)).toFixed(2);
+    if (parseFloat(r.debet) > 0 || r.bruttoSumma === parseFloat(r.debet)) {
+      r.debet = veroton.toString();
+    } else {
+      r.kredit = veroton.toString();
+    }
+  } else {
+    // ALV poistettu → palauta brutto
+    if (r.bruttoSumma) {
+      if (parseFloat(r.debet) > 0 || (!r.kredit && r.bruttoSumma)) {
+        r.debet = r.bruttoSumma.toString();
+      } else {
+        r.kredit = r.bruttoSumma.toString();
+      }
+    }
+  }
+  // Päivitä DOM
+  const dInput = document.querySelector('[data-row="' + i + '"][data-col="2"]');
+  const kInput = document.querySelector('[data-row="' + i + '"][data-col="3"]');
+  if (dInput) dInput.value = r.debet || '';
+  if (kInput) kInput.value = r.kredit || '';
 }
 
 function tsTiliKey(e, rowIdx) {
