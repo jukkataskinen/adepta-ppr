@@ -1592,7 +1592,7 @@ function vaihdaAsiakas(id) {
   localStorage.setItem('ppr_last_asiakas', y.id);
   renderCo();
   lataaRivit(y.id).then(() => { lataaEtusivu(); showPanel('etusivu'); });
-  alustaTositeNro();
+  paivitaTositeNro();
   checkImportQueue();
   lataaReskontra();
   toast(`${y.nimi} ladattu`);
@@ -6186,19 +6186,6 @@ let tositeRivit = [];
 let tositeAlvRivit = [];
 let tositeBalancingRow = null;
 let tositeDirty = false;
-let seuraavaTositeNro = null;
-
-async function alustaTositeNro() {
-  if (!curYritys) return;
-  try {
-    const r = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id);
-    const d = await r.json();
-    seuraavaTositeNro = d.seuraava || 1;
-    const el = document.getElementById('ts-nro');
-    if (el && !el.value) el.placeholder = seuraavaTositeNro;
-  } catch(e) {}
-}
-
 async function seuraavaTositeNroLaji(laji) {
   if (!curYritys) return laji + '1';
   try {
