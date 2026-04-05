@@ -2140,6 +2140,13 @@ function copyTxt(t) { navigator.clipboard.writeText(t).catch(()=>{}); toast(`${t
 
 // ── TOSITTEET ─────────────────────────────────────────────────
 function tosNaytaTiedot(t) {
+  if (t.nro.startsWith('ML') || t.nro.startsWith('OL')) {
+    document.getElementById('tos-tiedot').style.display = 'none';
+    const ei = document.getElementById('tos-ei-valittu');
+    ei.style.display = 'block';
+    ei.textContent = (t.nro.startsWith('ML') ? 'ML' : 'OL') + '-tositteiden katselunäkymä tulossa myöhemmin';
+    return;
+  }
   document.getElementById('tos-ei-valittu').style.display = 'none';
   document.getElementById('tos-tiedot').style.display = 'block';
   document.getElementById('tos-otsikko').textContent = 'Tosite ' + t.nro;
@@ -2289,7 +2296,8 @@ function renderTositteet() {
   });
 
   if (!tositteet.length) {
-    lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--inu);font-size:12px">Ei tositteita</div>';
+    const lajiteksti = tosFilt === 'ML' ? 'ML-tositteita (myyntilaskut)' : tosFilt === 'OL' ? 'OL-tositteita (ostolaskut)' : 'tositteita';
+    lista.innerHTML = '<div style="text-align:center;padding:24px;color:var(--inu);font-size:12px">Ei ' + lajiteksti + ' vielä</div>';
   }
 }
 
