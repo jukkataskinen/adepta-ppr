@@ -6188,12 +6188,13 @@ let tositeBalancingRow = null;
 let tositeDirty = false;
 async function seuraavaTositeNroLaji(laji) {
   if (!curYritys) return laji + '1';
+  console.log('seuraavaTositeNroLaji:', laji, 'asiakas_id:', curYritys.id);
   try {
-    // Käytä Supabase RPC:tä atomiseen numerointiin
     const { data, error } = await _sb.rpc('seuraava_tosite_nro', {
       p_asiakas_id: curYritys.id,
       p_laji: laji
     });
+    console.log('RPC tulos:', data, 'virhe:', error);
     if (!error && data) return data;
     // Fallback: laske JS:ssä
     const res = await fetch('/api/ppr/paivakirja?asiakas_id=' + curYritys.id);
