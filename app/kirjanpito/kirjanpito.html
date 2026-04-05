@@ -5740,7 +5740,9 @@ function lmSulje() {
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); tallenna(); }
   if ((e.ctrlKey||e.metaKey) && e.key==='z') { e.preventDefault(); undoL(); }
-  if (e.key==='Escape') { closeAllDropdowns(); vtSulje(); lmSulje(); }
+  if (e.key==='Escape') { closeAllDropdowns(); vtSulje(); lmSulje(); document.getElementById('tosite-tallennettu-bar')?.remove(); }
+  // Alt+N = uusi tosite
+  if (e.altKey && e.key === 'n') { e.preventDefault(); uusiTosite(document.getElementById('ts-pvm')?.value); }
 });
 
 // ── TOAST ────────────────────────────────────────────────────
@@ -6861,6 +6863,35 @@ function poistaTositeRivi(i) {
   paivitaTositeTotals();
 }
 
+function naytaTositeTallennettu(nro, riveja, edellinenPvm) {
+  // Näytä ilmoituspalkki tositteen yläpuolelle
+  const alue = document.getElementById('tosite-tallennettu-bar');
+  if (alue) alue.remove();
+  const bar = document.createElement('div');
+  bar.id = 'tosite-tallennettu-bar';
+  bar.style.cssText = 'background:#e4f4ec;border:1px solid rgba(29,158,117,.25);border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap';
+  bar.innerHTML = `
+    <div style="font-size:14px;font-weight:600;color:var(--fg3)">✓ Tosite ${nro} tallennettu</div>
+    <div style="font-size:12px;color:var(--inu)">${riveja} riviä</div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button onclick="uusiTosite('${edellinenPvm}')" style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Uusi tosite</button>
+      <button onclick="showPanel('paivak');document.getElementById('tosite-tallennettu-bar')?.remove()" style="padding:6px 14px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--inm);cursor:pointer">Siirry päiväkirjaan</button>
+    </div>
+  `;
+  const panel = document.getElementById('panel-tosite');
+  if (panel) panel.insertBefore(bar, panel.children[2]); // otsikon jälkeen
+  tyhjennaTositelomake();
+}
+
+function uusiTosite(edellinenPvm) {
+  document.getElementById('tosite-tallennettu-bar')?.remove();
+  tyhjennaTositelomake();
+  // Säilytä edellinen päivämäärä
+  if (edellinenPvm) document.getElementById('ts-pvm').value = edellinenPvm;
+  // Lisää ensimmäinen rivi ja fokusoi
+  lisaaTositeRivi();
+}
+
 function tyhjennaTositelomake() {
   tositeRivit = [];
   tositeAlvRivit = [];
@@ -6959,9 +6990,9 @@ async function tallennaTositteet() {
     });
     const json = await res.json();
     if (res.ok) {
-      toast('Tallennettu ✓ — tosite ' + tosite_nro + ', ' + json.tallennettu + ' riviä');
-      tyhjennaTositelomake();
+      const tallennettuPvm = paivamaara;
       lataaRivit(curYritys.id);
+      naytaTositeTallennettu(tosite_nro, json.tallennettu, tallennettuPvm);
     } else {
       toast('Virhe: ' + json.error);
       btn.disabled = false;
