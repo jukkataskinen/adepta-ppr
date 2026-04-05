@@ -6027,19 +6027,22 @@ function lataaEtusivu() {
   const vierasFlex = Math.max(vierasAste, 8);
   const omaKorkeus = pylvasH * omaFlex / (omaFlex + vierasFlex);
   const vierasKorkeus = pylvasH - omaKorkeus;
+  const ovVari = ovAste >= 35 ? '#1D9E75' : ovAste >= 15 ? '#EF9F27' : '#E24B4A';
+  const ovSelite = ovAste >= 50 ? 'Erinomainen' : ovAste >= 35 ? 'Hyvä' : ovAste >= 25 ? 'Tyydyttävä' : ovAste >= 15 ? 'Välttävä' : 'Heikko';
   document.getElementById('etusivu-omavaraisuus').innerHTML =
     '<h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Omavaraisuusaste</h3>' +
-    '<div style="font-size:24px;font-weight:300;font-family:var(--ffd);margin-bottom:12px;color:' + (ovAste>=40?'var(--fg3)':ovAste>=20?'var(--fl)':'var(--red)') + '">' + ovAste.toFixed(1).replace('.',',') + ' %</div>' +
+    '<div style="margin-bottom:12px"><div style="font-size:24px;font-weight:300;font-family:var(--ffd);color:' + ovVari + '">' + ovAste.toFixed(1).replace('.',',') + ' %</div>' +
+    '<div style="font-size:11px;color:' + ovVari + ';opacity:.8">' + ovSelite + '</div></div>' +
     '<div style="display:flex;gap:6px;align-items:stretch;height:' + pylvasH + 'px">' +
       '<div style="background:var(--fg);width:' + pylvasW + 'px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
         '<div style="font-size:22px;font-weight:700">' + fmtK(taseSum) + '</div>' +
         '<div style="font-size:12px;opacity:.7">Tase</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;gap:3px;width:' + pylvasW + 'px">' +
-        '<div style="background:var(--fd);flex:' + omaFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:24px;overflow:hidden">' +
-          (omaKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opOma) + '</div><div style="font-size:10px;opacity:.7">' + ovAste.toFixed(1).replace('.',',') + '% · Oma pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opOma) + '</div>') +
+        '<div style="background:' + ovVari + ';flex:' + omaFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;min-height:24px;overflow:hidden">' +
+          (omaKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opOma) + '</div><div style="font-size:10px;opacity:.8">' + ovAste.toFixed(1).replace('.',',') + '% · Oma pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opOma) + '</div>') +
         '</div>' +
-        '<div style="background:var(--fg3);flex:' + vierasFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--fd);min-height:24px;overflow:hidden">' +
+        '<div style="background:rgba(255,255,255,.08);flex:' + vierasFlex + ';border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--inu);min-height:24px;overflow:hidden">' +
           (vierasKorkeus > 40 ? '<div style="font-size:16px;font-weight:700">' + fmtK(opVieras) + '</div><div style="font-size:10px;opacity:.5">' + vierasAste.toFixed(1).replace('.',',') + '% · Vieras pääoma</div>' : '<div style="font-size:11px;font-weight:600">' + fmtK(opVieras) + '</div>') +
         '</div>' +
       '</div>' +
