@@ -6229,20 +6229,20 @@ function lisaaTositeRivi() {
 
 function renderTositeRivit() {
   let html = '';
-  
+
   // Käyttäjärivit
   html += tositeRivit.map((r, i) => generateUserRow(r, i)).join('');
-  
-  // ALV-automaattirivit
-  if (tositeAlvRivit && tositeAlvRivit.length > 0) {
-    html += tositeAlvRivit.map(r => generateAutoRow(r)).join('');
-  }
-  
-  // Tasausrivi
+
+  // Tasausrivi (ennen ALV-rivejä)
   if (tositeBalancingRow) {
     html += generateBalancingRow(tositeBalancingRow);
   }
-  
+
+  // ALV-automaattirivit (alimmaisina)
+  if (tositeAlvRivit && tositeAlvRivit.length > 0) {
+    html += tositeAlvRivit.map(r => generateAutoRow(r)).join('');
+  }
+
   document.getElementById('tosite-tbody').innerHTML = html;
 }
 
@@ -6465,15 +6465,13 @@ function updateAutoRowsInDOM() {
     allRows[i].remove();
   }
   
-  // Add ALV rows
+  // Add balancing row first, then ALV rows
   let html = '';
-  if (tositeAlvRivit && tositeAlvRivit.length > 0) {
-    html += tositeAlvRivit.map(r => generateAutoRow(r)).join('');
-  }
-  
-  // Add balancing row
   if (tositeBalancingRow) {
     html += generateBalancingRow(tositeBalancingRow);
+  }
+  if (tositeAlvRivit && tositeAlvRivit.length > 0) {
+    html += tositeAlvRivit.map(r => generateAutoRow(r)).join('');
   }
   
   if (html) {
@@ -6486,8 +6484,13 @@ function tsKey(e, rowIdx, col) {
     e.preventDefault();
     // Viimeisen käyttäjärivin summa-kentästä → hyppää tasausriville
     if (rowIdx === tositeRivit.length - 1 && (col === 2 || col === 3)) {
-      const tasausInput = document.querySelector('.tasaus-summa-input');
-      if (tasausInput && tasausInput.value) { tasausInput.focus(); tasausInput.select(); return; }
+      setTimeout(() => {
+        const tasausInputs = document.querySelectorAll('.tasaus-summa-input');
+        // Fokusoi se jossa on arvo, tai ensimmäinen
+        const aktiivinen = [...tasausInputs].find(i => i.value) || tasausInputs[0];
+        if (aktiivinen) { aktiivinen.focus(); aktiivinen.select(); }
+      }, 50);
+      return;
     }
     if (col < 4) {
       const next = document.querySelector('[data-row="' + rowIdx + '"][data-col="' + (col+1) + '"]');
@@ -6542,6 +6545,22 @@ function tasausSummaChanged(suunta, val) {
   if (suunta === 'debet') { tositeBalancingRow.debet = v > 0 ? v.toFixed(2) : ''; tositeBalancingRow.kredit = ''; }
   else { tositeBalancingRow.kredit = v > 0 ? v.toFixed(2) : ''; tositeBalancingRow.debet = ''; }
   tositeDirty = true;
+  // Päivitä kokonaissummat ja tasapaino
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const parseFi = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
+  let totD = 0, totK = 0;
+  tositeRivit.forEach(r => { totD += parseFloat(r.debet)||0; totK += parseFloat(r.kredit)||0; });
+  tositeAlvRivit.forEach(r => { totD += parseFi(r.debet); totK += parseFi(r.kredit); });
+  totD += parseFi(tositeBalancingRow.debet);
+  totK += parseFi(tositeBalancingRow.kredit);
+  document.getElementById('ts-tot-debet').textContent = fmt(totD);
+  document.getElementById('ts-tot-kredit').textContent = fmt(totK);
+  const tasaEl = document.getElementById('ts-tasapaino');
+  if (Math.abs(totD - totK) < 0.01 && tositeBalancingRow.tili) {
+    tasaEl.textContent = '✓ Tosite täsmää'; tasaEl.style.color = '#1D9E75';
+  } else {
+    tasaEl.textContent = 'Erotus: ' + fmt(Math.abs(totD - totK)) + ' €'; tasaEl.style.color = '#c0392b';
+  }
 }
 
 function tasausSummaKey(e) {
