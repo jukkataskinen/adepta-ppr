@@ -6920,24 +6920,17 @@ async function tallennaTositteet() {
   document.getElementById('ts-nro').value = tosite_nro;
   const paivamaara = document.getElementById('ts-pvm').value;
 
-  if (!paivamaara) { console.log('STOP: ei päiväystä'); toast('Syötä päiväys'); btn.disabled = false; return; }
+  if (!paivamaara) { toast('Syötä päiväys'); _tallennusMeneillaan = false; btn.disabled = false; btn.textContent = 'Tallenna'; return; }
 
   // Suodata pois täysin tyhjät rivit
   tositeRivit = tositeRivit.filter(r => r.tili || tsParseFi(r.debet) > 0 || tsParseFi(r.kredit) > 0);
-  // Tarkista että jäljellä olevilla riveillä on tili
   if (tositeRivit.some(r => !r.tili)) {
-    console.log('STOP: rivi ilman tiliä', tositeRivit);
     toast('Kaikille riveille on valittava tili');
-    btn.disabled = false;
-    return;
+    _tallennusMeneillaan = false; btn.disabled = false; btn.textContent = 'Tallenna'; return;
   }
-
-  // Check that balancing row has tili if needed
   if (tositeBalancingRow && (tositeBalancingRow.debet || tositeBalancingRow.kredit) && !tositeBalancingRow.tili) {
-    console.log('STOP: tasausrivillä ei tiliä', tositeBalancingRow);
     toast('Tasausriville on valittava tili');
-    btn.disabled = false;
-    return;
+    _tallennusMeneillaan = false; btn.disabled = false; btn.textContent = 'Tallenna'; return;
   }
 
   // Build rivit array with:
@@ -6984,8 +6977,8 @@ async function tallennaTositteet() {
   }
 
   const tarkistusSumma = rivit.reduce((s,r) => s + r.saldo, 0);
-  console.log('Tallenna tosite:', tosite_nro, rivit.length, 'riviä, asiakas:', curYritys.id, 'tasapaino:', tarkistusSumma.toFixed(4));
-  console.log('Rivit:', rivit.map(r => r.tili + ': ' + r.saldo.toFixed(2)));
+  console.log('TALLENNUS:', tosite_nro, '| rivejä:', rivit.length, '| asiakas:', curYritys.id, '| tasapaino:', tarkistusSumma.toFixed(4));
+  rivit.forEach((r,i) => console.log('  rivi', i, r.tili, r.saldo.toFixed(2), r.alv_prosentti||''));
 
   // Tallenna vanhat arvot palautusta varten
   const vanhatRivit = [...tositeRivit];
