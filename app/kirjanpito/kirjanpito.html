@@ -2594,80 +2594,63 @@ function rptTulos() {
     '</div>';
 }
 function rptTase() {
-  // Laske nettosaldo per tili
-  const netD = {}, netK = {};
+  // Ryhmittele tileittäin — saldo = debet positiivinen, kredit negatiivinen (ppr_paivakirja)
+  const tiliSaldot = {};
   rptRows.forEach(r => {
-    if (r.d) netD[r.d] = (netD[r.d]||0) + r.netto;
-    if (r.k) netK[r.k] = (netK[r.k]||0) + r.netto;
+    const tili = r.d || r.k;
+    if (!tili) return;
+    if (!tiliSaldot[tili]) tiliSaldot[tili] = 0;
+    tiliSaldot[tili] += r.d ? r.netto : -r.netto; // d=debet(+), k=kredit(-)
   });
-  const saldoD = (nro) => (netD[nro]||0) - (netK[nro]||0); // positiivinen = debet
-  const saldoK = (nro) => (netK[nro]||0) - (netD[nro]||0); // positiivinen = kredit
 
-  // Kaikki tilinumerot joita on käytetty
-  const kaikkiTilit = [...new Set([...Object.keys(netD), ...Object.keys(netK)])].sort();
-  console.log('rptTase: rptRows:', rptRows.length, 'kaikkiTilit:', kaikkiTilit);
-  console.log('rptTase: vastaavaa-tilit (1xxx):', kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1000&&n<2000; }).map(t => t+':D='+((netD[t]||0)-(netK[t]||0)).toFixed(2)));
-  console.log('rptTase: vastattavaa-tilit (2xxx):', kaikkiTilit.filter(t => { const n=parseInt(t); return n>=2000&&n<3000; }).map(t => t+':K='+((netK[t]||0)-(netD[t]||0)).toFixed(2)));
+  const kaikkiTilit = Object.keys(tiliSaldot).sort();
+  const tiliRivi = (nro) => {
+    const s = tiliSaldot[nro] || 0;
+    if (Math.abs(s) < 0.01) return '';
+    const nimi = TILIT.find(t => t.nro === nro)?.lbl || nro;
+    return rptRow(nro + ' ' + nimi, s, '', true);
+  };
 
-  // VASTAAVAA: tilit 1000-1999 joilla positiivinen debet-saldo
-  const vastaavaaTilit = kaikkiTilit.filter(t => {
-    const n = parseInt(t); return n >= 1000 && n < 2000 && saldoD(t) > 0.005;
-  });
-  const pysyvatTilit   = vastaavaaTilit.filter(t => parseInt(t) < 1500);
-  const vaihtuvatTilit = vastaavaaTilit.filter(t => parseInt(t) >= 1500);
-  const pysyvatYht   = pysyvatTilit.reduce((s,t) => s + saldoD(t), 0);
-  const vaihtuvatYht = vaihtuvatTilit.reduce((s,t) => s + saldoD(t), 0);
-  const vastaavaaYht = pysyvatYht + vaihtuvatYht;
+  // Vastaavaa: 1000-1999 (saldo näytetään sellaisenaan, positiivinen = debet-normaali)
+  const vastaavaaTilit = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1000&&n<2000; });
+  const vastaavaaYht = vastaavaaTilit.reduce((s,t) => s + (tiliSaldot[t]||0), 0);
 
-  // Tilikauden voitto/tappio: tilit 3000-9999 kredit - debet
-  const tulos = rptRows.filter(r => {
-    const n = parseInt((r.d||r.k)||'0'); return n >= 3000 && n <= 9999;
-  }).reduce((s,r) => s + (r.k ? r.netto : -r.netto), 0);
+  // Vastattavaa: 2000-2999 (saldo käännetään: negatiivinen → positiivinen kredit)
+  const vastattavaaTilit = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=2000&&n<3000; });
+  const omaPaaomaTilit = vastattavaaTilit.filter(t => parseInt(t) < 2500);
+  const pitkaVelatTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2500&&n<2800; });
+  const lyhytVelatTilit = vastattavaaTilit.filter(t => parseInt(t) >= 2800);
 
-  // VASTATTAVAA: tilit 2000-2999 joilla positiivinen kredit-saldo
-  const vastattavaaTilit = kaikkiTilit.filter(t => {
-    const n = parseInt(t); return n >= 2000 && n < 3000 && saldoK(t) > 0.005;
-  });
-  const omaPaaomaTilit   = vastattavaaTilit.filter(t => parseInt(t) < 2500);
-  const pitkaVelatTilit  = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2500&&n<2800; });
-  const lyhytVelatTilit  = vastattavaaTilit.filter(t => parseInt(t) >= 2800);
+  // Tilikauden tulos: tilit 3000-9999, saldot käännettyinä (kredit=tulo=positiivinen)
+  const tulos = kaikkiTilit.filter(t => parseInt(t) >= 3000)
+    .reduce((s,t) => s - (tiliSaldot[t]||0), 0);
 
-  const omaPaaomaPohja = omaPaaomaTilit.reduce((s,t) => s + saldoK(t), 0);
-  const omaPaaoma  = omaPaaomaPohja + tulos;
-  const pitkaVelat = pitkaVelatTilit.reduce((s,t) => s + saldoK(t), 0);
-  const lyhytVelat = lyhytVelatTilit.reduce((s,t) => s + saldoK(t), 0);
+  const omaPaaomaPohja = omaPaaomaTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
+  const omaPaaoma = omaPaaomaPohja + tulos;
+  const pitkaVelat = pitkaVelatTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
+  const lyhytVelat = lyhytVelatTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
   const vastattavaaYht = omaPaaoma + pitkaVelat + lyhytVelat;
   const erotus = Math.abs(vastaavaaYht - vastattavaaYht);
 
   const hdr = (t) => '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inu);padding:12px 0 4px">' + t + '</div>';
-  const riviD = (nro) => { const s=saldoD(nro); if(s<0.005) return ''; const nimi=TILIT.find(t=>t.nro===nro)?.lbl||nro; return rptRow(nro+' '+nimi, s, '', true); };
-  const riviK = (nro) => { const s=saldoK(nro); if(s<0.005) return ''; const nimi=TILIT.find(t=>t.nro===nro)?.lbl||nro; return rptRow(nro+' '+nimi, s, '', true); };
+  const vastRivi = (nro) => { const s = -(tiliSaldot[nro]||0); if(Math.abs(s)<0.01) return ''; const nimi=TILIT.find(t=>t.nro===nro)?.lbl||nro; return rptRow(nro+' '+nimi, s, '', true); };
   const tasapainoRivi = '<div class="rpt-row total"><div class="rpt-row-l" style="font-weight:600">' + (erotus<1 ? '✓ Tase tasapainossa' : '⚠ Tase ei tasapainossa') + '</div><div class="rpt-row-v">' + fmtE(erotus) + '</div></div>';
 
-  const vastaavaaHtml =
-    '<div class="rpt-section">' +
+  return '<div class="rpt-section">' +
     '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastaavaa</div></div>' +
-    (pysyvatTilit.length ? hdr('Pysyvät vastaavat') + pysyvatTilit.map(riviD).join('') + rptRow('Pysyvät vastaavat yhteensä', pysyvatYht, 'total') : '') +
-    hdr('Vaihtuvat vastaavat') +
-    vaihtuvatTilit.map(riviD).join('') +
-    rptRow('Vaihtuvat vastaavat yhteensä', vaihtuvatYht, 'total') +
+    vastaavaaTilit.map(tiliRivi).join('') +
     rptRow('VASTAAVAA YHTEENSÄ', vastaavaaYht, 'total') +
-    '</div>';
-
-  const vastattavaaHtml =
+    '</div>' +
     '<div class="rpt-section">' +
     '<div class="rpt-hdr"><div class="rpt-hdr-t">Tase — Vastattavaa</div></div>' +
-    hdr('Oma pääoma') +
-    omaPaaomaTilit.map(riviK).join('') +
+    (omaPaaomaTilit.length ? hdr('Oma pääoma') + omaPaaomaTilit.map(vastRivi).join('') : '') +
     rptRow('Tilikauden tulos', tulos, '', true) +
     rptRow('Oma pääoma yhteensä', omaPaaoma, 'total') +
-    (pitkaVelatTilit.length ? hdr('Pitkäaikainen vieras pääoma') + pitkaVelatTilit.map(riviK).join('') : '') +
-    (lyhytVelatTilit.length ? hdr('Lyhytaikainen vieras pääoma') + lyhytVelatTilit.map(riviK).join('') : '') +
+    (pitkaVelatTilit.length ? hdr('Pitkäaikainen vieras pääoma') + pitkaVelatTilit.map(vastRivi).join('') : '') +
+    (lyhytVelatTilit.length ? hdr('Lyhytaikainen vieras pääoma') + lyhytVelatTilit.map(vastRivi).join('') : '') +
     rptRow('VASTATTAVAA YHTEENSÄ', vastattavaaYht, 'total') +
     tasapainoRivi +
     '</div>';
-
-  return vastaavaaHtml + vastattavaaHtml;
 }
 function rptAlv() {
   // Myynnin ALV = kredit-tilit 3000-3999 joilla alv > 0
