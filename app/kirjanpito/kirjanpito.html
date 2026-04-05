@@ -6903,10 +6903,14 @@ function tyhjennaTositelomake() {
   paivitaTositeNro();
 }
 
+let _tallennusMeneillaan = false;
 async function tallennaTositteet() {
+  if (_tallennusMeneillaan) return;
   if (!curYritys || tositeRivit.length === 0) { console.log('STOP: ei yritystä tai rivejä'); return; }
+  _tallennusMeneillaan = true;
   const btn = document.getElementById('tosite-save-btn');
   btn.disabled = true;
+  btn.textContent = 'Tallennetaan...';
 
   const parseFi = v => typeof v === 'string' ? parseFloat(v.replace(/\s/g,'').replace(',','.')) || 0 : parseFloat(v) || 0;
 
@@ -7027,6 +7031,9 @@ async function tallennaTositteet() {
     renderTositeRivit();
     paivitaTositeTotals();
     btn.disabled = false;
+  } finally {
+    _tallennusMeneillaan = false;
+    btn.textContent = 'Tallenna';
   }
 }
 
