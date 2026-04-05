@@ -6914,9 +6914,12 @@ async function tallennaTositteet() {
 
   const parseFi = v => typeof v === 'string' ? parseFloat(v.replace(/\s/g,'').replace(',','.')) || 0 : parseFloat(v) || 0;
 
-  // Hae tuore tositenumero juuri ennen tallennusta (estää duplikaatit)
+  // Hae tuore tositenumero juuri ennen tallennusta
   const laji = document.getElementById('ts-laji')?.value || 'MU';
+  const { data: debugNrot } = await _sb.from('ppr_paivakirja').select('tosite_nro').eq('asiakas_id', curYritys.id).like('tosite_nro', laji + '%');
+  console.log('TALLENNUS: kannassa olevat ' + laji + '-tositteet:', [...new Set((debugNrot||[]).map(r=>r.tosite_nro))]);
   const tosite_nro = await seuraavaTositeNroLaji(laji);
+  console.log('TALLENNUS: saatu nro:', tosite_nro);
   document.getElementById('ts-nro').value = tosite_nro;
   const paivamaara = document.getElementById('ts-pvm').value;
 
