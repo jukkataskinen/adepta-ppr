@@ -7033,11 +7033,16 @@ async function mlTulostaPdf() {
   const netto = lasku.summa_netto || rivit.reduce((s,r) => s+Number(r.summa_netto||0),0);
   const alv = brutto - netto;
 
+  // Varmista ettei yhteenveto mene liian alas
+  if (y < 200) y = 200;
+  y -= 4;
+  page.drawLine({ start: { x: cX.veroton-40, y }, end: { x: RX, y }, thickness: 0.5, color: harmaa });
+  y -= 14;
   const yhtvRivit = [['Veroton yhteensä', fE(netto)], ['ALV yhteensä', fE(alv)], ['Maksettava yhteensä', fE(brutto)]];
   yhtvRivit.forEach(([t,v], i) => {
     const isLast = i === yhtvRivit.length-1;
     page.drawText(t, { x: cX.veroton-40, y, font: isLast?fontB:font, size: isLast?9:8, color: tumma });
-    page.drawText(v+' €', { x: cX.yht, y, font: fontB, size: isLast?9:8, color: tumma });
+    page.drawText(v + ' \u20ac', { x: RX-50, y, font: fontB, size: isLast?9:8, color: tumma });
     y -= isLast ? 18 : 14;
   });
 
