@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin!.from('ppr_paivakirja').insert(tositeRivit.map(r => ({
       asiakas_id: lasku.asiakas_id,
       tosite_nro: 'ML' + lasku.lasku_nro,
-      paivamaara: lasku.laskupaiva,
+      paivamaara: lasku.pvm,
       tili: r.tili, selite: r.selite, saldo: r.saldo,
       alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null,
     })))

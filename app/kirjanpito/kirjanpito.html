@@ -6636,7 +6636,7 @@ function mlRenderLista() {
     return `<div onclick="mlNayta('${l.id}')" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid ${akt?'rgba(29,158,117,.2)':'transparent'};background:${akt?'var(--fmist)':''};margin-bottom:2px">
       <div style="display:flex;justify-content:space-between"><span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">ML${l.lasku_nro}</span><span style="font-family:var(--ffm);font-size:11px">${fmt(brutto)} €</span></div>
       <div style="font-size:11px;color:var(--ink);margin-top:2px">${l.asiakas_nimi||'—'}</div>
-      <div style="font-size:10px;color:var(--inu);margin-top:1px">${fmtPv(l.laskupaiva)} · <span style="color:${l.tila==='maksettu'?'var(--fg3)':l.tila==='lahetetty'?'var(--fl)':'var(--amber)'}">${l.tila||'luonnos'}</span></div>
+      <div style="font-size:10px;color:var(--inu);margin-top:1px">${fmtPv(l.pvm)} · <span style="color:${l.tila==='maksettu'?'var(--fg3)':l.tila==='lahetetty'?'var(--fl)':'var(--amber)'}">${l.tila||'luonnos'}</span></div>
     </div>`;
   }).join('') || '<div style="text-align:center;padding:24px;color:var(--inu);font-size:12px">Ei laskuja</div>';
 }
@@ -6654,7 +6654,7 @@ function mlNayta(id) {
   lom.style.display='block';
   lom.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div><h3>Lasku ML${mlValittu.lasku_nro}</h3><div style="font-size:12px;color:var(--inu)">${mlValittu.asiakas_nimi||''} · ${fmtPv(mlValittu.laskupaiva)} · Eräpäivä ${fmtPv(mlValittu.erapaiva)}</div></div>
+      <div><h3>Lasku ML${mlValittu.lasku_nro}</h3><div style="font-size:12px;color:var(--inu)">${mlValittu.asiakas_nimi||''} · ${fmtPv(mlValittu.pvm)} · Eräpäivä ${fmtPv(mlValittu.erapv)}</div></div>
       <button onclick="mlTulostaPdf()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tulosta PDF</button>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
@@ -6809,7 +6809,7 @@ async function mlTallenna(tila) {
   try {
     const res = await fetch('/api/ppr/myyntilaskut', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
       asiakas_id:curYritys.id, lasku_nro:nro, viite, asiakas_nimi:asiakas,
-      laskupaiva:document.getElementById('ml-pvm')?.value, erapaiva:document.getElementById('ml-era')?.value,
+      pvm:document.getElementById('ml-pvm')?.value, erapv:document.getElementById('ml-era')?.value,
       laskutuskausi:document.getElementById('ml-kausi')?.value, tila, rivit
     })});
     if (res.ok) { toast('Lasku ML'+nro+' tallennettu'); await lataaMlData(); mlValittu=null; }
