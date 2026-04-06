@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
   // TODO: kirjanpitäjäsuodatus lisätään kun sarake on viewissä
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('SUPABASE ERROR:', JSON.stringify(error))
+    return NextResponse.json({ error: error.message, details: error }, { status: 500 })
+  }
   return NextResponse.json(data ?? [])
 }
 
