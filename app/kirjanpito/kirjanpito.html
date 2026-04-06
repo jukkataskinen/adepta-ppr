@@ -945,7 +945,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               </div>
               <input type="file" id="tos-liite-file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="tosLisaaLiite(event)">
             </div>
-            <div id="tos-liite-preview" style="flex:1;overflow-y:auto;padding:8px;text-align:center;background:var(--ppw);min-height:100px">
+            <div id="tos-liite-preview" style="flex:1;overflow-y:auto;padding:8px;text-align:center;background:var(--ppw);min-height:400px;display:flex;align-items:flex-start;justify-content:center">
               <div style="padding:24px;color:var(--inu);font-size:11px">Ei liitteitä</div>
             </div>
           </div>
@@ -2585,7 +2585,7 @@ async function tosNaytaLiite(liite) {
     const url = data?.publicUrl;
     if (!url) { preview.innerHTML = '<div style="padding:24px;color:var(--red);font-size:11px">URL puuttuu</div>'; return; }
     if ((liite.tiedostonimi||'').toLowerCase().endsWith('.pdf')) {
-      preview.innerHTML = '<canvas id="tos-liite-canvas" style="max-width:100%;height:auto;border-radius:4px"></canvas>';
+      preview.innerHTML = '<canvas id="tos-liite-canvas" style="width:100%;height:auto;border-radius:4px;display:block"></canvas>';
       const resp = await fetch(url);
       const buf = await resp.arrayBuffer();
       const b64 = btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
