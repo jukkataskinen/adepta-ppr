@@ -1835,7 +1835,7 @@ function showPanel(name) {
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
-  if (name === 'tositteet') renderTositteet();
+  if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
   if (name === 'tosite') paivitaTositeNro();
   if (name === 'raportit') {
     const rptSub = document.getElementById('rpt-sub');
