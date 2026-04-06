@@ -2457,8 +2457,7 @@ function tosNaytaTiedot(t) {
     } else {
       tosLiitteet = [];
       tosValittuLiite = null;
-      tosRenderLiiteLista();
-      document.getElementById('tos-liite-preview').innerHTML = '<div style="padding:24px;color:var(--inu);font-size:11px">Ei PDF-liitettä — tulosta PDF Myyntilaskut-näkymästä</div>';
+      document.getElementById('tos-liitteet-palkki').style.display = 'none';
     }
     return;
   }
