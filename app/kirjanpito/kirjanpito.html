@@ -6631,7 +6631,7 @@ function mlRenderLista() {
   if (mlFiltteri) list = list.filter(l => l.tila === mlFiltteri);
   const el = document.getElementById('ml-lista');
   el.innerHTML = list.map(l => {
-    const brutto = (l.rivit||[]).reduce((s,r) => s+Number(r.summa_yhteensa||0),0);
+    const brutto = l.summa_brutto || (l.rivit||[]).reduce((s,r) => s+Number(r.summa_yhteensa||0),0);
     const akt = mlValittu?.id===l.id;
     return `<div onclick="mlNayta('${l.id}')" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid ${akt?'rgba(29,158,117,.2)':'transparent'};background:${akt?'var(--fmist)':''};margin-bottom:2px">
       <div style="display:flex;justify-content:space-between"><span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">ML${l.lasku_nro}</span><span style="font-family:var(--ffm);font-size:11px">${fmt(brutto)} €</span></div>
@@ -6647,8 +6647,8 @@ function mlNayta(id) {
   if (!mlValittu) return;
   const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   const rivit = mlValittu.rivit || [];
-  const brutto = rivit.reduce((s,r)=>s+Number(r.summa_yhteensa||0),0);
-  const netto = rivit.reduce((s,r)=>s+Number(r.summa_netto||0),0);
+  const brutto = mlValittu.summa_brutto || rivit.reduce((s,r)=>s+Number(r.summa_yhteensa||0),0);
+  const netto = mlValittu.summa_netto || rivit.reduce((s,r)=>s+Number(r.summa_netto||0),0);
   document.getElementById('ml-ei-valittu').style.display='none';
   const lom = document.getElementById('ml-lomake');
   lom.style.display='block';
@@ -6806,11 +6806,13 @@ async function mlTallenna(tila) {
     return { tuote_nimi:r.selite, selite:r.selite, maara:Number(r.maara)||1, yksikko:r.yksikko||'kpl', a_hinta:Number(r.a_hinta), alv_prosentti:Number(r.alv)||0, summa_netto:Math.round(netto*100)/100, summa_yhteensa:yht };
   });
   if (!rivit.length) { toast('Lisää vähintään yksi rivi'); return; }
+  const summa_brutto = rivit.reduce((s,r) => s + (r.summa_yhteensa||0), 0);
+  const summa_netto = rivit.reduce((s,r) => s + (r.summa_netto||0), 0);
   try {
     const res = await fetch('/api/ppr/myyntilaskut', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
       asiakas_id:curYritys.id, lasku_nro:nro, viite, asiakas_nimi:asiakas,
       pvm:document.getElementById('ml-pvm')?.value, erapv:document.getElementById('ml-era')?.value,
-      laskutuskausi:document.getElementById('ml-kausi')?.value, tila, rivit
+      laskutuskausi:document.getElementById('ml-kausi')?.value, tila, summa_brutto, summa_netto, rivit
     })});
     if (res.ok) { toast('Lasku ML'+nro+' tallennettu'); await lataaMlData(); mlValittu=null; }
     else { const j=await res.json(); toast('Virhe: '+(j.error||'')); }
