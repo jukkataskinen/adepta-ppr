@@ -6872,7 +6872,17 @@ async function mlTallenna(tila) {
       pvm:document.getElementById('ml-pvm')?.value, erapv:document.getElementById('ml-era')?.value,
       laskutuskausi:document.getElementById('ml-kausi')?.value, tila, summa_brutto, summa_netto, rivit
     })});
-    if (res.ok) { toast('Lasku ML'+nro+' tallennettu'); await lataaMlData(); await lataaRivit(curYritys.id); mlValittu=null; }
+    if (res.ok) {
+      const laskuData = await res.json();
+      await lataaMlData();
+      await lataaRivit(curYritys.id);
+      // Generoi ja tallenna PDF automaattisesti
+      mlValittu = mlLaskut.find(l => l.id === laskuData.id) || laskuData;
+      if (!mlValittu.rivit) mlValittu.rivit = rivit;
+      try { await mlTulostaPdf(); } catch(e) { console.warn('PDF autotallennus:', e); }
+      mlValittu = null;
+      toast('Lasku ML'+nro+' tallennettu');
+    }
     else { const j=await res.json(); toast('Virhe: '+(j.error||'')); }
   } catch(e) { toast('Virhe: '+e.message); }
 }
