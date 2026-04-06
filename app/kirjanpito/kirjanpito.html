@@ -61,6 +61,9 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .nav-item .ic{font-size:15px;opacity:.8}
 .nav-group-header{padding:9px 14px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.03em}
 .nav-group-header:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-group-title{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase}
+.nav-group-title:hover{background:rgba(255,255,255,.04);color:rgba(255,255,255,.7)}
+.nav-arrow{font-size:14px;color:rgba(255,255,255,.25);transition:transform .15s}
 .nav-sub{padding-left:24px !important}
 .nav-item-home{font-weight:600;color:rgba(255,255,255,.7) !important}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
@@ -303,31 +306,52 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
   <div class="sb">
     <div class="nav-item nav-item-home" id="nav-etusivu" onclick="showPanel('etusivu')">Yhteenveto</div>
 
-    <div class="sb-sec" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);padding:12px 16px 4px;font-weight:500">Myynnit</div>
-    <div class="nav-item nav-sub" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
-    <div class="nav-item nav-sub" id="nav-reskontra" onclick="showPanel('reskontra')">Myyntireskontra</div>
-    <div class="nav-item nav-sub" id="nav-myyntilaskut" onclick="showPanel('myyntilaskut');lataaMlData()">Myyntilaskut</div>
+    <div class="nav-group">
+      <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Myynnit</span><span class="nav-arrow" style="transform:rotate(90deg)">›</span></div>
+      <div class="nav-group-items">
+        <div class="nav-item nav-sub" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
+        <div class="nav-item nav-sub" id="nav-reskontra" onclick="showPanel('reskontra')">Myyntireskontra</div>
+        <div class="nav-item nav-sub" id="nav-myyntilaskut" onclick="showPanel('myyntilaskut');lataaMlData()">Myyntilaskut</div>
+      </div>
+    </div>
 
-    <div class="sb-sec" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);padding:12px 16px 4px;font-weight:500">Ostot</div>
+    <div class="nav-group">
+      <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Ostot</span><span class="nav-arrow">›</span></div>
+      <div class="nav-group-items" style="display:none">
+        <div style="padding:6px 24px;font-size:11px;color:rgba(255,255,255,.25)">Tulossa myöhemmin</div>
+      </div>
+    </div>
 
-    <div class="sb-sec" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);padding:12px 16px 4px;font-weight:500">Palkat</div>
-    <div class="nav-item nav-sub" id="nav-palkat" onclick="showPanel('palkat');lataaHenkilot()">Palkanlaskenta</div>
+    <div class="nav-group">
+      <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Palkat</span><span class="nav-arrow">›</span></div>
+      <div class="nav-group-items" style="display:none">
+        <div class="nav-item nav-sub" id="nav-palkat" onclick="showPanel('palkat');lataaHenkilot()">Palkanlaskenta</div>
+      </div>
+    </div>
 
-    <div class="sb-sec" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);padding:12px 16px 4px;font-weight:500">Kirjanpito</div>
-    <div class="nav-item nav-sub" id="nav-tosite" onclick="showPanel('tosite')">Tositteen syöttö</div>
-    <div class="nav-item nav-sub" id="nav-pk" onclick="showPanel('paivak')">Päiväkirja</div>
-    <div class="nav-item nav-sub" id="nav-pk2" onclick="showPanel('paakirja')">Pääkirja</div>
-    <div class="nav-item nav-sub" id="nav-tositteet" onclick="showPanel('tositteet')">Tositteet</div>
-    <div class="nav-item nav-sub" id="nav-tk" onclick="showPanel('tilikartta')">Tilikartta</div>
+    <div class="nav-group">
+      <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Kirjanpito</span><span class="nav-arrow">›</span></div>
+      <div class="nav-group-items" style="display:none">
+        <div class="nav-item nav-sub" id="nav-tosite" onclick="showPanel('tosite')">Tositteen syöttö</div>
+        <div class="nav-item nav-sub" id="nav-pk" onclick="showPanel('paivak')">Päiväkirja</div>
+        <div class="nav-item nav-sub" id="nav-pk2" onclick="showPanel('paakirja')">Pääkirja</div>
+        <div class="nav-item nav-sub" id="nav-tositteet" onclick="showPanel('tositteet')">Tositteet</div>
+        <div class="nav-item nav-sub" id="nav-tk" onclick="showPanel('tilikartta')">Tilikartta</div>
+      </div>
+    </div>
 
     <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')">Pankkituonti</div>
     <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')">Raportit</div>
 
     <div class="sb-div"></div>
-    <div class="sb-sec" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);padding:12px 16px 4px;font-weight:500">Hallinta</div>
-    <a class="nav-item nav-sub" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
-    <a class="nav-item nav-sub" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
-    <div class="nav-item nav-sub" id="nav-tyokalut" onclick="showPanel('tyokalut')">Tuo aineisto</div>
+    <div class="nav-group">
+      <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Hallinta</span><span class="nav-arrow">›</span></div>
+      <div class="nav-group-items" style="display:none">
+        <a class="nav-item nav-sub" href="/asiakkaat" target="_blank" style="text-decoration:none">Asiakkaat</a>
+        <a class="nav-item nav-sub" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
+        <div class="nav-item nav-sub" id="nav-tyokalut" onclick="showPanel('tyokalut')">Tuo aineisto</div>
+      </div>
+    </div>
 
     <div class="sb-div"></div>
     <a href="/auth/logout" style="display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,.5);font-size:12px;text-decoration:none;cursor:pointer;border-left:3px solid transparent" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
@@ -1780,6 +1804,14 @@ function vaihdaAsiakas(id) {
 }
 
 // ── PANEL SWITCH ─────────────────────────────────────────────
+function toggleNavGrp(titleEl) {
+  const items = titleEl.nextElementSibling;
+  const arrow = titleEl.querySelector('.nav-arrow');
+  if (!items) return;
+  const auki = items.style.display !== 'none';
+  items.style.display = auki ? 'none' : 'block';
+  if (arrow) arrow.style.transform = auki ? '' : 'rotate(90deg)';
+}
 function toggleNavGroup(name) {
   const group = document.getElementById('group-' + name);
   const arrow = document.getElementById('arrow-' + name);
