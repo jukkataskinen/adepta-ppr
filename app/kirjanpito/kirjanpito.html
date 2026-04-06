@@ -7042,7 +7042,7 @@ async function mlTulostaPdf() {
   yhtvRivit.forEach(([t,v], i) => {
     const isLast = i === yhtvRivit.length-1;
     page.drawText(t, { x: cX.veroton-40, y, font: isLast?fontB:font, size: isLast?9:8, color: tumma });
-    page.drawText(v + ' \u20ac', { x: RX-50, y, font: fontB, size: isLast?9:8, color: tumma });
+    page.drawText(v + ' \u20ac', { x: cX.yht+10, y, font: fontB, size: isLast?9:8, color: tumma });
     y -= isLast ? 18 : 14;
   });
 
