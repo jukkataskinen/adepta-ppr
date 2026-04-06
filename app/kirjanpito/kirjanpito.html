@@ -2403,11 +2403,56 @@ function copyTxt(t) { navigator.clipboard.writeText(t).catch(()=>{}); toast(`${t
 
 // ── TOSITTEET ─────────────────────────────────────────────────
 function tosNaytaTiedot(t) {
-  if (t.nro.startsWith('ML') || t.nro.startsWith('OL')) {
-    document.getElementById('tos-tiedot').style.display = 'none';
-    const ei = document.getElementById('tos-ei-valittu');
-    ei.style.display = 'block';
-    ei.textContent = (t.nro.startsWith('ML') ? 'ML' : 'OL') + '-tositteiden katselunäkymä tulossa myöhemmin';
+  if (t.nro.startsWith('ML')) {
+    document.getElementById('tos-ei-valittu').style.display = 'none';
+    document.getElementById('tos-tiedot').style.display = 'block';
+    document.getElementById('tos-otsikko').textContent = 'Tosite ' + t.nro;
+    document.getElementById('tos-pvm-teksti').textContent = fmtPv(t.pv);
+
+    const fmt = v => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const tbody = document.getElementById('tos-rivit-tbody');
+    tbody.innerHTML = '';
+    let totD = 0, totK = 0;
+    t.rivit.forEach(r => {
+      const tili = r.d || r.k || '?';
+      const tiliInfo = TILIT.find(tl => tl.nro === tili);
+      const debet = r.d ? r.netto : 0;
+      const kredit = r.k ? r.netto : 0;
+      totD += debet; totK += kredit;
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--bd)';
+      tr.innerHTML = `
+        <td style="padding:7px 8px"><span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">${tili}</span> <span style="font-size:11px;color:var(--inu)">${tiliInfo?.lbl || ''}</span></td>
+        <td style="padding:7px 8px;color:var(--ink);font-size:12px">${r.sel || ''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${debet > 0 ? fmt(debet) : ''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:#c0392b">${kredit > 0 ? fmt(kredit) : ''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);color:var(--inu);font-size:11px">${r.alvp > 0 ? r.alvp + '%' : ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('tos-tot-d').textContent = fmt(totD);
+    document.getElementById('tos-tot-k').textContent = fmt(totK);
+    const erotus = Math.abs(totD - totK);
+    const tasmaEl = document.getElementById('tos-tasma');
+    if (erotus < 0.01) { tasmaEl.textContent = '\u2713 Täsmää'; tasmaEl.style.color = 'var(--fg3)'; }
+    else { tasmaEl.textContent = 'Erotus ' + fmt(erotus); tasmaEl.style.color = 'var(--red)'; }
+
+    // Hae ML-lasku PDF Storagesta
+    document.getElementById('tos-liitteet-palkki').style.display = 'flex';
+    const lasku = mlLaskut.find(l => 'ML' + l.lasku_nro === t.nro);
+    if (lasku?.tosite_pdf_path) {
+      const { data: urlData } = _sb.storage.from('tositteet').getPublicUrl(lasku.tosite_pdf_path);
+      if (urlData?.publicUrl) {
+        tosLiitteet = [{ tiedostonimi: t.nro + '.pdf', storage_path: lasku.tosite_pdf_path }];
+        tosValittuLiite = tosLiitteet[0];
+        tosRenderLiiteLista();
+        tosNaytaLiite(tosLiitteet[0]);
+      }
+    } else {
+      tosLiitteet = [];
+      tosRenderLiiteLista();
+    }
     return;
   }
   document.getElementById('tos-ei-valittu').style.display = 'none';
