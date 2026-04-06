@@ -6909,7 +6909,138 @@ async function mlTallennaAsiakas() {
 
 async function mlTulostaPdf() {
   if (!mlValittu) return;
-  toast('PDF-tulostus tulossa myöhemmin');
+  if (typeof PDFLib === 'undefined') { toast('pdf-lib ei ladattu'); return; }
+  const lasku = mlValittu;
+  const rivit = lasku.rivit || [];
+  // Hae asiakkaan osoitetiedot loppuasiakkaista
+  const asiakas = mlAsiakkaatLista.find(a => a.nimi === lasku.asiakas_nimi) || {};
+
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595, 842]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontB = await doc.embedFont(StandardFonts.HelveticaBold);
+  const { width, height } = page.getSize();
+
+  const tumma = rgb(0.11, 0.17, 0.12);
+  const vihrea = rgb(0.11, 0.62, 0.65);
+  const harmaa = rgb(0.5, 0.5, 0.5);
+  const vaalea = rgb(0.97, 0.97, 0.96);
+  const valko = rgb(1, 1, 1);
+  const fE = v => Math.abs(Number(v||0)).toFixed(2).replace('.',',');
+  const fE2 = v => Number(v||0).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  let y = height - 40;
+
+  // --- LOGO ---
+  page.drawText('ADEPTA', { x: 40, y, font: fontB, size: 18, color: tumma });
+  page.drawText('TALOUSHALLINTO', { x: 40, y: y-14, font, size: 8, color: harmaa });
+  y -= 30;
+  const lahettaja = window._PPR?.orgNimi || 'Adepta Oy';
+  ['Vakkapirtti 2', '41660 TOIVAKKA'].forEach(rivi => {
+    page.drawText(rivi, { x: 40, y, font, size: 9, color: tumma });
+    y -= 12;
+  });
+
+  // --- LASKU-OTSIKKO oikealla ---
+  page.drawText('Lasku', { x: 340, y: height-50, font: fontB, size: 16, color: tumma });
+  page.drawText('Sivu 1 / 1', { x: 500, y: height-50, font, size: 9, color: harmaa });
+
+  // Tietolaatikko oikealla
+  const boxX = 340, boxY = height-65, boxW = 215, rowH = 16;
+  const tietorivit = [
+    ['Laskunumero', 'ML'+lasku.lasku_nro],
+    ['Laskupäivä', lasku.pvm||''],
+    ['Toimituspäivä', lasku.pvm||''],
+    ['Maksuehdot', (asiakas.maksuehto||14)+' päivää'],
+    ['Eräpäivä', lasku.erapv||''],
+    ['Viivästyskorko', '7,5 %'],
+    ['Huomautusaika', '8 pv'],
+    ['Viitenumero', lasku.viite||''],
+  ];
+
+  page.drawRectangle({ x: boxX, y: boxY - tietorivit.length*rowH, width: boxW, height: tietorivit.length*rowH + 4, borderColor: harmaa, borderWidth: 0.5 });
+  tietorivit.forEach(([otsikko, arvo], i) => {
+    const ry = boxY - i*rowH - 2;
+    page.drawText(otsikko, { x: boxX+4, y: ry, font, size: 8, color: harmaa });
+    page.drawText(String(arvo||''), { x: boxX+110, y: ry, font: fontB, size: 8, color: tumma });
+  });
+
+  // --- VASTAANOTTAJAN OSOITE ---
+  const osoiteY = height - 130;
+  page.drawText(lasku.asiakas_nimi || '', { x: 40, y: osoiteY, font: fontB, size: 10, color: tumma });
+  if (asiakas.katuosoite) page.drawText(asiakas.katuosoite, { x: 40, y: osoiteY-14, font, size: 9, color: tumma });
+  if (asiakas.postinro || asiakas.kaupunki) page.drawText(((asiakas.postinro||'')+' '+(asiakas.kaupunki||'')).trim(), { x: 40, y: osoiteY-26, font, size: 9, color: tumma });
+
+  // --- LASKUTUSKAUSI ---
+  y = height - 220;
+  if (lasku.laskutuskausi) {
+    page.drawText('Laskutuskausi '+lasku.laskutuskausi, { x: 40, y, font, size: 9, color: tumma });
+    y -= 16;
+  }
+
+  // --- LASKURIVIT-TAULUKKO ---
+  const cX = { tuote: 40, lkm: 340, yks: 375, hinta: 405, alv: 455, veroton: 490, yht: 540 };
+  const RX = 555;
+  // Otsikkorivi
+  page.drawRectangle({ x: 40, y: y-12, width: RX-40, height: 14, color: tumma });
+  const hdrs = [['Tuote / Selite',cX.tuote+4],['Lkm',cX.lkm],['Yks',cX.yks],['À-hinta',cX.hinta],['ALV%',cX.alv],['Veroton',cX.veroton],['Yhteensä',cX.yht]];
+  hdrs.forEach(([t,x]) => page.drawText(t, { x, y: y-9, font: fontB, size: 7, color: valko }));
+  y -= 16;
+
+  // Rivit
+  rivit.forEach((r, i) => {
+    if (i % 2 === 1) page.drawRectangle({ x: 40, y: y-10, width: RX-40, height: 14, color: vaalea });
+    page.drawText(r.tuote_nimi||r.selite||'', { x: cX.tuote+4, y: y-7, font, size: 8, color: tumma, maxWidth: 290 });
+    page.drawText(String(r.maara||''), { x: cX.lkm, y: y-7, font, size: 8, color: tumma });
+    page.drawText(r.yksikko||'kpl', { x: cX.yks, y: y-7, font, size: 8, color: tumma });
+    page.drawText(fE(r.a_hinta), { x: cX.hinta, y: y-7, font, size: 8, color: tumma });
+    page.drawText((r.alv_prosentti||0)+'%', { x: cX.alv, y: y-7, font, size: 8, color: tumma });
+    page.drawText(fE(r.summa_netto), { x: cX.veroton, y: y-7, font, size: 8, color: tumma });
+    page.drawText(fE(r.summa_yhteensa), { x: cX.yht, y: y-7, font: fontB, size: 8, color: tumma });
+    y -= 14;
+  });
+
+  // Viiva
+  y -= 4;
+  page.drawLine({ start: { x: 40, y }, end: { x: RX, y }, thickness: 0.5, color: harmaa });
+  y -= 14;
+
+  // Yhteenveto
+  const brutto = lasku.summa_brutto || rivit.reduce((s,r) => s+Number(r.summa_yhteensa||0),0);
+  const netto = lasku.summa_netto || rivit.reduce((s,r) => s+Number(r.summa_netto||0),0);
+  const alv = brutto - netto;
+
+  const yhtvRivit = [['Veroton yhteensä', fE(netto)], ['ALV yhteensä', fE(alv)], ['Maksettava yhteensä', fE(brutto)]];
+  yhtvRivit.forEach(([t,v], i) => {
+    const isLast = i === yhtvRivit.length-1;
+    page.drawText(t, { x: cX.veroton-40, y, font: isLast?fontB:font, size: isLast?9:8, color: tumma });
+    page.drawText(v+' €', { x: cX.yht, y, font: fontB, size: isLast?9:8, color: tumma });
+    y -= isLast ? 18 : 14;
+  });
+
+  // --- MAKSUOHJEET (alareunan box) ---
+  const footY = 100;
+  page.drawLine({ start: { x: 40, y: footY+40 }, end: { x: RX, y: footY+40 }, thickness: 0.5, color: harmaa });
+  const saaja = lahettaja;
+  const footRivit = [
+    ['Saaja', saaja],
+    ['IBAN', curYritys?.iban || ''],
+    ['BIC', curYritys?.bic || ''],
+    ['Viitenumero', lasku.viite || ''],
+    ['Eräpäivä', lasku.erapv || ''],
+    ['Maksettava', fE(brutto)+' €'],
+  ];
+  footRivit.forEach(([t,v], i) => {
+    const fy = footY + 24 - i*12;
+    page.drawText(t+':', { x: 40, y: fy, font, size: 8, color: harmaa });
+    page.drawText(String(v), { x: 120, y: fy, font: fontB, size: 8, color: tumma });
+  });
+
+  const bytes = await doc.save();
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 }
 
 // ── PALKANLASKENTA ───────────────────────────────────────────
