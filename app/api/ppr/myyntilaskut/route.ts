@@ -61,15 +61,22 @@ export async function POST(request: NextRequest) {
     ]
     if (alv > 0.01) tositeRivit.push({ tili: '29390', selite: 'Myynti-ALV ML' + lasku.lasku_nro, saldo: -alv })
 
-    await supabaseAdmin!.from('ppr_paivakirja').insert(tositeRivit.map(r => ({
+    const tositeNro = 'ML' + lasku.lasku_nro
+    const { error: pvkErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(tositeRivit.map(r => ({
       asiakas_id: lasku.kirjanpitoasiakas_id,
-      tosite_nro: 'ML' + lasku.lasku_nro,
+      tosite_nro: tositeNro,
       paivamaara: lasku.pvm,
       tili: r.tili, selite: r.selite, saldo: r.saldo,
       alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null,
     })))
+    if (pvkErr) console.error('Paivakirja insert epäonnistui:', pvkErr.message)
 
-    return NextResponse.json(laskuData, { status: 201 })
+    // Päivitä tosite_nro myyntilaskuun
+    await supabaseAdmin!.from('ppr_myyntilaskut')
+      .update({ tosite_nro: tositeNro })
+      .eq('id', laskuData.id)
+
+    return NextResponse.json({ ...laskuData, tosite_nro: tositeNro }, { status: 201 })
   } catch (e: any) {
     console.error('myyntilaskut POST:', e)
     return NextResponse.json({ error: e.message }, { status: 500 })
