@@ -16,15 +16,12 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin!
     .from('ppr_asiakkaat')
-    .select('id, nimi, y_tunnus, yhtiomuoto, aktiivinen, alv_velvollinen, sahkoposti, puhelin, vastuukirjanpitaja_id, katuosoite, postinro, kaupunki, iban, bic')
+    .select('id, nimi, ytunnus, katuosoite, postinro, kaupunki, ovt_tunnus, verkkolaskuoperaattori, iban, bic')
     .eq('organisaatio_id', kayttaja.organisaatio_id)
     .is('poistettu_at', null)
     .order('nimi')
 
-  if (kayttaja.rooli === 'kirjanpitaja') {
-    query = query.eq('vastuukirjanpitaja_id', kayttaja.id)
-  }
-  // paakayttaja näkee kaikki - ei suodatusta
+  // TODO: kirjanpitäjäsuodatus lisätään kun sarake on viewissä
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
