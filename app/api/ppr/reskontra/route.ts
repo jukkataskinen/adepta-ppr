@@ -64,134 +64,55 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const rivit = Array.isArray(body) ? body : [body]
-    console.log('reskontra POST:', rivit.length, 'riviä, org:', kayttaja.organisaatio_id)
-    if (rivit.length > 0) console.log('reskontra POST esimerkki:', JSON.stringify(rivit[0]))
 
-    const orgId = kayttaja.organisaatio_id
-    const tulokset = []
-    let virheet = 0
-    const asiakasCache: Record<string, string> = {} // nimi → ppr_asiakkaat id
-    const osakasCache: Record<string, string> = {}  // nimi → ppr_osakkaat id
+    // Hae tai luo loppuasiakkaat batch-tyyliin
+    const nimet = [...new Set(rivit.map((r: any) => (r.asiakas || '').trim()).filter(Boolean))]
+    const kirjAsId = rivit[0]?.kirjanpitoasiakas_id
 
-    for (const r of rivit) {
-      try {
-        // 1. Luo/päivitä asiakas ja hae id
-        let asiakas_id = r.asiakas_id || null
-        const nimi = (r.asiakas || '').trim()
-        if (nimi && !asiakas_id) {
-          // Tarkista cache
-          if (asiakasCache[nimi]) {
-            asiakas_id = asiakasCache[nimi]
-          } else {
-            // Etsi ensin olemassaoleva
-            const { data: existing } = await supabaseAdmin!
-              .from('ppr_asiakkaat')
-              .select('id')
-              .eq('organisaatio_id', orgId)
-              .eq('nimi', nimi)
-              .is('poistettu_at', null)
-              .maybeSingle()
+    // Hae olemassaolevat
+    const { data: olemassa } = await supabaseAdmin!
+      .from('ppr_loppuasiakkaat')
+      .select('id, nimi')
+      .eq('kirjanpitoasiakas_id', kirjAsId)
+      .in('nimi', nimet)
 
-            if (existing) {
-              asiakas_id = existing.id
-              // Päivitä osoitetiedot
-              await supabaseAdmin!
-                .from('ppr_asiakkaat')
-                .update({
-                  katuosoite: r.osoite || null,
-                  postinro: r.postinro || null,
-                  kaupunki: r.kaupunki || null,
-                })
-                .eq('id', existing.id)
-            } else {
-              // Luo uusi
-              const { data: uusi, error: asiakasErr } = await supabaseAdmin!
-                .from('ppr_asiakkaat')
-                .insert({
-                  organisaatio_id: orgId,
-                  nimi,
-                  katuosoite: r.osoite || null,
-                  postinro: r.postinro || null,
-                  kaupunki: r.kaupunki || null,
-                })
-                .select('id')
-                .single()
-              if (asiakasErr) {
-                console.warn('asiakas insert:', asiakasErr.code, asiakasErr.message, nimi)
-              } else {
-                asiakas_id = uusi.id
-              }
-            }
-            if (asiakas_id) asiakasCache[nimi] = asiakas_id
-          }
-        }
+    const asiakasMap: Record<string, string> = {}
+    olemassa?.forEach((a: any) => { asiakasMap[a.nimi] = a.id })
 
-        // 2. Luo/hae osakas (ppr_osakkaat)
-        let osakas_id: string | null = null
-        const kirjAsId = r.kirjanpitoasiakas_id || null
-        if (nimi && kirjAsId) {
-          if (osakasCache[nimi]) {
-            osakas_id = osakasCache[nimi]
-          } else {
-            const { data: osEx } = await supabaseAdmin!
-              .from('ppr_osakkaat')
-              .select('id')
-              .eq('kirjanpitoasiakas_id', kirjAsId)
-              .eq('nimi', nimi)
-              .maybeSingle()
-            if (osEx) {
-              osakas_id = osEx.id
-              await supabaseAdmin!.from('ppr_osakkaat').update({
-                katuosoite: r.osoite || null, postinro: r.postinro || null, kaupunki: r.kaupunki || null
-              }).eq('id', osEx.id)
-            } else {
-              const { data: osNew, error: osErr } = await supabaseAdmin!
-                .from('ppr_osakkaat')
-                .insert({ kirjanpitoasiakas_id: kirjAsId, nimi, katuosoite: r.osoite || null, postinro: r.postinro || null, kaupunki: r.kaupunki || null })
-                .select('id').single()
-              if (!osErr && osNew) osakas_id = osNew.id
-              else if (osErr) console.warn('osakas insert:', osErr.code, osErr.message, nimi)
-            }
-            if (osakas_id) osakasCache[nimi] = osakas_id
-          }
-        }
-
-        // 3. Tallenna reskontra-rivi
-        const rivi = {
-          organisaatio_id: orgId,
-          kirjanpitoasiakas_id: kirjAsId,
-          asiakas_id,
-          osakas_id,
-          lasku_nro: r.lasku_nro || null,
-          pvm: r.pvm || null,
-          erapv: r.erapv || null,
-          viite: r.viite || null,
-          summa: r.summa || 0,
-          tila: r.tila || 'avoin',
-        }
-        const { data, error } = await supabaseAdmin!
-          .from('ppr_reskontra')
-          .insert(rivi)
-          .select()
-          .single()
-        if (error) {
-          // Duplikaattiviite → ohita hiljaa
-          if (error.code === '23505') {
-            console.log('reskontra duplikaatti:', r.lasku_nro, r.viite)
-          } else {
-            console.error('reskontra insert:', error.code, error.message, 'lasku:', r.lasku_nro)
-          }
-          virheet++
-        } else {
-          tulokset.push(data)
-        }
-      } catch(e: any) {
-        console.error('reskontra rivi catch:', e.message, 'lasku:', r.lasku_nro)
-        virheet++
-      }
+    // Luo puuttuvat kerralla
+    const puuttuvat = nimet.filter(n => !asiakasMap[n])
+    if (puuttuvat.length > 0) {
+      const uudet = puuttuvat.map(nimi => {
+        const r = rivit.find((r: any) => r.asiakas === nimi)
+        return { kirjanpitoasiakas_id: kirjAsId, nimi, katuosoite: r?.osoite || null, postinro: r?.postinro || null, kaupunki: r?.kaupunki || null }
+      })
+      const { data: luodut } = await supabaseAdmin!
+        .from('ppr_loppuasiakkaat')
+        .insert(uudet)
+        .select('id, nimi')
+      luodut?.forEach((a: any) => { asiakasMap[a.nimi] = a.id })
     }
-    console.log('reskontra POST:', tulokset.length, 'ok,', virheet, 'virheitä,', Object.keys(asiakasCache).length, 'asiakasta')
-    return NextResponse.json({ ok: true, tallennettu: tulokset.length, virheet, asiakkaita: Object.keys(asiakasCache).length }, { status: 201 })
+
+    // Tallenna reskontra-rivit kerralla
+    const insert = rivit.map((r: any) => ({
+      organisaatio_id: kayttaja.organisaatio_id,
+      kirjanpitoasiakas_id: r.kirjanpitoasiakas_id || null,
+      asiakas_id: asiakasMap[(r.asiakas || '').trim()] || null,
+      lasku_nro: r.lasku_nro || null,
+      pvm: r.pvm || null,
+      erapv: r.erapv || null,
+      viite: r.viite || null,
+      summa: r.summa || 0,
+      tila: r.tila || 'avoin',
+    }))
+
+    const { data, error } = await supabaseAdmin!
+      .from('ppr_reskontra')
+      .upsert(insert, { onConflict: 'viite', ignoreDuplicates: true })
+      .select()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, tallennettu: data?.length ?? 0 }, { status: 201 })
   } catch (e: any) {
     console.error('reskontra POST:', e)
     return NextResponse.json({ error: e.message }, { status: 500 })
