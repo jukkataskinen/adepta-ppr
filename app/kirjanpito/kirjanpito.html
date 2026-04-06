@@ -7646,30 +7646,32 @@ async function reskKirjaaKaikki() {
   progressEl.style.display = 'block';
 
   let kirjattu = 0, virheet = 0;
-  for (let i = 0; i < reskLaskut.length; i++) {
-    const l = reskLaskut[i];
-    if (l.tila === 'kirjattu') { kirjattu++; continue; }
-    const pct = Math.round((i + 1) / reskLaskut.length * 100);
-    barEl.style.width = pct + '%';
-    textEl.textContent = `${i + 1}/${reskLaskut.length} kirjattu`;
-
+  const kirjaamattomat = reskLaskut.filter(l => l.tila !== 'kirjattu');
+  if (kirjaamattomat.length > 0) {
+    const kaikkirivit = [];
+    kirjaamattomat.forEach((l, i) => {
+      const tositeNro = 'MR' + (parseInt(l.lasku_nro) || (9100 + i));
+      kaikkirivit.push({ asiakas_id: curYritys.id, tili: '1701', selite: l.asiakas + ' \u2013 Myyntilasku ' + l.lasku_nro, saldo: l.summa, tosite_nro: tositeNro, paivamaara: l.pvm });
+      kaikkirivit.push({ asiakas_id: curYritys.id, tili: '3000', selite: l.asiakas + ' \u2013 Myyntilasku ' + l.lasku_nro, saldo: -l.summa, tosite_nro: tositeNro, paivamaara: l.pvm });
+    });
     try {
-      const res = await fetch('/api/ppr/paivakirja', {
+      textEl.textContent = `Lähetetään ${kirjaamattomat.length} kirjausta...`;
+      barEl.style.width = '50%';
+      const res = await fetch('/api/ppr/paivakirja/lisaa', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          asiakas_id: curYritys.id,
-          tosite_nro: parseInt(l.lasku_nro) || (9100 + i),
-          paivamaara: l.pvm,
-          rivit: [
-            { tili: '1701', selite: l.asiakas + ' — Myyntilasku ' + l.lasku_nro, saldo: l.summa },
-            { tili: '3000', selite: l.asiakas + ' — Myyntilasku ' + l.lasku_nro, saldo: -l.summa }
-          ]
-        })
+        body: JSON.stringify({ rivit: kaikkirivit })
       });
-      if (res.ok) { l.tila = 'kirjattu'; kirjattu++; }
-      else { virheet++; console.warn('Kirjausvirhe laskulle', l.lasku_nro, await res.json()); }
-    } catch(e) { virheet++; }
+      if (res.ok) {
+        kirjaamattomat.forEach(l => { l.tila = 'kirjattu'; kirjattu++; });
+        barEl.style.width = '100%';
+      } else {
+        virheet += kirjaamattomat.length;
+        console.warn('Batch kirjausvirhe:', await res.json());
+      }
+    } catch(e) { virheet += kirjaamattomat.length; }
+  } else {
+    kirjattu = reskLaskut.length;
   }
 
   // Tallenna reskontra API:lle batch-erissä
