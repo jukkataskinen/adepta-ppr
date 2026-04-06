@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const rivit = Array.isArray(body) ? body : [body]
 
     // Hae tai luo loppuasiakkaat batch-tyyliin
-    const nimet = [...new Set(rivit.map((r: any) => (r.asiakas || '').trim()).filter(Boolean))]
+    const nimet = Array.from(new Set(rivit.map((r: any) => (r.asiakas || '').trim()).filter(Boolean)))
     const kirjAsId = rivit[0]?.kirjanpitoasiakas_id
 
     // Hae olemassaolevat
