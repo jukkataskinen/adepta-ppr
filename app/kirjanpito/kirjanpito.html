@@ -6599,6 +6599,7 @@ function mlTab(tab) {
     document.getElementById('ml-'+t).style.display = t===tab ? (t==='laskut'?'grid':'block') : 'none';
     document.getElementById('ml-tab-'+t).classList.toggle('act', t===tab);
   });
+  if (tab === 'asiakkaat2') mlRenderAsiakkaat();
 }
 
 async function lataaMlData() {
@@ -6676,9 +6677,28 @@ let mlValittuAsiakasId = null;
 async function lataaMlAsiakkaat() {
   if (!curYritys) return;
   try {
-    const res = await fetch('/api/ppr/asiakkaat');
+    const res = await fetch('/api/ppr/loppuasiakkaat?kirjanpitoasiakas_id=' + curYritys.id);
     if (res.ok) mlAsiakkaatLista = await res.json();
   } catch(e) {}
+  mlRenderAsiakkaat();
+}
+
+function mlRenderAsiakkaat() {
+  const el = document.getElementById('ml-asiakkaat-lista');
+  if (!el) return;
+  if (!mlAsiakkaatLista.length) { el.innerHTML = '<p style="color:var(--inu);font-size:13px">Ei asiakkaita. Lisää asiakas painamalla + Lisää asiakas.</p>'; return; }
+  el.innerHTML = mlAsiakkaatLista.map(a => `
+    <div style="border:1px solid var(--bd);border-radius:8px;padding:14px;background:var(--pp)">
+      <div style="font-weight:600;font-size:14px;margin-bottom:4px">${a.nimi||''}</div>
+      ${a.ytunnus ? `<div style="font-size:12px;color:var(--inu)">Y-tunnus: ${a.ytunnus}</div>` : ''}
+      ${a.katuosoite ? `<div style="font-size:12px;color:var(--inu)">${a.katuosoite}, ${a.postinro||''} ${a.kaupunki||''}</div>` : ''}
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--inu)">
+        ${a.email ? `<span>${a.email}</span>` : ''}
+        ${a.puhelin ? `<span>${a.puhelin}</span>` : ''}
+        <span>Maksuehto: ${a.maksuehto||14} pv</span>
+      </div>
+    </div>
+  `).join('');
 }
 
 function mlHaeAsiakkaatDropdown(haku) {
@@ -6690,7 +6710,7 @@ function mlHaeAsiakkaatDropdown(haku) {
   dd.innerHTML = tulokset.map(a =>
     '<div onmousedown="mlValitseAsiakasDD(\''+a.id+'\',\''+a.nimi.replace(/'/g,'')+'\')" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bd)" onmouseover="this.style.background=\'var(--fpale)\'" onmouseout="this.style.background=\'\'">' +
     '<div style="font-weight:600;color:var(--ink)">'+a.nimi+'</div>' +
-    (a.y_tunnus ? '<div style="font-size:10px;color:var(--inu)">'+a.y_tunnus+'</div>' : '') +
+    (a.ytunnus ? '<div style="font-size:10px;color:var(--inu)">'+a.ytunnus+'</div>' : '') +
     '</div>'
   ).join('');
   dd.style.display = 'block';
@@ -6868,13 +6888,19 @@ async function mlTallennaAsiakas() {
   const nimi = document.getElementById('mla-nimi')?.value?.trim();
   if (!nimi) { toast('Nimi vaaditaan'); return; }
   try {
-    const res = await fetch('/api/ppr/asiakkaat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+    const res = await fetch('/api/ppr/loppuasiakkaat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      kirjanpitoasiakas_id: curYritys.id,
       nimi,
-      y_tunnus: document.getElementById('mla-ytunnus')?.value?.trim() || null,
-      sahkoposti: document.getElementById('mla-email')?.value?.trim() || null,
+      katuosoite: document.getElementById('mla-osoite')?.value?.trim() || null,
+      postinro: document.getElementById('mla-postinro')?.value?.trim() || null,
+      kaupunki: document.getElementById('mla-kaupunki')?.value?.trim() || null,
+      ytunnus: document.getElementById('mla-ytunnus')?.value?.trim() || null,
+      email: document.getElementById('mla-email')?.value?.trim() || null,
       puhelin: document.getElementById('mla-puhelin')?.value?.trim() || null,
+      maksuehto: parseInt(document.getElementById('mla-maksuehto')?.value) || 14,
+      ovt_tunnus: document.getElementById('mla-ovt')?.value?.trim() || null,
     })});
-    if (res.ok) { document.getElementById('ml-asiakas-modal').style.display='none'; toast('Asiakas lisätty: '+nimi); }
+    if (res.ok) { document.getElementById('ml-asiakas-modal').style.display='none'; toast('Asiakas lisätty: '+nimi); lataaMlAsiakkaat(); }
     else { const j=await res.json(); toast('Virhe: '+(j.error||'')); }
   } catch(e) { toast('Virhe: '+e.message); }
 }
