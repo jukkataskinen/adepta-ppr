@@ -35,7 +35,18 @@ export async function POST(request: NextRequest) {
 
     // Tallenna rivit
     if (rivit?.length) {
-      const rivitInsert = rivit.map((r: any) => ({ ...r, lasku_id: laskuData.id }))
+      const rivitInsert = rivit.map((r: any) => ({
+        lasku_id: laskuData.id,
+        tuote_id: r.tuote_id ?? null,
+        tuote_nimi: r.tuote_nimi ?? null,
+        selite: r.selite ?? null,
+        maara: r.maara ?? 1,
+        yksikko: r.yksikko ?? 'kpl',
+        a_hinta: r.a_hinta ?? 0,
+        alv_prosentti: r.alv_prosentti ?? 0,
+        summa_netto: r.summa_netto ?? 0,
+        summa_yhteensa: r.summa_yhteensa ?? 0,
+      }))
       const { error: rivitErr } = await supabaseAdmin!.from('ppr_myyntilasku_rivit').insert(rivitInsert)
       if (rivitErr) return NextResponse.json({ error: 'Rivit: ' + rivitErr.message }, { status: 500 })
     }
