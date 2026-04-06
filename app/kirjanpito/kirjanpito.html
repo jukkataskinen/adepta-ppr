@@ -902,9 +902,9 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           <div id="tos-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
         </div>
         <!-- OIKEA: tositteen tiedot + liitteet -->
-        <div style="display:grid;grid-template-columns:2fr 1fr;overflow:hidden">
+        <div style="display:flex;overflow:hidden;height:100%">
           <!-- Kirjanpitotiedot -->
-          <div style="overflow-y:auto;padding:20px 24px">
+          <div style="flex:1;overflow-y:auto;padding:20px 24px;min-width:0">
             <div id="tos-ei-valittu" style="text-align:center;padding:60px 20px;color:var(--inu);font-size:13px">Valitse tosite vasemmalta</div>
             <div id="tos-tiedot" style="display:none">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -933,7 +933,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
             </div>
           </div>
           <!-- Liitteet-palkki -->
-          <div id="tos-liitteet-palkki" style="display:none;border-left:1px solid var(--bd);flex-direction:column;overflow:hidden;width:380px;min-width:380px">
+          <div id="tos-liitteet-palkki" style="display:none;border-left:1px solid var(--bd);flex-direction:column;overflow:hidden;width:340px;flex-shrink:0">
             <div style="padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
               <span style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase">Liitteet</span>
               <span id="tos-liite-lkm" style="font-size:10px;color:var(--inu)">0 kpl</span>
