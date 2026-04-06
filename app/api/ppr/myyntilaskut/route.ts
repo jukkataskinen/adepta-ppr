@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     if (alv > 0.01) tositeRivit.push({ tili: '29390', selite: 'Myynti-ALV ML' + lasku.lasku_nro, saldo: -alv })
 
     await supabaseAdmin!.from('ppr_paivakirja').insert(tositeRivit.map(r => ({
-      asiakas_id: lasku.asiakas_id,
+      asiakas_id: lasku.kirjanpitoasiakas_id,
       tosite_nro: 'ML' + lasku.lasku_nro,
       paivamaara: lasku.pvm,
       tili: r.tili, selite: r.selite, saldo: r.saldo,
