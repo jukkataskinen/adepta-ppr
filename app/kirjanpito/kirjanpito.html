@@ -2406,6 +2406,11 @@ function tosNaytaTiedot(t) {
   if (t.nro.startsWith('ML')) {
     document.getElementById('tos-ei-valittu').style.display = 'none';
     document.getElementById('tos-tiedot').style.display = 'block';
+    // Nollaa liitetila ensin
+    tosLiitteet = [];
+    tosValittuLiite = null;
+    tosRenderLiiteLista();
+    document.getElementById('tos-liite-preview').innerHTML = '<div style="padding:24px;color:var(--inu);font-size:11px">Ladataan...</div>';
     document.getElementById('tos-otsikko').textContent = 'Tosite ' + t.nro;
     document.getElementById('tos-pvm-teksti').textContent = fmtPv(t.pv);
 
