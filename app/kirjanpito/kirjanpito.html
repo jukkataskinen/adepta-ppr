@@ -1541,6 +1541,11 @@ async function lataaYritykset() {
     id: a.id,
     nimi: a.nimi,
     ytunnus: a.y_tunnus || '',
+    katuosoite: a.katuosoite || '',
+    postinro: a.postinro || '',
+    kaupunki: a.kaupunki || '',
+    iban: a.iban || '',
+    bic: a.bic || '',
   }));
   if (YRITYKSET.length > 0) {
     const savedId = localStorage.getItem('ppr_last_asiakas');
@@ -6911,9 +6916,28 @@ async function mlTulostaPdf() {
   if (!mlValittu) return;
   if (typeof PDFLib === 'undefined') { toast('pdf-lib ei ladattu'); return; }
   const lasku = mlValittu;
-  const rivit = lasku.rivit || [];
+
+  // Hae rivit API:sta varmuuden vuoksi
+  let rivit = lasku.rivit || [];
+  if (!rivit.length && lasku.id) {
+    try {
+      const rr = await fetch('/api/ppr/myyntilaskut?asiakas_id='+curYritys.id);
+      if (rr.ok) {
+        const kaikki = await rr.json();
+        const haettu = kaikki.find(l => l.id === lasku.id);
+        if (haettu?.rivit?.length) rivit = haettu.rivit;
+      }
+    } catch(e) { console.warn('Rivien haku:', e); }
+  }
+
   // Hae asiakkaan osoitetiedot loppuasiakkaista
   const asiakas = mlAsiakkaatLista.find(a => a.nimi === lasku.asiakas_nimi) || {};
+
+  // Kirjanpitoasiakkaan (lähettäjän) tiedot
+  const lahettaja = curYritys?.nimi || window._PPR?.orgNimi || '';
+  const lahOsoite = [];
+  if (curYritys?.katuosoite) lahOsoite.push(curYritys.katuosoite);
+  if (curYritys?.postinro || curYritys?.kaupunki) lahOsoite.push(((curYritys.postinro||'')+' '+(curYritys.kaupunki||'')).trim());
 
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const doc = await PDFDocument.create();
@@ -6928,16 +6952,13 @@ async function mlTulostaPdf() {
   const vaalea = rgb(0.97, 0.97, 0.96);
   const valko = rgb(1, 1, 1);
   const fE = v => Math.abs(Number(v||0)).toFixed(2).replace('.',',');
-  const fE2 = v => Number(v||0).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   let y = height - 40;
 
-  // --- LOGO ---
-  page.drawText('ADEPTA', { x: 40, y, font: fontB, size: 18, color: tumma });
-  page.drawText('TALOUSHALLINTO', { x: 40, y: y-14, font, size: 8, color: harmaa });
-  y -= 30;
-  const lahettaja = window._PPR?.orgNimi || 'Adepta Oy';
-  ['Vakkapirtti 2', '41660 TOIVAKKA'].forEach(rivi => {
+  // --- LOGO / LÄHETTÄJÄ ---
+  page.drawText(lahettaja, { x: 40, y, font: fontB, size: 14, color: tumma });
+  y -= 16;
+  lahOsoite.forEach(rivi => {
     page.drawText(rivi, { x: 40, y, font, size: 9, color: tumma });
     y -= 12;
   });
