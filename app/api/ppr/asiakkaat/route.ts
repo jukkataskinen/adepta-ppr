@@ -15,19 +15,18 @@ export async function GET(request: NextRequest) {
   if (!kayttaja) return NextResponse.json({ error: 'Käyttäjää ei löydy' }, { status: 404 })
 
   let query = supabaseAdmin!
-    .from('ppr_asiakkaat')
-    .select('id, nimi, y_tunnus, katuosoite, postinro, kaupunki, ovt_tunnus, iban, bic')
+    .from('ppr_kirjanpitoasiakkaat')
+    .select('id, nimi, y_tunnus, ytunnus, yhtiomuoto, sahkoposti, puhelin, osoite, katuosoite, postinro, kaupunki, ovt_tunnus, iban, bic, alv_velvollinen, aktiivinen, tilikausi_alkaa, tilikausi_loppuu')
     .eq('organisaatio_id', kayttaja.organisaatio_id)
     .is('poistettu_at', null)
     .order('nimi')
 
-  // TODO: kirjanpitäjäsuodatus lisätään kun sarake on viewissä
+  if (kayttaja.rooli === 'kirjanpitaja') {
+    query = query.eq('vastuukirjanpitaja_id', kayttaja.id)
+  }
 
   const { data, error } = await query
-  if (error) {
-    console.error('SUPABASE ERROR:', JSON.stringify(error))
-    return NextResponse.json({ error: error.message, details: error }, { status: 500 })
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
 }
 
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
 
   const { data, error } = await supabaseAdmin!
-    .from('ppr_asiakkaat')
+    .from('ppr_kirjanpitoasiakkaat')
     .insert({
       organisaatio_id: kayttaja.organisaatio_id,
       nimi: body.nimi,
