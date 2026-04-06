@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (rivit?.length) {
       const rivitInsert = rivit.map((r: any) => ({ ...r, lasku_id: laskuData.id }))
       const { error: rivitErr } = await supabaseAdmin!.from('ppr_myyntilasku_rivit').insert(rivitInsert)
-      if (rivitErr) console.warn('Rivit:', rivitErr)
+      if (rivitErr) return NextResponse.json({ error: 'Rivit: ' + rivitErr.message }, { status: 500 })
     }
 
     // Luo ML-tosite kirjanpitoon

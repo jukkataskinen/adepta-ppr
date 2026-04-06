@@ -6801,6 +6801,7 @@ async function mlTallenna(tila) {
   if (!curYritys) return;
   const asiakas = document.getElementById('ml-asiakas')?.value?.trim();
   if (!asiakas) { toast('Syötä asiakas'); return; }
+  if (!mlValittuAsiakasId) { toast('Valitse asiakas listasta'); return; }
   // Hae seuraava numero
   const maxNro = mlLaskut.reduce((m,l) => Math.max(m, Number(l.lasku_nro)||0), 0);
   const nro = maxNro + 1;
@@ -6815,7 +6816,7 @@ async function mlTallenna(tila) {
   const summa_netto = rivit.reduce((s,r) => s + (r.summa_netto||0), 0);
   try {
     const res = await fetch('/api/ppr/myyntilaskut', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
-      asiakas_id:curYritys.id, lasku_nro:nro, viite, asiakas_nimi:asiakas,
+      kirjanpitoasiakas_id:curYritys.id, asiakas_id:mlValittuAsiakasId, lasku_nro:nro, viite, asiakas_nimi:asiakas,
       pvm:document.getElementById('ml-pvm')?.value, erapv:document.getElementById('ml-era')?.value,
       laskutuskausi:document.getElementById('ml-kausi')?.value, tila, summa_brutto, summa_netto, rivit
     })});
