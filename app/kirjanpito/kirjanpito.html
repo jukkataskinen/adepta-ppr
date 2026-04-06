@@ -6932,7 +6932,7 @@ async function mlTulostaPdf() {
   }
 
   // Hae asiakkaan osoitetiedot loppuasiakkaista
-  const asiakas = mlAsiakkaatLista.find(a => a.nimi === lasku.asiakas_nimi) || {};
+  const asiakas = mlAsiakkaatLista.find(a => a.id === lasku.asiakas_id) || {};
 
   // Kirjanpitoasiakkaan (lähettäjän) tiedot
   const lahettaja = curYritys?.nimi || window._PPR?.orgNimi || '';
@@ -7061,8 +7061,20 @@ async function mlTulostaPdf() {
 
   const bytes = await doc.save();
   const blob = new Blob([bytes], { type: 'application/pdf' });
+
+  // Avaa uudessa välilehdessä
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');
+
+  // Tallenna Storageen
+  try {
+    const polku = curYritys.id + '/tositteet/ML' + lasku.lasku_nro + '/lasku.pdf';
+    const { error: upErr } = await _sb.storage.from('tositteet').upload(polku, blob, { contentType: 'application/pdf', upsert: true });
+    if (!upErr) {
+      await fetch('/api/ppr/myyntilaskut/' + lasku.id, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ tosite_pdf_path: polku }) });
+      toast('PDF tallennettu');
+    }
+  } catch(e) { console.warn('PDF Storage:', e); }
 }
 
 // ── PALKANLASKENTA ───────────────────────────────────────────
