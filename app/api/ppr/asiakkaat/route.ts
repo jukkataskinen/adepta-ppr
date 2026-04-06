@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin!
     .from('ppr_asiakkaat')
-    .select('id, nimi, y_tunnus, ytunnus, katuosoite, postinro, kaupunki, ovt_tunnus, iban, bic')
+    .select('id, nimi, y_tunnus, katuosoite, postinro, kaupunki, ovt_tunnus, iban, bic')
     .eq('organisaatio_id', kayttaja.organisaatio_id)
     .is('poistettu_at', null)
     .order('nimi')
