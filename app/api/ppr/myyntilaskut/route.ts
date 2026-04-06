@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     if (!asiakas_id) return NextResponse.json({ error: 'asiakas_id vaaditaan' }, { status: 400 })
     const { data, error } = await supabaseAdmin!
       .from('ppr_myyntilaskut')
-      .select('*, rivit:ppr_myyntilasku_rivit(*)')
+      .select('*, tosite_pdf_path, rivit:ppr_myyntilasku_rivit(*)')
       .eq('kirjanpitoasiakas_id', asiakas_id)
       .order('lasku_nro', { ascending: false })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
