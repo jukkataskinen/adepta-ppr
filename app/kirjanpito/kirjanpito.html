@@ -7146,6 +7146,9 @@ async function mlTulostaPdf() {
     const { error: upErr } = await _sb.storage.from('tositteet').upload(polku, blob, { contentType: 'application/pdf', upsert: true });
     if (!upErr) {
       await fetch('/api/ppr/myyntilaskut/' + lasku.id, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ tosite_pdf_path: polku }) });
+      // Päivitä muisti
+      const idx = mlLaskut.findIndex(l => l.id === lasku.id);
+      if (idx >= 0) mlLaskut[idx].tosite_pdf_path = polku;
       toast('PDF tallennettu');
     }
   } catch(e) { console.warn('PDF Storage:', e); }
