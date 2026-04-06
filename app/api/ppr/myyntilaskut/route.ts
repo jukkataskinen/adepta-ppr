@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       tili: r.tili, selite: r.selite, saldo: r.saldo,
       alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null,
     })))
-    if (pvkErr) console.error('Paivakirja insert epäonnistui:', pvkErr.message)
+    if (pvkErr) return NextResponse.json({ error: 'Paivakirja: ' + pvkErr.message }, { status: 500 })
 
     // Päivitä tosite_nro myyntilaskuun
     await supabaseAdmin!.from('ppr_myyntilaskut')
