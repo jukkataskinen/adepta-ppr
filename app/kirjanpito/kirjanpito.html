@@ -2456,7 +2456,9 @@ function tosNaytaTiedot(t) {
       }
     } else {
       tosLiitteet = [];
+      tosValittuLiite = null;
       tosRenderLiiteLista();
+      document.getElementById('tos-liite-preview').innerHTML = '<div style="padding:24px;color:var(--inu);font-size:11px">Ei PDF-liitettä — tulosta PDF Myyntilaskut-näkymästä</div>';
     }
     return;
   }
@@ -2561,7 +2563,7 @@ function tosRenderLiiteLista() {
   tosLiitteet.forEach((l, i) => {
     const isPdf = (l.tiedostonimi||'').toLowerCase().endsWith('.pdf');
     const koko = l.koko_bytes > 1024 ? (l.koko_bytes/1024).toFixed(0) + ' KB' : (l.koko_bytes||0) + ' B';
-    const valittu = tosValittuLiite?.id === l.id;
+    const valittu = tosValittuLiite && (tosValittuLiite.id ? tosValittuLiite.id === l.id : tosValittuLiite.storage_path === l.storage_path);
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-bottom:2px;border:1px solid ' + (valittu ? 'rgba(29,158,117,.3)' : 'transparent') + ';background:' + (valittu ? 'var(--fmist)' : '');
     row.onmouseover = () => { if (!valittu) row.style.background = 'var(--fpale)'; };
