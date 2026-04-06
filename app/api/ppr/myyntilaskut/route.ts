@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabaseAdmin!
       .from('ppr_myyntilaskut')
       .select('*, rivit:ppr_myyntilasku_rivit(*)')
-      .eq('asiakas_id', asiakas_id)
+      .eq('kirjanpitoasiakas_id', asiakas_id)
       .order('lasku_nro', { ascending: false })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data ?? [])
