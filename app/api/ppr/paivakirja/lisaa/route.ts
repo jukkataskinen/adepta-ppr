@@ -13,24 +13,20 @@ export async function POST(request: NextRequest) {
     .single()
 
   const body = await request.json()
-  const { asiakas_id, rivit } = body
+  const { rivit } = body
 
-  if (!asiakas_id || !rivit?.length) {
-    return NextResponse.json({ error: 'asiakas_id ja rivit vaaditaan' }, { status: 400 })
+  if (!rivit?.length) {
+    return NextResponse.json({ error: 'rivit vaaditaan' }, { status: 400 })
   }
 
-  const insert = rivit.map((r: {
-    paivamaara: string; tositenro?: string; selite: string;
-    debet_tili: string; kredit_tili: string; netto: number; alv_prosentti: number
-  }) => ({
-    asiakas_id,
+  const insert = rivit.map((r: any) => ({
+    asiakas_id: r.asiakas_id,
+    tosite_nro: r.tosite_nro ?? null,
     paivamaara: r.paivamaara,
-    tositenro: r.tositenro ?? null,
+    tili: r.tili,
     selite: r.selite,
-    debet_tili: r.debet_tili,
-    kredit_tili: r.kredit_tili,
-    netto: r.netto,
-    alv_prosentti: r.alv_prosentti ?? 0,
+    saldo: r.saldo,
+    alv_prosentti: r.alv_prosentti ?? null,
     luonut_kayttaja_id: kayttaja?.id ?? null,
   }))
 
