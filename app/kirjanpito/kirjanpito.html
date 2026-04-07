@@ -9144,36 +9144,47 @@ function renderTilinpaatos() {
   }
   const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  const tiliSumma = (alku, loppu) => rows
-    .filter(r => { const n = parseInt(r.d || r.k); return n >= alku && n <= loppu; })
-    .reduce((s, r) => s + (r.d ? r.netto : -r.netto), 0);
+  // Käytä samaa dataa kuin raporteissa
+  const tlEl = document.getElementById('rpt-tulos');
+  const taseEl = document.getElementById('rpt-tase');
 
-  // Tuloslaskelma-erät
-  const lv = Math.abs(tiliSumma(3000, 3899));
-  const muuttuotot = Math.abs(tiliSumma(3900, 3999));
-  const aineet = Math.abs(tiliSumma(4000, 4999));
-  const palkat = Math.abs(tiliSumma(5000, 5099));
-  const elake = Math.abs(tiliSumma(6100, 6199));
-  const sivukulut = Math.abs(tiliSumma(6200, 6499));
-  const poistot = Math.abs(tiliSumma(6800, 6899));
-  const korkotuotot = Math.abs(tiliSumma(7600, 7699));
-  const korkokulut = Math.abs(tiliSumma(7800, 7899));
-  const muutkulut = Math.abs(tiliSumma(6500, 6799)) + Math.abs(tiliSumma(7000, 7599));
+  // Renderöi tulos ja tase väliaikaisesti jos ei vielä renderöity
+  if (!tlEl?.innerHTML?.includes('LIIKEVAIHTO')) renderRpt('tulos');
+  if (!taseEl?.innerHTML?.includes('Vastaavaa')) renderRpt('tase');
+
+  // Hae luvut suoraan rows-datasta käyttäen samaa logiikkaa kuin rptTulos/rptTase
+  const sumTilit = (alku, loppu, kredit) => rows
+    .filter(r => { const n = parseInt(r.d || r.k); return n >= alku && n <= loppu; })
+    .reduce((s, r) => {
+      if (kredit) return s + (r.k ? r.netto : -r.netto);
+      return s + (r.d ? r.netto : -r.netto);
+    }, 0);
+
+  // Tuloslaskelma — myynti kredit-puolella
+  const lv = Math.abs(sumTilit(3000, 3899, true));
+  const muuttuotot = Math.abs(sumTilit(3900, 3999, true));
+  const aineet = Math.abs(sumTilit(4000, 4999, false));
+  const palkat = Math.abs(sumTilit(5000, 5099, false));
+  const elake = Math.abs(sumTilit(6100, 6199, false));
+  const sivukulut = Math.abs(sumTilit(6200, 6499, false));
+  const poistot = Math.abs(sumTilit(6800, 6899, false));
+  const korkotuotot = Math.abs(sumTilit(7600, 7699, true));
+  const korkokulut = Math.abs(sumTilit(7800, 7899, false));
+  const muutkulut = Math.abs(sumTilit(6500, 6799, false)) + Math.abs(sumTilit(7000, 7599, false));
   const kulutYht = aineet + palkat + elake + sivukulut + muutkulut + poistot;
   const liikevoitto = lv + muuttuotot - kulutYht;
   const tulos = liikevoitto + korkotuotot - korkokulut;
 
-  // Tase-erät
-  const ainPaoma = Math.abs(tiliSumma(1000, 1199));
-  const kalusto = Math.abs(tiliSumma(1200, 1599));
-  const muutPitka = Math.abs(tiliSumma(1600, 1699));
-  const saamiset = Math.abs(tiliSumma(1700, 1899));
-  const rahat = Math.abs(tiliSumma(1900, 1999));
-  const vastaavaaYht = ainPaoma + kalusto + muutPitka + saamiset + rahat;
-  const omaPoama = Math.abs(tiliSumma(2000, 2099));
-  const edVoitto = Math.abs(tiliSumma(2100, 2199));
-  const vieras = Math.abs(tiliSumma(2800, 2999));
-  const vastattavaaYht = omaPoama + edVoitto + Math.abs(tulos) + vieras;
+  // Tase — vastaavaa debet-puolella, vastattavaa kredit-puolella
+  const ainPaoma = Math.abs(sumTilit(1000, 1199, false));
+  const kalusto = Math.abs(sumTilit(1200, 1599, false));
+  const saamiset = Math.abs(sumTilit(1700, 1899, false));
+  const rahat = Math.abs(sumTilit(1900, 1999, false));
+  const vastaavaaYht = ainPaoma + kalusto + saamiset + rahat;
+  const omaPoama = Math.abs(sumTilit(2000, 2099, true));
+  const edVoitto = Math.abs(sumTilit(2100, 2399, true));
+  const vieras = Math.abs(sumTilit(2400, 2999, true));
+  const vastattavaaYht = omaPoama + edVoitto + tulos + vieras;
 
   // Henkilömäärä palkkatileiltä
   const palkkaKpl = rows.filter(r => parseInt(r.d||r.k) >= 5000 && parseInt(r.d||r.k) <= 5099).length;
