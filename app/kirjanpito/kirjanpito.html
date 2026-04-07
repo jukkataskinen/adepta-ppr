@@ -9471,6 +9471,21 @@ function tpPaivitaLiitetiedot() {
 }
 
 function tpTulosta() {
+  // Lue textarea-arvot ennen kuin mitään muuta
+  const taarvot = {
+    jalkeiset: document.getElementById('tp-ta-jalkeiset')?.value || '',
+    pitkavelat: document.getElementById('tp-ta-pitkavelat')?.value || '',
+    vakuudet: document.getElementById('tp-ta-vakuudet')?.value || '',
+    lahipiiri: document.getElementById('tp-ta-lahipiiri')?.value || '',
+    lv: document.getElementById('tp-ta-lv')?.value || '',
+    voitonjako: document.getElementById('tp-ta-voitonjako')?.value || '',
+    hallitus: document.getElementById('tp-ta-hallitus')?.value || '',
+    omistukset: document.getElementById('tp-ta-omistukset')?.value || '',
+    poikkeukset: document.getElementById('tp-ta-poikkeukset')?.value || '',
+    johtolainar: document.getElementById('tp-ta-johtolainar')?.value || '',
+    omat_osakkeet: document.getElementById('tp-ta-omat_osakkeet')?.value || '',
+    toiminta: document.getElementById('tp-ta-toiminta')?.value || '',
+  };
   const lk = laskeKirjanpito(rptRows);
   const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtS = v => (Number(v||0) < 0 ? '-' : '') + fmt(Math.abs(Number(v||0)));
@@ -9498,10 +9513,64 @@ function tpTulosta() {
       <div style="font-size:10pt;color:#333">Henkilöstön keskimääräinen lukumäärä tilikauden aikana: <strong>${arvioHlot}</strong> henkilöä.</div>
     </div>`;
 
-  if (nayta('jalkeiset')) liitetiedot += `
+  if (nayta('jalkeiset') && taarvot.jalkeiset) liitetiedot += `
     <div style="margin-bottom:14pt">
       <div style="font-weight:bold;margin-bottom:4pt">3. Tilikauden jälkeiset olennaiset tapahtumat</div>
-      <div style="font-size:10pt;color:#333;border-bottom:0.5pt solid #999;min-height:30pt">${document.getElementById('tp-ta-jalkeiset')?.value || '—'}</div>
+      <div style="font-size:10pt;color:#333;line-height:1.6">${taarvot.jalkeiset}</div>
+    </div>`;
+
+  if (nayta('pitkavelat') && taarvot.pitkavelat) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">6. Pitkäaikaiset velat</div>
+      <div style="font-size:10pt;color:#333">${taarvot.pitkavelat}</div>
+    </div>`;
+
+  if (nayta('vakuudet')) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">7. Vakuudet ja vastuusitoumukset</div>
+      <div style="font-size:10pt;color:#333">${taarvot.vakuudet || '—'}</div>
+    </div>`;
+
+  if (nayta('lahipiiri')) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">8. Lähipiirin liiketoimet</div>
+      <div style="font-size:10pt;color:#333">${taarvot.lahipiiri || '—'}</div>
+    </div>`;
+
+  if (nayta('lv_erittely')) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">9. Liikevaihdon erittely</div>
+      <div style="font-size:10pt;color:#333">${taarvot.lv || '—'}</div>
+    </div>`;
+
+  if (nayta('omistukset')) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">Omistukset muissa yrityksissä</div>
+      <div style="font-size:10pt;color:#333">${taarvot.omistukset || '—'}</div>
+    </div>`;
+
+  if (nayta('poikkeukset')) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">Poikkeukselliset erät</div>
+      <div style="font-size:10pt;color:#333">${taarvot.poikkeukset || '—'}</div>
+    </div>`;
+
+  if (nayta('johtolainar') && onOy) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">Lainat johdolle ja hallitukselle</div>
+      <div style="font-size:10pt;color:#333">${taarvot.johtolainar || '—'}</div>
+    </div>`;
+
+  if (nayta('omat_osakkeet') && onOy) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">Omien osakkeiden hankinnat</div>
+      <div style="font-size:10pt;color:#333">${taarvot.omat_osakkeet || '—'}</div>
+    </div>`;
+
+  if (nayta('toimintakertomus')) liitetiedot += `
+    <div style="margin-bottom:14pt">
+      <div style="font-weight:bold;margin-bottom:4pt">Toimintakertomusta vastaavat tiedot (PMA 3:13)</div>
+      <div style="font-size:10pt;color:#333;line-height:1.6">${taarvot.toiminta || '—'}</div>
     </div>`;
 
   if (nayta('omapaaoma') && onOy) liitetiedot += `
@@ -9515,15 +9584,12 @@ function tpTulosta() {
       </table>
     </div>`;
 
-  if (nayta('voitonjako') && onOy) {
-    const voittoTeksti = document.getElementById('tp-ta-voitonjako')?.value || '';
-    liitetiedot += `
+  if (nayta('voitonjako') && onOy) liitetiedot += `
     <div style="margin-bottom:14pt">
       <div style="font-weight:bold;margin-bottom:4pt">5. Hallituksen esitys voitonjaosta</div>
       <div style="font-size:10pt;color:#333">Tilikauden voitto: <strong>${fmt(Math.abs(lk.tulos))} €</strong></div>
-      <div style="font-size:10pt;color:#333;border-bottom:0.5pt solid #999;min-height:30pt;margin-top:4pt">${voittoTeksti || '—'}</div>
+      <div style="font-size:10pt;color:#333;margin-top:4pt">${taarvot.voitonjako || '—'}</div>
     </div>`;
-  }
 
   liitetiedot += `<div style="font-size:9pt;color:#666;border-top:0.5pt solid #ccc;padding-top:8pt;margin-top:16pt">
     Tilinpäätös on laadittu pien- ja mikroyrityksen tilinpäätöksessä esitettävistä tiedoista annetun valtioneuvoston asetuksen (1753/2015) mukaisesti.
