@@ -39,6 +39,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
             koko_bytes: 0,
           })
         }
+        // Päivitä myös ostolaskun PDF-polku
+        if (olPolku) {
+          await supabaseAdmin!
+            .from('ppr_ostolaskut')
+            .update({ tosite_pdf_path: olPolku })
+            .eq('lasku_nro', data.tosite_nro)
+            .eq('kirjanpitoasiakas_id', vastaanottaja.id)
+        }
       }
     }
 

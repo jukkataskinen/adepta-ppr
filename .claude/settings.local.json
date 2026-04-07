@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ':*)",
+      "Bash(git rm:*)",
+      "Bash(powershell.exe -NoProfile -Command \"Get-Content 'C:\\\\Users\\\\OMISTAJA\\\\adepta-ppr\\\\app\\\\kirjanpito\\\\kirjanpito.html' | Select-Object -Index \\(6755..6800\\)\")",
+      "Bash(powershell.exe -NoProfile -Command 'Select-String -Path '\\\\''C:\\\\Users\\\\OMISTAJA\\\\adepta-ppr\\\\app\\\\kirjanpito\\\\kirjanpito.html'\\\\'' -Pattern '\\\\''rpt-tab|showRpt'\\\\'' | ForEach-Object { Write-Output \\($_.LineNumber.ToString\\(\\) + '\\\\'': '\\\\'' + $_.Line\\) } | Select-Object -First 15')",
+      "Bash(powershell.exe -NoProfile -Command 'Select-String -Path '\\\\''C:\\\\Users\\\\OMISTAJA\\\\adepta-ppr\\\\app\\\\kirjanpito\\\\kirjanpito.html'\\\\'' -Pattern '\\\\''taseErittely|taseerittely'\\\\'' | ForEach-Object { Write-Output \\($_.LineNumber.ToString\\(\\) + '\\\\'': '\\\\'' + $_.Line\\) } | Select-Object -First 10')"
+    ]
+  }
+}
