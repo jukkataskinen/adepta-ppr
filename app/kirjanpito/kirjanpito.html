@@ -3150,6 +3150,58 @@ function rptTulosTablePitka(cols) {
     ${totRow('TILIKAUDEN TULOS', d=>d.tulos)}
     </tbody></table></div>`;
 }
+
+// ── YHTEINEN KIRJANPITOLASKENTA ────────────────────────────────
+function laskeKirjanpito(rivit) {
+  const tiliSaldot = {};
+  rivit.forEach(r => {
+    const tili = r.d || r.k;
+    if (!tili) return;
+    if (!tiliSaldot[tili]) tiliSaldot[tili] = 0;
+    tiliSaldot[tili] += r.d ? r.netto : -r.netto;
+  });
+  const kaikkiTilit = Object.keys(tiliSaldot).sort();
+  const eka = t => t.charAt(0);
+  const alueSum = (alku, loppu, negaatio) => kaikkiTilit
+    .filter(t => { const n=parseInt(t); return n>=alku && n<=loppu; })
+    .reduce((s,t) => s + (negaatio ? -(tiliSaldot[t]||0) : (tiliSaldot[t]||0)), 0);
+
+  // Tuloslaskelma
+  const tuotot   = alueSum(3000, 3999, true);
+  const aineet   = alueSum(4000, 4999, false);
+  const henk     = alueSum(5000, 6499, false);
+  const poistot  = alueSum(6800, 6899, false);
+  const muutlikt = alueSum(6500, 6799, false) + alueSum(7000, 8899, false);
+  const korot_t  = alueSum(8650, 8699, true);
+  const korot_k  = alueSum(8700, 8799, false);
+  const verot    = alueSum(9000, 9999, false);
+  const liiketkulut = aineet + henk + poistot + muutlikt;
+  const liikevoitto = tuotot - liiketkulut;
+  const tulos = liikevoitto + korot_t - korot_k - verot;
+
+  // Tase
+  const vastaavaaTilit = kaikkiTilit.filter(t => eka(t)==='1');
+  const vastaavaaYht = vastaavaaTilit.reduce((s,t) => s + (tiliSaldot[t]||0), 0);
+  const vastattavaaTilit = kaikkiTilit.filter(t => eka(t)==='2');
+  const omaPaaomaTilit = vastattavaaTilit.filter(t => parseInt(t)<2500);
+  const pitkaVelatTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2500&&n<2800; });
+  const lyhytVelatTilit = vastattavaaTilit.filter(t => parseInt(t)>=2800);
+  const omaPaaomaPohja = omaPaaomaTilit.reduce((s,t) => s-(tiliSaldot[t]||0), 0);
+  const omaPaaoma = omaPaaomaPohja + tulos;
+  const pitkaVelat = pitkaVelatTilit.reduce((s,t) => s-(tiliSaldot[t]||0), 0);
+  const lyhytVelat = lyhytVelatTilit.reduce((s,t) => s-(tiliSaldot[t]||0), 0);
+  const vastattavaaYht = omaPaaoma + pitkaVelat + lyhytVelat;
+
+  return {
+    tiliSaldot, kaikkiTilit,
+    tuotot, aineet, henk, poistot, muutlikt, korot_t, korot_k, verot,
+    liiketkulut, liikevoitto, tulos,
+    vastaavaaTilit, vastaavaaYht,
+    omaPaaomaTilit, pitkaVelatTilit, lyhytVelatTilit,
+    omaPaaoma, pitkaVelat, lyhytVelat, vastattavaaYht,
+  };
+}
+
 function rptTulos() {
   if (rptPeriod !== 'vuosi') {
     let cols;
@@ -9144,56 +9196,31 @@ function renderTilinpaatos() {
   }
   const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  // Käytä täsmälleen samaa logiikkaa kuin rptTase ja rptTulos
-  const tiliSaldot = {};
-  rptRows.forEach(r => {
-    const tili = r.d || r.k;
-    if (!tili) return;
-    if (!tiliSaldot[tili]) tiliSaldot[tili] = 0;
-    tiliSaldot[tili] += r.d ? r.netto : -r.netto;
-  });
-  const kaikkiTilit = Object.keys(tiliSaldot).sort();
-  const eka = t => t.charAt(0);
+  const lk = laskeKirjanpito(rptRows);
+  const { tulos, tuotot, aineet, henk, poistot, muutlikt, korot_t, korot_k,
+          liikevoitto, liiketkulut,
+          vastaavaaYht, vastattavaaYht, omaPaaoma, pitkaVelat, lyhytVelat,
+          omaPaaomaTilit, pitkaVelatTilit, lyhytVelatTilit,
+          vastaavaaTilit, tiliSaldot } = lk;
 
-  // Tuloslaskelma
-  const lv = kaikkiTilit.filter(t => eka(t)==='3').reduce((s,t) => s - (tiliSaldot[t]||0), 0);
-  const aineet = kaikkiTilit.filter(t => eka(t)==='4').reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const palkat = kaikkiTilit.filter(t => t.startsWith('5')).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const elake = kaikkiTilit.filter(t => t.startsWith('61')).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const sivukulut = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=6200&&n<6500; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const poistot = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=6800&&n<6900; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const muutkulut = kaikkiTilit.filter(t => { const n=parseInt(t); return (n>=6500&&n<6800)||(n>=7000&&n<7600); }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const korkotuotot = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=7600&&n<7700; }).reduce((s,t) => s - (tiliSaldot[t]||0), 0);
-  const korkokulut = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=7800&&n<7900; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const kulutYht = aineet + palkat + elake + sivukulut + muutkulut + poistot;
-  const liikevoitto = lv - kulutYht;
-  const tulos = liikevoitto + korkotuotot - korkokulut;
+  // Aliakset templatelle
+  const lv = tuotot;
+  const kulutYht = liiketkulut;
   const muuttuotot = 0;
-
-  // Tase — sama kuin rptTase
-  const vastaavaaTilit = kaikkiTilit.filter(t => eka(t)==='1');
-  const vastaavaaYht = vastaavaaTilit.reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const vastattavaaTilit = kaikkiTilit.filter(t => eka(t)==='2');
-  const omaPaaomaTilit = vastattavaaTilit.filter(t => parseInt(t)<2500);
-  const pitkaVelatTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2500&&n<2800; });
-  const lyhytVelatTilit = vastattavaaTilit.filter(t => parseInt(t)>=2800);
-  const omaPaaomaPohja = omaPaaomaTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
-  const omaPaaoma = omaPaaomaPohja + tulos;
-  const pitkaVelat = pitkaVelatTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
-  const lyhytVelat = lyhytVelatTilit.reduce((s,t) => s - (tiliSaldot[t]||0), 0);
-  const vastattavaaYht = omaPaaoma + pitkaVelat + lyhytVelat;
-
-  // Aliakset templatea varten — vastaavaa eriteltynä
-  const ainPaoma = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1000&&n<1200; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const kalusto = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1200&&n<1700; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const saamiset = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1700&&n<1900; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const rahat = kaikkiTilit.filter(t => { const n=parseInt(t); return n>=1900&&n<2000; }).reduce((s,t) => s + (tiliSaldot[t]||0), 0);
-  const omaPoama = omaPaaomaPohja;
+  const palkat = henk;
+  const elake = 0;
+  const sivukulut = 0;
+  const muutkulut = muutlikt;
+  const korkotuotot = korot_t;
+  const korkokulut = korot_k;
+  const ainPaoma = vastaavaaTilit.filter(t=>parseInt(t)<1200).reduce((s,t)=>s+(tiliSaldot[t]||0),0);
+  const kalusto = vastaavaaTilit.filter(t=>{const n=parseInt(t);return n>=1200&&n<1700;}).reduce((s,t)=>s+(tiliSaldot[t]||0),0);
+  const saamiset = vastaavaaTilit.filter(t=>{const n=parseInt(t);return n>=1700&&n<1900;}).reduce((s,t)=>s+(tiliSaldot[t]||0),0);
+  const rahat = vastaavaaTilit.filter(t=>parseInt(t)>=1900).reduce((s,t)=>s+(tiliSaldot[t]||0),0);
+  const omaPoama = omaPaaomaTilit.reduce((s,t)=>s-(tiliSaldot[t]||0),0);
   const edVoitto = 0;
-  const vieras = pitkaVelat + lyhytVelat;
-
-  // Henkilömäärä
-  const arvioHlot = Math.max(1, [...new Set(rptRows.filter(r => r.d?.startsWith('5')).map(r => r.selite))].length || 1);
+  const vieras = lyhytVelat + pitkaVelat;
+  const arvioHlot = Math.max(1, [...new Set(rptRows.filter(r=>r.d?.startsWith('5')).map(r=>r.selite))].length || 1);
 
   const el = document.getElementById('rpt-tilinpaatos');
   el.innerHTML = `
