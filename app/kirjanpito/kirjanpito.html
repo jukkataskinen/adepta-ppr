@@ -9844,6 +9844,9 @@ function renderTaseErittely() {
   const lyhytYht = tNeg(tRange(2800,2999));
 
   el.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button onclick="teTulosta()" style="padding:7px 18px;font-size:12px;font-weight:500;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Tulosta PDF</button>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
       <div>
         <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--ink)">Vastaavaa</div>
@@ -9873,6 +9876,118 @@ function renderTaseErittely() {
 function teToggle(id) {
   teAvoinna[id] = !teAvoinna[id];
   renderTaseErittely();
+}
+
+function teTulosta() {
+  const lk = laskeKirjanpito(rptRows);
+  const ts = lk.tiliSaldot;
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtS = v => { const n=Number(v||0); return (n<0?'-':'')+fmt(Math.abs(n)); };
+  const tRange = (a,b) => lk.kaikkiTilit.filter(t=>{const n=parseInt(t);return n>=a&&n<=b;});
+  const tSum = (tilit) => tilit.reduce((s,t)=>s+(ts[t]||0),0);
+  const tNeg = (tilit) => tilit.reduce((s,t)=>s-(ts[t]||0),0);
+
+  const tiliKorttiPdf = (tili, saldo) => {
+    if (Math.abs(saldo) < 0.005) return '';
+    const nimi = TILIT.find(t=>t.nro===tili)?.lbl || tili;
+    const avoinna = teAvoinna[tili];
+    let tapahtumat = '';
+    if (avoinna) {
+      const rivit = rptRows.filter(r=>(r.d||r.k)===tili).sort((a,b)=>a.pv?.localeCompare(b.pv));
+      let saldoJuoks = 0;
+      tapahtumat = `<table style="width:100%;border-collapse:collapse;font-size:8pt;margin-top:4pt">
+        <tr style="background:#e8f4f0"><th style="padding:3pt 6pt;text-align:left">Päivä</th><th style="padding:3pt 6pt;text-align:left">Tosite</th><th style="padding:3pt 6pt;text-align:left">Selite</th><th style="padding:3pt 6pt;text-align:right">Debet</th><th style="padding:3pt 6pt;text-align:right">Kredit</th><th style="padding:3pt 6pt;text-align:right">Saldo</th></tr>
+        ${rivit.map(r => {
+          const d = r.d ? r.netto : 0;
+          const k = r.k ? r.netto : 0;
+          saldoJuoks += d - k;
+          return `<tr style="border-bottom:0.5pt solid #eee"><td style="padding:2pt 6pt;color:#666">${r.pv||''}</td><td style="padding:2pt 6pt;color:#1D9E75;font-weight:bold">${r.ts||''}</td><td style="padding:2pt 6pt">${r.sel||''}</td><td style="padding:2pt 6pt;text-align:right;color:#2a7a4f">${d>0.005?fmt(d):''}</td><td style="padding:2pt 6pt;text-align:right;color:#c0392b">${k>0.005?fmt(k):''}</td><td style="padding:2pt 6pt;text-align:right;font-weight:bold">${fmtS(saldoJuoks)}</td></tr>`;
+        }).join('')}
+        <tr style="background:#f5f5f5;font-weight:bold"><td colspan="5" style="padding:3pt 6pt">Loppusaldo</td><td style="padding:3pt 6pt;text-align:right">${fmtS(saldoJuoks)}</td></tr>
+      </table>`;
+    }
+    return `<div style="border:1pt solid #ccc;border-radius:6pt;margin-bottom:5pt;overflow:hidden;page-break-inside:avoid">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6pt 10pt;background:${avoinna?'#e8f4f0':'#f9f9f9'}">
+        <div><span style="font-weight:bold;color:#1D9E75">${tili}</span> <span style="font-size:10pt">${nimi}</span></div>
+        <span style="font-weight:bold;font-size:11pt;color:${saldo<-0.005?'#c0392b':'#1a1a1a'}">${fmtS(saldo)}</span>
+      </div>
+      ${tapahtumat}
+    </div>`;
+  };
+
+  const ryhmaPdf = (otsikko, tilit, yhteensa, taso) => {
+    const sisalto = tilit.map(t => tiliKorttiPdf(t, ts[t]||0)).join('');
+    if (!sisalto.trim()) return '';
+    const bg = taso===1 ? '#1C2B1E' : '#f0f0f0';
+    const color = taso===1 ? '#fff' : '#333';
+    return `<div style="margin-bottom:10pt;page-break-inside:avoid">
+      <div style="display:flex;justify-content:space-between;padding:7pt 10pt;background:${bg};border-radius:6pt;margin-bottom:5pt">
+        <span style="font-weight:bold;color:${color};font-size:${taso===1?'11pt':'10pt'};text-transform:${taso===1?'uppercase':''}">${otsikko}</span>
+        <span style="font-weight:bold;color:${color};font-size:11pt">${fmt(Math.abs(yhteensa))}</span>
+      </div>
+      <div style="padding-left:8pt">${sisalto}</div>
+    </div>`;
+  };
+
+  const aineetHyodYht = tSum(tRange(1000,1099));
+  const ainHyodYht = tSum(tRange(1100,1399));
+  const sijoitYht = tSum(tRange(1400,1599));
+  const pysyvatYht = aineetHyodYht + ainHyodYht + sijoitYht;
+  const saamisetYht = tSum(tRange(1700,1899));
+  const rahatYht = tSum(tRange(1900,1999));
+  const vaihtuvat = saamisetYht + rahatYht;
+  const opYht = tNeg(tRange(2000,2499)) + lk.tulos;
+  const pitkaYht = tNeg(tRange(2500,2799));
+  const lyhytYht = tNeg(tRange(2800,2999));
+
+  const yhteensaRivi = (nimi, arvo) =>
+    `<div style="display:flex;justify-content:space-between;padding:8pt 10pt;background:#1C2B1E;border-radius:6pt;margin-top:8pt">
+      <span style="font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em;font-size:11pt">${nimi}</span>
+      <span style="font-weight:700;color:#fff;font-size:13pt">${fmt(Math.abs(arvo))}</span>
+    </div>`;
+
+  const html = `<!DOCTYPE html><html lang="fi"><head><meta charset="UTF-8">
+<title>Tase-erittely ${curTilikausiVuosi}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a}
+  @page{size:A4;margin:20mm 15mm 20mm 20mm}
+  .sivu{page-break-after:always}
+  .sivu:last-child{page-break-after:avoid}
+  h1{font-size:16pt;font-weight:bold;margin-bottom:4pt}
+  h2{font-size:12pt;font-weight:bold;border-bottom:2pt solid #1a1a1a;padding-bottom:4pt;margin-bottom:12pt}
+  @media print{button{display:none}}
+</style>
+</head><body>
+
+<div class="sivu">
+  <h1>${curYritys?.nimi||''}</h1>
+  <div style="font-size:10pt;color:#666;margin-bottom:16pt">Tase-erittely ${curTilikausiVuosi} — 1.1.${curTilikausiVuosi}–31.12.${curTilikausiVuosi}</div>
+  <h2>Vastaavaa</h2>
+  ${ryhmaPdf('Pysyvät vastaavat', tRange(1000,1599), pysyvatYht, 1)}
+  ${ryhmaPdf('Vaihtuvat vastaavat', tRange(1700,1999), vaihtuvat, 1)}
+  ${yhteensaRivi('Vastaavaa yhteensä', lk.vastaavaaYht)}
+</div>
+
+<div class="sivu">
+  <h1>${curYritys?.nimi||''}</h1>
+  <div style="font-size:10pt;color:#666;margin-bottom:16pt">Tase-erittely ${curTilikausiVuosi} — 1.1.${curTilikausiVuosi}–31.12.${curTilikausiVuosi}</div>
+  <h2>Vastattavaa</h2>
+  ${ryhmaPdf('Oma pääoma', tRange(2000,2499), opYht, 1)}
+  ${pitkaYht ? ryhmaPdf('Pitkäaikainen vieras pääoma', tRange(2500,2799), pitkaYht, 1) : ''}
+  ${ryhmaPdf('Lyhytaikainen vieras pääoma', tRange(2800,2999), lyhytYht, 1)}
+  ${yhteensaRivi('Vastattavaa yhteensä', lk.vastattavaaYht)}
+  <div style="margin-top:10pt;font-size:10pt;font-weight:bold;color:${Math.abs(lk.vastaavaaYht-lk.vastattavaaYht)<1?'#1D9E75':'#c0392b'}">
+    ${Math.abs(lk.vastaavaaYht-lk.vastattavaaYht)<1 ? '✓ Tase tasapainossa' : '⚠ Erotus: '+fmt(Math.abs(lk.vastaavaaYht-lk.vastattavaaYht))}
+  </div>
+</div>
+
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 800);
 }
 
 function teLaskuErittely(tyyppi) {
