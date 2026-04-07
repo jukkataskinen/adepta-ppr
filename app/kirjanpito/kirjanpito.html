@@ -9584,7 +9584,7 @@ function tpTulosta() {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;background:white}
     @page{size:A4;margin:25mm 20mm 20mm 25mm}
-    .sivu{page-break-after:always;min-height:247mm;padding:0}
+    .sivu{page-break-after:always;padding:0}
     .sivu:last-child{page-break-after:avoid}
     table{width:100%;border-collapse:collapse}
     h1{font-size:16pt;font-weight:bold;margin-bottom:6pt}
@@ -9608,59 +9608,15 @@ function tpTulosta() {
 <div class="sivu">
   <h1>Sisällysluettelo</h1>
   <table style="margin-top:16pt">
-    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase</td><td style="text-align:right;color:#666">3</td></tr>
-    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase — Vastaavaa (erittely)</td><td style="text-align:right;color:#666">4</td></tr>
-    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase — Vastattavaa (erittely)</td><td style="text-align:right;color:#666">5</td></tr>
-    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tuloslaskelma</td><td style="text-align:right;color:#666">6</td></tr>
-    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Liitetiedot</td><td style="text-align:right;color:#666">7</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase — Vastaavaa tileittäin</td><td style="text-align:right;color:#666">3</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase — Vastattavaa tileittäin</td><td style="text-align:right;color:#666">4</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tuloslaskelma</td><td style="text-align:right;color:#666">5</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Liitetiedot</td><td style="text-align:right;color:#666">6</td></tr>
     <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Allekirjoitukset</td><td style="text-align:right;color:#666">—</td></tr>
   </table>
 </div>
 
-<!-- SIVU 3: TASE TIIVISTETTY -->
-<div class="sivu">
-  <h2>Tase ${curTilikausiVuosi}</h2>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32pt">
-    <div>
-      <div style="font-weight:bold;font-size:11pt;text-transform:uppercase;margin-bottom:8pt">Vastaavaa</div>
-      <table>
-        ${rHdr('Pysyvät vastaavat')}
-        ${r('Aineettomat hyödykkeet', aineetHyodYht, 'indent')}
-        ${r('Aineelliset hyödykkeet', ainHyodYht, 'indent')}
-        ${r('Sijoitukset', sijoitukset, 'indent')}
-        ${rTotal('Pysyvät vastaavat yhteensä', pysyvatYht)}
-        ${rHdr('Vaihtuvat vastaavat')}
-        ${r('Saamiset', lyhytSaamisetYht, 'indent')}
-        ${r('Rahat ja pankkisaamiset', rahatPankki, 'indent')}
-        ${rTotal('Vaihtuvat vastaavat yhteensä', vaihtuvat)}
-        ${rTotal('VASTAAVAA YHTEENSÄ', vastaavaaYht)}
-      </table>
-    </div>
-    <div>
-      <div style="font-weight:bold;font-size:11pt;text-transform:uppercase;margin-bottom:8pt">Vastattavaa</div>
-      <table>
-        ${rHdr('Oma pääoma')}
-        ${r('Osakepääoma / peruspääoma', osakepaaoma, 'indent')}
-        ${svopRahasto ? r('SVOP-rahasto', svopRahasto, 'indent') : ''}
-        ${r('Edellisten tilikausien voitto', edVoitot, 'indent')}
-        ${r('Tilikauden voitto (tappio)', tulos, 'indent')}
-        ${rTotal('Oma pääoma yhteensä', omaPaaoma)}
-        ${pitkaLainat ? rHdr('Pitkäaikainen vieras pääoma') : ''}
-        ${pitkaLainat ? r('Pitkäaikaiset lainat', pitkaLainat, 'indent') : ''}
-        ${pitkaLainat ? rTotal('Pitkäaikainen vieras pääoma yht.', pitkaLainat) : ''}
-        ${rHdr('Lyhytaikainen vieras pääoma')}
-        ${lk.lyhytVelatTilit.map(t => { const s=-(ts[t]||0); if(Math.abs(s)<0.01)return''; const n=TILIT.find(tt=>tt.nro===t)?.lbl||t; return r(t+' '+n, s, 'indent'); }).join('')}
-        ${rTotal('Lyhytaikainen vieras pääoma yht.', lyhytVelat)}
-        ${rTotal('VASTATTAVAA YHTEENSÄ', vastattavaaYht)}
-      </table>
-    </div>
-  </div>
-  <div style="margin-top:12pt;font-size:10pt;color:${Math.abs(vastaavaaYht-vastattavaaYht)<1?'#1D9E75':'#c0392b'};font-weight:bold">
-    ${Math.abs(vastaavaaYht-vastattavaaYht)<1 ? '✓ Tase tasapainossa' : '⚠ Tase ei tasapainossa — erotus: '+fmtR(Math.abs(vastaavaaYht-vastattavaaYht))}
-  </div>
-</div>
-
-<!-- SIVU 4: TASE VASTAAVAA ERITTELY -->
+<!-- SIVU 3: TASE VASTAAVAA ERITTELY -->
 <div class="sivu">
   <h2>Tase — Vastaavaa (erittely)</h2>
   <table>
