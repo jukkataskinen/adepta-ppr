@@ -9468,12 +9468,107 @@ function tpPaivitaLiitetiedot() {
 function tpTulosta() {
   const el = document.getElementById('rpt-tilinpaatos');
   if (!el) return;
+
+  // Kloonaa sisältö ja siisti tulostusta varten
+  const klooni = el.cloneNode(true);
+
+  // Poista kaikki input/label elementit (checkboxit)
+  klooni.querySelectorAll('input[type="checkbox"]').forEach(el => el.closest('label')?.remove());
+  klooni.querySelectorAll('label').forEach(el => el.remove());
+  // Poista valintaotsikko-div (VALITSE LIITETIEDOT MUKAAN)
+  klooni.querySelectorAll('div').forEach(div => {
+    if (div.textContent?.trim() === 'Valitse liitetiedot mukaan') div.parentElement?.remove();
+  });
+  // Poista Tulosta-nappi
+  klooni.querySelectorAll('button').forEach(b => b.remove());
+
   const w = window.open('', '_blank');
-  w.document.write('<html><head><title>Tilinpäätös</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px}@media print{button{display:none}}</style></head><body>');
-  w.document.write(el.innerHTML);
-  w.document.write('</body></html>');
+  w.document.write(`<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <title>Tilinpäätös ${curTilikausiVuosi} — ${curYritys?.nimi || ''}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      background: white;
+      padding: 0;
+      margin: 0;
+    }
+    @page {
+      size: A4;
+      margin: 25mm 20mm 25mm 25mm;
+      @bottom-center {
+        content: counter(page) ' / ' counter(pages);
+        font-size: 9pt;
+        color: #666;
+      }
+    }
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+
+    h1 { font-size: 18pt; font-weight: bold; margin-bottom: 4pt; }
+    h2 { font-size: 13pt; font-weight: bold; border-bottom: 2pt solid #1a1a1a; padding-bottom: 4pt; margin: 20pt 0 10pt; }
+    h3 { font-size: 11pt; font-weight: bold; margin: 14pt 0 4pt; }
+
+    .yritys-nimi { font-size: 20pt; font-weight: bold; text-align: center; margin-bottom: 4pt; }
+    .yritys-sub { font-size: 11pt; color: #444; text-align: center; margin-bottom: 2pt; }
+
+    .rivi { display: flex; justify-content: space-between; padding: 2pt 0; font-size: 10pt; border-bottom: 0.5pt solid #eee; }
+    .rivi.bold { font-weight: bold; border-bottom: 1pt solid #1a1a1a; }
+    .rivi.total { font-weight: bold; font-size: 11pt; border-top: 1.5pt solid #1a1a1a; border-bottom: none; margin-top: 2pt; }
+    .rivi-indent { padding-left: 16pt; }
+
+    .tase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; margin-top: 8pt; }
+
+    .liitetieto { margin-bottom: 14pt; }
+    .liitetieto-otsikko { font-weight: bold; margin-bottom: 4pt; font-size: 11pt; }
+    .liitetieto-teksti { font-size: 10pt; color: #333; line-height: 1.6; }
+
+    textarea {
+      width: 100%;
+      border: none;
+      border-bottom: 0.5pt solid #999;
+      font-family: Georgia, serif;
+      font-size: 10pt;
+      color: #333;
+      background: transparent;
+      resize: none;
+      min-height: 40pt;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+    td, th { padding: 3pt 6pt; }
+    th { background: #1a1a1a; color: white; font-weight: bold; }
+
+    .allekirjoitus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; margin-top: 24pt; }
+    .allekirjoitus-rivi { border-top: 0.5pt solid #1a1a1a; padding-top: 4pt; font-size: 9pt; color: #444; margin-top: 32pt; }
+
+    .pma-maininta { font-size: 9pt; color: #666; border-top: 0.5pt solid #ccc; padding-top: 8pt; margin-top: 16pt; }
+
+    .footer { position: fixed; bottom: 10mm; right: 20mm; font-size: 9pt; color: #666; }
+
+    @media print {
+      input[type="checkbox"] { display: none !important; }
+      label { display: none !important; }
+      button { display: none !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  ${klooni.innerHTML}
+</div>
+
+</body>
+</html>`);
   w.document.close();
-  setTimeout(() => w.print(), 500);
+  setTimeout(() => w.print(), 800);
 }
 </script>
 </body>
