@@ -76,6 +76,26 @@ export async function POST(request: NextRequest) {
       .update({ tosite_nro: tositeNro })
       .eq('id', laskuData.id)
 
+    // Tarkista onko vastaanottaja PPR-asiakas (sisäinen lasku)
+    if (lasku.asiakas_ovt_tunnus) {
+      const { data: vastaanottaja } = await supabaseAdmin!
+        .from('ppr_kirjanpitoasiakkaat')
+        .select('id, organisaatio_id')
+        .eq('ovt_tunnus', lasku.asiakas_ovt_tunnus)
+        .maybeSingle()
+
+      if (vastaanottaja) {
+        // Luo OL-tosite vastaanottajalle
+        const olNro = 'OL' + lasku.lasku_nro
+        const { error: olErr } = await supabaseAdmin!.from('ppr_paivakirja').insert([
+          { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, tili: '4000', selite: 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro, saldo: brutto, alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null },
+          { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, tili: '2871', selite: 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro, saldo: -brutto, alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null },
+        ])
+        if (olErr) console.error('Sisäinen OL-tosite epäonnistui:', olErr.message)
+        else console.log('Sisäinen lasku luotu vastaanottajalle:', vastaanottaja.id, olNro)
+      }
+    }
+
     return NextResponse.json({ ...laskuData, tosite_nro: tositeNro }, { status: 201 })
   } catch (e: any) {
     console.error('myyntilaskut POST:', e)
