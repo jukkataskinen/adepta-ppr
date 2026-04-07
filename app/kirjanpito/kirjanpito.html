@@ -6590,7 +6590,8 @@ function lataaEtusivu() {
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
     // Nettotulos-%
     '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
-      '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Nettotulos-%</div>' +
+      '<div style="font-size:9px;font-weight:700;color:var(--inu);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">Kannattavuus</div>' +
+      '<div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px">Nettotulos-%</div>' +
       gaugeSvg(nettoP, 20, nVari) +
       '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+nVari+';margin-top:-8px">'+nettoP.toFixed(1).replace('.',',')+' %</div>' +
       '<div style="font-size:11px;color:'+nVari+';opacity:.8">'+nSelite+'</div>' +
@@ -6604,7 +6605,8 @@ function lataaEtusivu() {
       const oF = Math.max(ovAste, 5);
       const vF = Math.max(100-ovAste, 5);
       return '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
-        '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px">Omavaraisuusaste</div>' +
+        '<div style="font-size:9px;font-weight:700;color:var(--inu);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">Vakavaraisuus</div>' +
+        '<div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px">Omavaraisuusaste</div>' +
         '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">' +
           '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+oVari+'">'+ovAste.toFixed(1).replace('.',',')+' %</div>' +
           '<div style="font-size:11px;color:'+oVari+';opacity:.8">'+oSelite+'</div>' +
@@ -6637,7 +6639,8 @@ function lataaEtusivu() {
     })() +
     // Current ratio
     '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
-      '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Current ratio</div>' +
+      '<div style="font-size:9px;font-weight:700;color:var(--inu);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">Maksuvalmius</div>' +
+      '<div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px">Current ratio</div>' +
       gaugeSvg(curRatio, 3, cVari) +
       '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+cVari+';margin-top:-8px">'+curRatio.toFixed(2).replace('.',',')+'</div>' +
       '<div style="font-size:11px;color:'+cVari+';opacity:.8">'+cSelite+'</div>' +
