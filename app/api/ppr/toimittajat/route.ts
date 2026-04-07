@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Hae toimittajat + asiakaskohtaiset oletukset
     let query = supabaseAdmin!
       .from('ppr_toimittajat')
-      .select('*, oletukset:ppr_toimittaja_oletukset(tili, alv_prosentti, selite_malli, kayttokerrat)')
+      .select('*, oletukset:ppr_toimittaja_oletukset(kirjanpitoasiakas_id, tili, alv_prosentti, selite_malli, kayttokerrat), ppr_toimittaja_tilastot(tili, alv_prosentti, kayttokerrat)')
       .order('nimi')
 
     if (haku) query = query.ilike('nimi', '%' + haku + '%')
@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Ei istuntoa' }, { status: 401 })
 
     const body = await request.json()
-    const { kirjanpitoasiakas_id, tili, alv_prosentti, selite_malli, ...toimittaja } = body
+    const { kirjanpitoasiakas_id, tili, alv_prosentti, selite_malli, id, ...toimittaja } = body
 
-    // Etsi tai luo toimittaja ytunnuksen/nimen perusteella
-    let toimittajaId: string | null = null
+    // Käytä suoraan id:tä jos annettu, muuten etsi ytunnuksella
+    let toimittajaId: string | null = id || null
 
-    if (toimittaja.ytunnus) {
+    if (!toimittajaId && toimittaja.ytunnus) {
       const { data: existing } = await supabaseAdmin!
         .from('ppr_toimittajat')
         .select('id')
@@ -70,8 +70,15 @@ export async function POST(request: NextRequest) {
       toimittajaId = uusi.id
     }
 
-    // Tallenna tai päivitä asiakaskohtainen oletus
     if (kirjanpitoasiakas_id && tili) {
+      // Hae nykyinen kayttokerrat ja kasvata
+      const { data: nykyinen } = await supabaseAdmin!
+        .from('ppr_toimittaja_oletukset')
+        .select('kayttokerrat')
+        .eq('kirjanpitoasiakas_id', kirjanpitoasiakas_id)
+        .eq('toimittaja_id', toimittajaId)
+        .maybeSingle()
+
       await supabaseAdmin!
         .from('ppr_toimittaja_oletukset')
         .upsert({
@@ -80,10 +87,9 @@ export async function POST(request: NextRequest) {
           tili,
           alv_prosentti: alv_prosentti ?? 25.5,
           selite_malli: selite_malli ?? null,
-          kayttokerrat: 1,
+          kayttokerrat: (nykyinen?.kayttokerrat || 0) + 1,
         }, { onConflict: 'kirjanpitoasiakas_id,toimittaja_id' })
 
-      // Päivitä globaalit tilastot
       await supabaseAdmin!
         .from('ppr_toimittaja_tilastot')
         .upsert({
