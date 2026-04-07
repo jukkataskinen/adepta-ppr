@@ -9274,41 +9274,37 @@ function renderTilinpaatos() {
       </div>
 
       <div style="font-size:16px;font-weight:bold;border-bottom:2px solid var(--ink);padding-bottom:6px;margin:32px 0 16px">LIITETIEDOT</div>
-
-      <div style="margin-bottom:20px">
-        <div style="font-weight:bold;margin-bottom:6px">1. Laadintaperiaatteet</div>
-        <div style="font-size:12px;color:var(--inm);line-height:1.7">
-          Tilinpäätös on laadittu suomalaisen kirjanpitolain ja kirjanpitolautakunnan ohjeiden mukaisesti.
-          Arvostus on tehty hankintamenoon. Poistot on laskettu suunnitelman mukaisina tasapoistoina.
-        </div>
-      </div>
-
-      <div style="margin-bottom:20px">
-        <div style="font-weight:bold;margin-bottom:6px">2. Henkilöstö</div>
-        <div style="font-size:12px;color:var(--inm)">
-          Henkilöstön keskimääräinen lukumäärä tilikauden aikana: <strong>${arvioHlot}</strong> henkilöä.
-        </div>
-      </div>
-
-      <div style="margin-bottom:20px">
-        <div style="font-weight:bold;margin-bottom:6px">3. Hallituksen allekirjoitukset</div>
-        <div style="font-size:12px;color:var(--inm);margin-bottom:24px">
-          Paikka ja aika: _____________, ${new Date().toLocaleDateString('fi-FI')}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px">
-          ${['Hallituksen puheenjohtaja','Hallituksen jäsen','Hallituksen jäsen','Toimitusjohtaja'].map(r => `
-            <div>
-              <div style="border-top:1px solid var(--ink);padding-top:4px;font-size:11px;color:var(--inu)">${r}</div>
-            </div>
+      <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:24px">
+        <div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Valitse liitetiedot mukaan</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[
+            {id:'laadinta', nimi:'Laadintaperiaatteet', pakko:true},
+            {id:'hlot', nimi:'Henkilöstö', pakko:true},
+            {id:'johto', nimi:'Johdon palkat ja palkkiot', pakko:false},
+            {id:'hallitus', nimi:'Hallituksen jäsenet', pakko:false},
+            {id:'poistot_lt', nimi:'Poistomenetelmät', pakko:false},
+            {id:'pitkavelat', nimi:'Pitkäaikaiset velat (yli 5v)', pakko:false},
+            {id:'vakuudet', nimi:'Vakuudet ja vastuusitoumukset', pakko:false},
+            {id:'lahipiiri', nimi:'Lähipiirin liiketoimet', pakko:false},
+            {id:'lv_erittely', nimi:'Liikevaihdon erittely', pakko:false},
+          ].map(lt => `
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--pp)">
+              <input type="checkbox" id="tp-lt-${lt.id}" ${lt.pakko ? 'checked disabled' : 'checked'}
+                onchange="tpPaivitaLiitetiedot()" style="width:14px;height:14px">
+              <span>${lt.nimi}</span>
+              ${lt.pakko ? '<span style="font-size:9px;color:var(--fg3);font-weight:600">PAKOLL.</span>' : ''}
+            </label>
           `).join('')}
         </div>
       </div>
+      <div id="tp-liitetiedot-sisalto"></div>
 
       <div style="margin-top:32px;text-align:center">
         <button onclick="tpTulosta()" style="padding:10px 24px;font-size:13px;font-weight:500;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Tulosta tilinpäätös</button>
       </div>
     </div>
   `;
+  setTimeout(() => tpPaivitaLiitetiedot(), 100);
 }
 
 function tpRivi(nimi, arvo, bold, iso) {
@@ -9318,6 +9314,98 @@ function tpRivi(nimi, arvo, bold, iso) {
     <span style="color:var(--inm)">${nimi}</span>
     <span style="font-family:var(--ffm);color:${neg?'var(--red)':'var(--ink)'}">${neg?'-':''}${fmt(Math.abs(arvo))}</span>
   </div>`;
+}
+
+function tpPaivitaLiitetiedot() {
+  const el = document.getElementById('tp-liitetiedot-sisalto');
+  if (!el) return;
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const nayta = id => document.getElementById('tp-lt-'+id)?.checked;
+  const lk = laskeKirjanpito(rptRows);
+  const arvioHlot = Math.max(1, [...new Set(rptRows.filter(r=>r.d?.startsWith('5')).map(r=>r.selite))].length || 1);
+  const johtopalkat = Math.abs(lk.tiliSaldot['5010'] || lk.tiliSaldot['5001'] || 0);
+
+  let html = '';
+
+  if (nayta('laadinta')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">1. Laadintaperiaatteet</div>
+      <div style="font-size:12px;color:var(--inm);line-height:1.7">
+        Tilinpäätös on laadittu suomalaisen kirjanpitolain ja kirjanpitolautakunnan ohjeiden mukaisesti.
+        Arvostus on tehty hankintamenoon. Poistot on laskettu suunnitelman mukaisina tasapoistoina.
+      </div>
+    </div>`;
+
+  if (nayta('hlot')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">2. Henkilöstö</div>
+      <div style="font-size:12px;color:var(--inm)">
+        Henkilöstön keskimääräinen lukumäärä tilikauden aikana: <strong>${arvioHlot}</strong> henkilöä.
+      </div>
+    </div>`;
+
+  if (nayta('johto')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">3. Johdon palkat ja palkkiot</div>
+      <div style="font-size:12px;color:var(--inm)">
+        Toimitusjohtajan palkat ja palkkiot: <strong>${fmt(johtopalkat)} €</strong>
+      </div>
+    </div>`;
+
+  if (nayta('hallitus')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">4. Hallituksen jäsenet</div>
+      <div style="font-size:12px;color:var(--inm)">
+        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:80px"
+          placeholder="Luettele hallituksen jäsenet tilikauden lopussa..."></textarea>
+      </div>
+    </div>`;
+
+  if (nayta('poistot_lt')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">5. Poistomenetelmät</div>
+      <div style="font-size:12px;color:var(--inm)">
+        Poistot on laskettu suunnitelman mukaisina tasapoistoina. Rakennukset 25 v, koneet ja kalusto 5–10 v.
+      </div>
+    </div>`;
+
+  if (nayta('pitkavelat')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">6. Pitkäaikaiset velat</div>
+      <div style="font-size:12px;color:var(--inm)">
+        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+          placeholder="Erittele velat jotka erääntyvät yli 5 vuoden kuluttua..."></textarea>
+      </div>
+    </div>`;
+
+  if (nayta('vakuudet')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">7. Vakuudet ja vastuusitoumukset</div>
+      <div style="font-size:12px;color:var(--inm)">
+        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+          placeholder="Takaukset, pantit, leasingvastuut..."></textarea>
+      </div>
+    </div>`;
+
+  if (nayta('lahipiiri')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">8. Lähipiirin liiketoimet</div>
+      <div style="font-size:12px;color:var(--inm)">
+        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+          placeholder="Epätavalliset lähipiiritoimet..."></textarea>
+      </div>
+    </div>`;
+
+  if (nayta('lv_erittely')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">9. Liikevaihdon erittely</div>
+      <div style="font-size:12px;color:var(--inm)">
+        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+          placeholder="Liikevaihto toimialoittain tai alueittain..."></textarea>
+      </div>
+    </div>`;
+
+  el.innerHTML = html;
 }
 
 function tpTulosta() {
