@@ -9368,7 +9368,7 @@ function tpPaivitaLiitetiedot() {
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">4. Hallituksen jäsenet</div>
       <div style="font-size:12px;color:var(--inm)">
-        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:80px"
+        <textarea id="tp-ta-hallitus" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:80px"
           placeholder="Luettele hallituksen jäsenet tilikauden lopussa..."></textarea>
       </div>
     </div>`;
@@ -9385,7 +9385,7 @@ function tpPaivitaLiitetiedot() {
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">6. Pitkäaikaiset velat</div>
       <div style="font-size:12px;color:var(--inm)">
-        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+        <textarea id="tp-ta-pitkavelat" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
           placeholder="Erittele velat jotka erääntyvät yli 5 vuoden kuluttua..."></textarea>
       </div>
     </div>`;
@@ -9394,7 +9394,7 @@ function tpPaivitaLiitetiedot() {
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">7. Vakuudet ja vastuusitoumukset</div>
       <div style="font-size:12px;color:var(--inm)">
-        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+        <textarea id="tp-ta-vakuudet" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
           placeholder="Takaukset, pantit, leasingvastuut..."></textarea>
       </div>
     </div>`;
@@ -9403,7 +9403,7 @@ function tpPaivitaLiitetiedot() {
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">8. Lähipiirin liiketoimet</div>
       <div style="font-size:12px;color:var(--inm)">
-        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+        <textarea id="tp-ta-lahipiiri" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
           placeholder="Epätavalliset lähipiiritoimet..."></textarea>
       </div>
     </div>`;
@@ -9412,7 +9412,7 @@ function tpPaivitaLiitetiedot() {
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">9. Liikevaihdon erittely</div>
       <div style="font-size:12px;color:var(--inm)">
-        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+        <textarea id="tp-ta-lv" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
           placeholder="Liikevaihto toimialoittain tai alueittain..."></textarea>
       </div>
     </div>`;
@@ -9420,7 +9420,7 @@ function tpPaivitaLiitetiedot() {
   if (nayta('jalkeiset')) html += `
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">Tilikauden jälkeiset olennaiset tapahtumat</div>
-      <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+      <textarea id="tp-ta-jalkeiset" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
         placeholder="Kuvaa tilikauden päättymisen jälkeen tapahtuneet olennaiset muutokset..."></textarea>
     </div>`;
 
@@ -9443,7 +9443,7 @@ function tpPaivitaLiitetiedot() {
       <div style="font-weight:bold;margin-bottom:6px">Hallituksen esitys voitonjaosta</div>
       <div style="font-size:12px;color:var(--inm)">
         Hallitus esittää, että tilikauden voitto <strong>${fmt(lk.tulos)} €</strong> käsitellään seuraavasti:<br>
-        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px;margin-top:8px"
+        <textarea id="tp-ta-voitonjako" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px;margin-top:8px"
           placeholder="Esim: Jaetaan osinkona 0,00 € / Siirretään edellisten tilikausien voittotilille"></textarea>
       </div>
     </div>`;
@@ -9458,7 +9458,7 @@ function tpPaivitaLiitetiedot() {
   if (nayta('toimintakertomus')) html += `
     <div style="margin-bottom:20px">
       <div style="font-weight:bold;margin-bottom:6px">Toimintakertomusta vastaavat tiedot (PMA 3:13)</div>
-      <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:100px"
+      <textarea id="tp-ta-toiminta" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:100px"
         placeholder="Kuvaa toiminnan kehittymistä, merkittäviä riskejä ja epävarmuustekijöitä..."></textarea>
     </div>`;
 
@@ -9501,7 +9501,7 @@ function tpTulosta() {
   if (nayta('jalkeiset')) liitetiedot += `
     <div style="margin-bottom:14pt">
       <div style="font-weight:bold;margin-bottom:4pt">3. Tilikauden jälkeiset olennaiset tapahtumat</div>
-      <div style="font-size:10pt;color:#333;border-bottom:0.5pt solid #999;min-height:30pt">${document.querySelector('#tp-liitetiedot-sisalto textarea')?.value || '—'}</div>
+      <div style="font-size:10pt;color:#333;border-bottom:0.5pt solid #999;min-height:30pt">${document.getElementById('tp-ta-jalkeiset')?.value || '—'}</div>
     </div>`;
 
   if (nayta('omapaaoma') && onOy) liitetiedot += `
@@ -9516,8 +9516,7 @@ function tpTulosta() {
     </div>`;
 
   if (nayta('voitonjako') && onOy) {
-    const textareas = document.querySelectorAll('#tp-liitetiedot-sisalto textarea');
-    const voittoTeksti = textareas[1]?.value || '';
+    const voittoTeksti = document.getElementById('tp-ta-voitonjako')?.value || '';
     liitetiedot += `
     <div style="margin-bottom:14pt">
       <div style="font-weight:bold;margin-bottom:4pt">5. Hallituksen esitys voitonjaosta</div>
