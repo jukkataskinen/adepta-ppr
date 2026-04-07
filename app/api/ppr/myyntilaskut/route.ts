@@ -85,14 +85,40 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (vastaanottaja) {
-        // Luo OL-tosite vastaanottajalle
         const olNro = 'OL' + lasku.lasku_nro
-        const { error: olErr } = await supabaseAdmin!.from('ppr_paivakirja').insert([
-          { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, tili: '4000', selite: 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro, saldo: brutto, alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null },
-          { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, tili: '2871', selite: 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro, saldo: -brutto, alv_prosentti: null, luonut_kayttaja_id: kayttaja?.id ?? null },
-        ])
+        const alvTilit: Record<number, string> = { 25.5: '1763', 14: '1764', 10: '1765' }
+
+        const alvRyhmat: Record<number, { netto: number, alv: number }> = {}
+        let kokonaisNetto = 0
+        ;(rivit || []).forEach((r: any) => {
+          const alvP = Number(r.alv_prosentti) || 0
+          const rNetto = Number(r.summa_netto) || 0
+          const rAlv = Number(r.summa_yhteensa) - rNetto
+          kokonaisNetto += rNetto
+          if (!alvRyhmat[alvP]) alvRyhmat[alvP] = { netto: 0, alv: 0 }
+          alvRyhmat[alvP].netto += rNetto
+          alvRyhmat[alvP].alv += rAlv
+        })
+
+        const olRivit: any[] = []
+        const selite = 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro
+        const base = { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, luonut_kayttaja_id: kayttaja?.id ?? null }
+
+        olRivit.push({ ...base, tili: '4000', selite, saldo: Math.round(kokonaisNetto * 100) / 100, alv_prosentti: null })
+
+        Object.entries(alvRyhmat).forEach(([alvP, summat]) => {
+          const alvNum = Number(alvP)
+          const alvTili = alvTilit[alvNum]
+          if (alvTili && summat.alv > 0.01) {
+            olRivit.push({ ...base, tili: alvTili, selite: selite + ' ALV ' + alvP + '%', saldo: Math.round(summat.alv * 100) / 100, alv_prosentti: alvNum })
+          }
+        })
+
+        olRivit.push({ ...base, tili: '2871', selite, saldo: -brutto, alv_prosentti: null })
+
+        const { error: olErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(olRivit)
         if (olErr) console.error('Sisäinen OL-tosite epäonnistui:', olErr.message)
-        else console.log('Sisäinen lasku luotu vastaanottajalle:', vastaanottaja.id, olNro)
+        else console.log('Sisäinen lasku luotu:', vastaanottaja.id, olNro, olRivit.length, 'riviä')
       }
     }
 
