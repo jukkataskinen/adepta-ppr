@@ -9471,7 +9471,6 @@ function tpPaivitaLiitetiedot() {
 }
 
 function tpTulosta() {
-  // Lue textarea-arvot ennen kuin mitään muuta
   const taarvot = {
     jalkeiset: document.getElementById('tp-ta-jalkeiset')?.value || '',
     pitkavelat: document.getElementById('tp-ta-pitkavelat')?.value || '',
@@ -9487,189 +9486,278 @@ function tpTulosta() {
     toiminta: document.getElementById('tp-ta-toiminta')?.value || '',
   };
   const lk = laskeKirjanpito(rptRows);
-  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const fmtS = v => (Number(v||0) < 0 ? '-' : '') + fmt(Math.abs(Number(v||0)));
   const nayta = id => document.getElementById('tp-lt-'+id)?.checked;
   const yhtiomuoto = curYritys?.yhtiomuoto || 'oy';
   const onOy = yhtiomuoto === 'oy' || yhtiomuoto === 'oyj';
   const arvioHlot = Math.max(1, [...new Set(rptRows.filter(r=>r.d?.startsWith('5')).map(r=>r.selite))].length || 1);
+  const fmt = v => {
+    const n = Number(v||0);
+    if (Math.abs(n) < 0.005) return '';
+    return (n<0?'-':'') + Math.abs(n).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+  const fmtR = v => {
+    const n = Number(v||0);
+    return (n<0?'-':'') + Math.abs(n).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
 
-  const rivi = (nimi, arvo, bold, indent) =>
-    `<div style="display:flex;justify-content:space-between;padding:3pt 0 3pt ${indent?'16pt':'0'};font-size:10pt;${bold?'font-weight:bold;border-top:1pt solid #1a1a1a;':'border-bottom:0.5pt solid #eee;'}">
-      <span>${nimi}</span><span style="font-family:monospace">${fmtS(arvo)}</span>
-    </div>`;
+  // Tase-erät tileittäin
+  const ts = lk.tiliSaldot;
+  const tSum = (tilit) => tilit.reduce((s,t) => s + (ts[t]||0), 0);
+  const tRange = (a,b) => lk.kaikkiTilit.filter(t => { const n=parseInt(t); return n>=a && n<=b; });
+  const tNeg = (tilit) => tilit.reduce((s,t) => s - (ts[t]||0), 0);
 
+  // Vastaavaa erät
+  const aineetHyod = tSum(tRange(1000,1099));
+  const liikearvo = ts['1020']||ts['1021']||0;
+  const aineetHyodYht = aineetHyod;
+  const koneetKalusto = tSum(tRange(1200,1399));
+  const rakennukset = tSum(tRange(1100,1199));
+  const ainHyodYht = koneetKalusto + rakennukset;
+  const sijoitukset = tSum(tRange(1400,1599));
+  const pysyvatYht = aineetHyodYht + ainHyodYht + sijoitukset;
+  const myyntisaamiset = ts['1701']||0;
+  const muutSaamiset = tSum(tRange(1702,1799));
+  const lyhytSaamisetYht = myyntisaamiset + muutSaamiset;
+  const rahatPankki = tSum(tRange(1900,1999));
+  const vaihtuvat = lyhytSaamisetYht + rahatPankki;
+  const vastaavaaYht = pysyvatYht + vaihtuvat;
+
+  // Vastattavaa erät
+  const osakepaaoma = Math.abs(ts['2000']||0);
+  const svopRahasto = Math.abs(ts['2060']||ts['2050']||0);
+  const edVoitot = tNeg(tRange(2100,2399));
+  const omaPaaoma = lk.omaPaaoma;
+  const pitkaLainat = tNeg(tRange(2500,2799));
+  const lyhytVelat = tNeg(tRange(2800,2999));
+  const vastattavaaYht = lk.vastattavaaYht;
+
+  // Tuloslaskelma erät
+  const liikevaihto = lk.tuotot;
+  const muutTuotot = tNeg(tRange(3900,3999));
+  const aineetTarv = tSum(tRange(4000,4499));
+  const ulkPalvelut = tSum(tRange(4500,4999));
+  const materYht = aineetTarv + ulkPalvelut;
+  const palkat = tSum(tRange(5000,5099));
+  const elakekulut = tSum(tRange(6100,6199));
+  const muutHenkSivu = tSum(tRange(6200,6499));
+  const henkYht = palkat + elakekulut + muutHenkSivu;
+  const poistotYht = lk.poistot;
+  const liiketMuutKulut = tSum(tRange(6500,8649));
+  const liikevoitto = lk.liikevoitto;
+  const rahoitustuotot = lk.korot_t;
+  const rahoituskulut = lk.korot_k;
+  const voittoEnnenVeroja = liikevoitto + rahoitustuotot - rahoituskulut;
+  const tuloverot = tSum(tRange(9000,9099));
+  const tulos = lk.tulos;
+
+  // Rivifunktiot
+  const r = (nimi, arvo, tyyli) => {
+    const v = fmt(arvo);
+    if (!v && tyyli !== 'total' && tyyli !== 'bold') return '';
+    const bold = tyyli==='bold'||tyyli==='total';
+    const indent = tyyli==='indent';
+    return `<tr><td style="padding:2pt 0 2pt ${indent?'16pt':'0'};font-size:10pt;${bold?'font-weight:bold':'color:#333'}">${nimi}</td><td style="text-align:right;font-size:10pt;font-family:monospace;${bold?'font-weight:bold':''}${tyyli==='total'?'border-top:1pt solid #1a1a1a;':''}">${v||''}</td></tr>`;
+  };
+  const rTotal = (nimi, arvo) => `<tr><td style="padding:3pt 0;font-size:10pt;font-weight:bold;border-top:1pt solid #1a1a1a">${nimi}</td><td style="text-align:right;font-size:10pt;font-family:monospace;font-weight:bold;border-top:1pt solid #1a1a1a">${fmtR(arvo)}</td></tr>`;
+  const rHdr = (nimi) => `<tr><td colspan="2" style="padding:6pt 0 2pt;font-size:10pt;font-weight:bold;text-transform:uppercase;letter-spacing:.04em">${nimi}</td></tr>`;
+  const rSub = (nimi) => `<tr><td colspan="2" style="padding:4pt 0 1pt;font-size:9pt;font-weight:bold">${nimi}</td></tr>`;
+
+  // Liitetiedot HTML
   let liitetiedot = '';
+  if (nayta('laadinta')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Laadintaperiaatteet</div><div style="font-size:10pt;color:#333;line-height:1.6">Tilinpäätös on laadittu suomalaisen kirjanpitolain ja kirjanpitolautakunnan ohjeiden mukaisesti. Arvostus on tehty hankintamenoon. Poistot on laskettu suunnitelman mukaisina tasapoistoina.</div></div>`;
+  if (nayta('hlot')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Henkilöstö</div><div style="font-size:10pt;color:#333">Henkilöstön keskimääräinen lukumäärä tilikauden aikana: <strong>${arvioHlot}</strong> henkilöä.</div></div>`;
+  if (nayta('jalkeiset')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Tilikauden jälkeiset olennaiset tapahtumat</div><div style="font-size:10pt;color:#333;line-height:1.6">${taarvot.jalkeiset||'—'}</div></div>`;
+  if (nayta('pitkavelat')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Pitkäaikaiset lainat</div><div style="font-size:10pt;color:#333">${taarvot.pitkavelat||'—'}</div></div>`;
+  if (nayta('vakuudet')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Vakuudet ja vastuusitoumukset</div><div style="font-size:10pt;color:#333">${taarvot.vakuudet||'—'}</div></div>`;
+  if (nayta('lahipiiri')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Lähipiirin liiketoimet</div><div style="font-size:10pt;color:#333">${taarvot.lahipiiri||'—'}</div></div>`;
+  if (nayta('lv_erittely')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Liikevaihdon erittely</div><div style="font-size:10pt;color:#333">${taarvot.lv||'—'}</div></div>`;
+  if (nayta('omistukset')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Omistukset muissa yrityksissä</div><div style="font-size:10pt;color:#333">${taarvot.omistukset||'—'}</div></div>`;
+  if (nayta('poikkeukset')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Poikkeukselliset erät</div><div style="font-size:10pt;color:#333">${taarvot.poikkeukset||'—'}</div></div>`;
+  if (nayta('omapaaoma') && onOy) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:6pt">Oman pääoman erittely</div><table style="width:100%;border-collapse:collapse;font-size:10pt"><tr style="border-bottom:0.5pt solid #eee"><td style="padding:3pt 0">Osakepääoma</td><td style="text-align:right;font-family:monospace">${fmtR(osakepaaoma)} €</td></tr>${svopRahasto?`<tr style="border-bottom:0.5pt solid #eee"><td style="padding:3pt 0">SVOP-rahasto</td><td style="text-align:right;font-family:monospace">${fmtR(svopRahasto)} €</td></tr>`:''}<tr style="border-bottom:0.5pt solid #eee"><td style="padding:3pt 0">Edellisten tilikausien voitto/tappio</td><td style="text-align:right;font-family:monospace">${fmtR(edVoitot)} €</td></tr><tr style="border-top:1pt solid #1a1a1a"><td style="padding:4pt 0;font-weight:bold">Oma pääoma yhteensä</td><td style="text-align:right;font-family:monospace;font-weight:bold">${fmtR(omaPaaoma)} €</td></tr></table></div>`;
+  if (nayta('voitonjako') && onOy) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Hallituksen esitys voitonjaosta</div><div style="font-size:10pt;color:#333">Tilikauden voitto: <strong>${fmtR(Math.abs(tulos))} €</strong><br>${taarvot.voitonjako||'—'}</div></div>`;
+  if (nayta('johtolainar') && onOy) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Lainat johdolle ja hallitukselle</div><div style="font-size:10pt;color:#333">${taarvot.johtolainar||'—'}</div></div>`;
+  if (nayta('omat_osakkeet') && onOy) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Omien osakkeiden hankinnat</div><div style="font-size:10pt;color:#333">${taarvot.omat_osakkeet||'—'}</div></div>`;
+  if (nayta('toimintakertomus')) liitetiedot += `<div style="margin-bottom:14pt"><div style="font-weight:bold;margin-bottom:4pt">Toimintakertomusta vastaavat tiedot (PMA 3:13)</div><div style="font-size:10pt;color:#333;line-height:1.6">${taarvot.toiminta||'—'}</div></div>`;
+  liitetiedot += `<div style="font-size:9pt;color:#666;border-top:0.5pt solid #ccc;padding-top:8pt;margin-top:16pt">Tilinpäätös on laadittu pien- ja mikroyrityksen tilinpäätöksessä esitettävistä tiedoista annetun valtioneuvoston asetuksen (1753/2015) mukaisesti.</div>`;
 
-  if (nayta('laadinta')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">1. Laadintaperiaatteet</div>
-      <div style="font-size:10pt;color:#333;line-height:1.6">Tilinpäätös on laadittu suomalaisen kirjanpitolain ja kirjanpitolautakunnan ohjeiden mukaisesti. Arvostus on tehty hankintamenoon. Poistot on laskettu suunnitelman mukaisina tasapoistoina.</div>
-    </div>`;
+  const css = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;background:white}
+    @page{size:A4;margin:25mm 20mm 20mm 25mm}
+    .sivu{page-break-after:always;min-height:247mm;padding:0}
+    .sivu:last-child{page-break-after:avoid}
+    table{width:100%;border-collapse:collapse}
+    h1{font-size:16pt;font-weight:bold;margin-bottom:6pt}
+    h2{font-size:13pt;font-weight:bold;border-bottom:2pt solid #1a1a1a;padding-bottom:4pt;margin:16pt 0 8pt}
+    @media print{button{display:none}}
+  `;
 
-  if (nayta('hlot')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">2. Henkilöstö</div>
-      <div style="font-size:10pt;color:#333">Henkilöstön keskimääräinen lukumäärä tilikauden aikana: <strong>${arvioHlot}</strong> henkilöä.</div>
-    </div>`;
+  const html = `<!DOCTYPE html><html lang="fi"><head><meta charset="UTF-8"><title>Tilinpäätös ${curTilikausiVuosi}</title><style>${css}</style></head><body>
 
-  if (nayta('jalkeiset') && taarvot.jalkeiset) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">3. Tilikauden jälkeiset olennaiset tapahtumat</div>
-      <div style="font-size:10pt;color:#333;line-height:1.6">${taarvot.jalkeiset}</div>
-    </div>`;
+<!-- SIVU 1: KANSILEHTI -->
+<div class="sivu" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+  <div style="font-size:28pt;font-weight:bold;margin-bottom:8pt">${curYritys?.nimi||''}</div>
+  <div style="font-size:16pt;color:#444;margin-bottom:4pt">Tilinpäätös</div>
+  <div style="font-size:14pt;color:#444;margin-bottom:2pt">1.1.${curTilikausiVuosi} – 31.12.${curTilikausiVuosi}</div>
+  <div style="width:60pt;height:2pt;background:#1a1a1a;margin:24pt 0"></div>
+  <div style="font-size:10pt;color:#666">Y-tunnus: ${curYritys?.y_tunnus||''}</div>
+  <div style="font-size:10pt;color:#666;margin-top:4pt">${curYritys?.katuosoite||''} ${curYritys?.postinro||''} ${curYritys?.kaupunki||''}</div>
+</div>
 
-  if (nayta('pitkavelat') && taarvot.pitkavelat) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">6. Pitkäaikaiset velat</div>
-      <div style="font-size:10pt;color:#333">${taarvot.pitkavelat}</div>
-    </div>`;
+<!-- SIVU 2: SISÄLLYSLUETTELO -->
+<div class="sivu">
+  <h1>Sisällysluettelo</h1>
+  <table style="margin-top:16pt">
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase</td><td style="text-align:right;color:#666">3</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase — Vastaavaa (erittely)</td><td style="text-align:right;color:#666">4</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tase — Vastattavaa (erittely)</td><td style="text-align:right;color:#666">5</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Tuloslaskelma</td><td style="text-align:right;color:#666">6</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Liitetiedot</td><td style="text-align:right;color:#666">7</td></tr>
+    <tr style="border-bottom:0.5pt solid #ccc"><td style="padding:8pt 0;font-size:11pt">Allekirjoitukset</td><td style="text-align:right;color:#666">—</td></tr>
+  </table>
+</div>
 
-  if (nayta('vakuudet')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">7. Vakuudet ja vastuusitoumukset</div>
-      <div style="font-size:10pt;color:#333">${taarvot.vakuudet || '—'}</div>
-    </div>`;
-
-  if (nayta('lahipiiri')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">8. Lähipiirin liiketoimet</div>
-      <div style="font-size:10pt;color:#333">${taarvot.lahipiiri || '—'}</div>
-    </div>`;
-
-  if (nayta('lv_erittely')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">9. Liikevaihdon erittely</div>
-      <div style="font-size:10pt;color:#333">${taarvot.lv || '—'}</div>
-    </div>`;
-
-  if (nayta('omistukset')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">Omistukset muissa yrityksissä</div>
-      <div style="font-size:10pt;color:#333">${taarvot.omistukset || '—'}</div>
-    </div>`;
-
-  if (nayta('poikkeukset')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">Poikkeukselliset erät</div>
-      <div style="font-size:10pt;color:#333">${taarvot.poikkeukset || '—'}</div>
-    </div>`;
-
-  if (nayta('johtolainar') && onOy) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">Lainat johdolle ja hallitukselle</div>
-      <div style="font-size:10pt;color:#333">${taarvot.johtolainar || '—'}</div>
-    </div>`;
-
-  if (nayta('omat_osakkeet') && onOy) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">Omien osakkeiden hankinnat</div>
-      <div style="font-size:10pt;color:#333">${taarvot.omat_osakkeet || '—'}</div>
-    </div>`;
-
-  if (nayta('toimintakertomus')) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">Toimintakertomusta vastaavat tiedot (PMA 3:13)</div>
-      <div style="font-size:10pt;color:#333;line-height:1.6">${taarvot.toiminta || '—'}</div>
-    </div>`;
-
-  if (nayta('omapaaoma') && onOy) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:6pt">4. Oman pääoman erittely</div>
-      <table style="width:100%;border-collapse:collapse;font-size:10pt">
-        <tr style="border-bottom:0.5pt solid #eee"><td style="padding:3pt 0">Osakepääoma</td><td style="text-align:right;font-family:monospace">${fmt(Math.abs(lk.tiliSaldot['2000']||0))} €</td></tr>
-        <tr style="border-bottom:0.5pt solid #eee"><td style="padding:3pt 0">Edellisten tilikausien voitto/tappio</td><td style="text-align:right;font-family:monospace">${fmtS(lk.omaPaaomaTilit.reduce((s,t)=>s-(lk.tiliSaldot[t]||0),0))} €</td></tr>
-        <tr style="border-bottom:0.5pt solid #eee"><td style="padding:3pt 0">Tilikauden voitto/tappio</td><td style="text-align:right;font-family:monospace">${fmtS(lk.tulos)} €</td></tr>
-        <tr style="border-top:1pt solid #1a1a1a"><td style="padding:4pt 0;font-weight:bold">Oma pääoma yhteensä</td><td style="text-align:right;font-family:monospace;font-weight:bold">${fmtS(lk.omaPaaoma)} €</td></tr>
+<!-- SIVU 3: TASE TIIVISTETTY -->
+<div class="sivu">
+  <h2>Tase ${curTilikausiVuosi}</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32pt">
+    <div>
+      <div style="font-weight:bold;font-size:11pt;text-transform:uppercase;margin-bottom:8pt">Vastaavaa</div>
+      <table>
+        ${rHdr('Pysyvät vastaavat')}
+        ${r('Aineettomat hyödykkeet', aineetHyodYht, 'indent')}
+        ${r('Aineelliset hyödykkeet', ainHyodYht, 'indent')}
+        ${r('Sijoitukset', sijoitukset, 'indent')}
+        ${rTotal('Pysyvät vastaavat yhteensä', pysyvatYht)}
+        ${rHdr('Vaihtuvat vastaavat')}
+        ${r('Saamiset', lyhytSaamisetYht, 'indent')}
+        ${r('Rahat ja pankkisaamiset', rahatPankki, 'indent')}
+        ${rTotal('Vaihtuvat vastaavat yhteensä', vaihtuvat)}
+        ${rTotal('VASTAAVAA YHTEENSÄ', vastaavaaYht)}
       </table>
-    </div>`;
-
-  if (nayta('voitonjako') && onOy) liitetiedot += `
-    <div style="margin-bottom:14pt">
-      <div style="font-weight:bold;margin-bottom:4pt">5. Hallituksen esitys voitonjaosta</div>
-      <div style="font-size:10pt;color:#333">Tilikauden voitto: <strong>${fmt(Math.abs(lk.tulos))} €</strong></div>
-      <div style="font-size:10pt;color:#333;margin-top:4pt">${taarvot.voitonjako || '—'}</div>
-    </div>`;
-
-  liitetiedot += `<div style="font-size:9pt;color:#666;border-top:0.5pt solid #ccc;padding-top:8pt;margin-top:16pt">
-    Tilinpäätös on laadittu pien- ja mikroyrityksen tilinpäätöksessä esitettävistä tiedoista annetun valtioneuvoston asetuksen (1753/2015) mukaisesti.
-  </div>`;
-
-  const html = `<!DOCTYPE html>
-<html lang="fi"><head><meta charset="UTF-8">
-<title>Tilinpäätös ${curTilikausiVuosi}</title>
-<style>
-  body { font-family: Georgia, serif; font-size: 11pt; color: #1a1a1a; margin: 0; padding: 0; }
-  @page { size: A4; margin: 25mm 20mm 20mm 25mm; }
-  .sivu { page-break-after: always; padding: 0; }
-  .sivu:last-child { page-break-after: avoid; }
-  h2 { font-size: 13pt; font-weight: bold; border-bottom: 2pt solid #1a1a1a; padding-bottom: 4pt; margin: 20pt 0 10pt; }
-  @media print { button { display:none; } }
-</style>
-</head><body>
-
-<div class="sivu">
-  <div style="text-align:center;margin-bottom:24pt">
-    <div style="font-size:20pt;font-weight:bold">${curYritys?.nimi || ''}</div>
-    <div style="font-size:11pt;color:#444;margin-top:4pt">Tilinpäätös ${curTilikausiVuosi}</div>
-    <div style="font-size:10pt;color:#666">1.1.${curTilikausiVuosi} – 31.12.${curTilikausiVuosi}</div>
+    </div>
+    <div>
+      <div style="font-weight:bold;font-size:11pt;text-transform:uppercase;margin-bottom:8pt">Vastattavaa</div>
+      <table>
+        ${rHdr('Oma pääoma')}
+        ${r('Osakepääoma / peruspääoma', osakepaaoma, 'indent')}
+        ${svopRahasto ? r('SVOP-rahasto', svopRahasto, 'indent') : ''}
+        ${r('Edellisten tilikausien voitto', edVoitot, 'indent')}
+        ${r('Tilikauden voitto (tappio)', tulos, 'indent')}
+        ${rTotal('Oma pääoma yhteensä', omaPaaoma)}
+        ${pitkaLainat ? rHdr('Pitkäaikainen vieras pääoma') : ''}
+        ${pitkaLainat ? r('Pitkäaikaiset lainat', pitkaLainat, 'indent') : ''}
+        ${pitkaLainat ? rTotal('Pitkäaikainen vieras pääoma yht.', pitkaLainat) : ''}
+        ${rHdr('Lyhytaikainen vieras pääoma')}
+        ${lk.lyhytVelatTilit.map(t => { const s=-(ts[t]||0); if(Math.abs(s)<0.01)return''; const n=TILIT.find(tt=>tt.nro===t)?.lbl||t; return r(t+' '+n, s, 'indent'); }).join('')}
+        ${rTotal('Lyhytaikainen vieras pääoma yht.', lyhytVelat)}
+        ${rTotal('VASTATTAVAA YHTEENSÄ', vastattavaaYht)}
+      </table>
+    </div>
   </div>
-
-  <h2>TULOSLASKELMA</h2>
-  ${rivi('LIIKEVAIHTO', lk.tuotot, true)}
-  ${lk.aineet ? rivi('Aineet ja tarvikkeet', -lk.aineet, false, true) : ''}
-  ${lk.henk ? rivi('Henkilöstökulut', -lk.henk, false, true) : ''}
-  ${lk.poistot ? rivi('Poistot', -lk.poistot, false, true) : ''}
-  ${lk.muutlikt ? rivi('Liiketoiminnan muut kulut', -lk.muutlikt, false, true) : ''}
-  ${rivi('LIIKEVOITTO (-TAPPIO)', lk.liikevoitto, true)}
-  ${lk.korot_t ? rivi('Rahoitustuotot', lk.korot_t, false, true) : ''}
-  ${lk.korot_k ? rivi('Rahoituskulut', -lk.korot_k, false, true) : ''}
-  ${rivi('TILIKAUDEN VOITTO (TAPPIO)', lk.tulos, true)}
-</div>
-
-<div class="sivu">
-  <h2>TASE</h2>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24pt">
-    <div>
-      <div style="font-weight:bold;margin-bottom:6pt">VASTAAVAA</div>
-      ${lk.vastaavaaTilit.map(t => {
-        const s = lk.tiliSaldot[t]||0;
-        if (Math.abs(s)<0.01) return '';
-        const nimi = TILIT.find(tt=>tt.nro===t)?.lbl||t;
-        return rivi(t+' '+nimi, s, false, true);
-      }).join('')}
-      ${rivi('Vastaavaa yhteensä', lk.vastaavaaYht, true)}
-    </div>
-    <div>
-      <div style="font-weight:bold;margin-bottom:6pt">VASTATTAVAA</div>
-      <div style="font-size:9pt;font-weight:bold;color:#666;text-transform:uppercase;margin:6pt 0 2pt">Oma pääoma</div>
-      ${rivi('Tilikauden voitto (tappio)', lk.tulos, false, true)}
-      ${rivi('Oma pääoma yhteensä', lk.omaPaaoma, true)}
-      <div style="font-size:9pt;font-weight:bold;color:#666;text-transform:uppercase;margin:6pt 0 2pt">Vieras pääoma</div>
-      ${lk.lyhytVelatTilit.map(t => {
-        const s = -(lk.tiliSaldot[t]||0);
-        if (Math.abs(s)<0.01) return '';
-        const nimi = TILIT.find(tt=>tt.nro===t)?.lbl||t;
-        return rivi(t+' '+nimi, s, false, true);
-      }).join('')}
-      ${rivi('Vastattavaa yhteensä', lk.vastattavaaYht, true)}
-    </div>
+  <div style="margin-top:12pt;font-size:10pt;color:${Math.abs(vastaavaaYht-vastattavaaYht)<1?'#1D9E75':'#c0392b'};font-weight:bold">
+    ${Math.abs(vastaavaaYht-vastattavaaYht)<1 ? '✓ Tase tasapainossa' : '⚠ Tase ei tasapainossa — erotus: '+fmtR(Math.abs(vastaavaaYht-vastattavaaYht))}
   </div>
 </div>
 
+<!-- SIVU 4: TASE VASTAAVAA ERITTELY -->
 <div class="sivu">
-  <h2>LIITETIEDOT</h2>
+  <h2>Tase — Vastaavaa (erittely)</h2>
+  <table>
+    ${rHdr('PYSYVÄT VASTAAVAT')}
+    ${rSub('Aineettomat hyödykkeet')}
+    ${tRange(1000,1099).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, ts[t]||0, 'indent')).join('')}
+    ${rTotal('Aineettomat hyödykkeet yhteensä', aineetHyodYht)}
+    ${rSub('Aineelliset hyödykkeet')}
+    ${tRange(1100,1399).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, ts[t]||0, 'indent')).join('')}
+    ${rTotal('Aineelliset hyödykkeet yhteensä', ainHyodYht)}
+    ${rSub('Sijoitukset')}
+    ${tRange(1400,1599).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, ts[t]||0, 'indent')).join('')}
+    ${rTotal('Sijoitukset yhteensä', sijoitukset)}
+    ${rTotal('PYSYVÄT VASTAAVAT YHTEENSÄ', pysyvatYht)}
+    ${rHdr('VAIHTUVAT VASTAAVAT')}
+    ${rSub('Saamiset')}
+    ${tRange(1700,1899).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, ts[t]||0, 'indent')).join('')}
+    ${rTotal('Saamiset yhteensä', lyhytSaamisetYht)}
+    ${rSub('Rahat ja pankkisaamiset')}
+    ${tRange(1900,1999).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, ts[t]||0, 'indent')).join('')}
+    ${rTotal('Rahat ja pankkisaamiset yhteensä', rahatPankki)}
+    ${rTotal('VAIHTUVAT VASTAAVAT YHTEENSÄ', vaihtuvat)}
+    ${rTotal('VASTAAVAA YHTEENSÄ', vastaavaaYht)}
+  </table>
+</div>
+
+<!-- SIVU 5: TASE VASTATTAVAA ERITTELY -->
+<div class="sivu">
+  <h2>Tase — Vastattavaa (erittely)</h2>
+  <table>
+    ${rHdr('OMA PÄÄOMA')}
+    ${tRange(2000,2099).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, Math.abs(ts[t]||0), 'indent')).join('')}
+    ${tRange(2050,2099).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, Math.abs(ts[t]||0), 'indent')).join('')}
+    ${r('Edellisten tilikausien voitto/tappio', edVoitot, 'indent')}
+    ${r('Tilikauden voitto (tappio)', tulos, 'indent')}
+    ${rTotal('OMA PÄÄOMA YHTEENSÄ', omaPaaoma)}
+    ${pitkaLainat ? rHdr('PITKÄAIKAINEN VIERAS PÄÄOMA') : ''}
+    ${lk.kaikkiTilit.filter(t=>{const n=parseInt(t);return n>=2500&&n<2800;}).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${pitkaLainat ? rTotal('Pitkäaikainen vieras pääoma yhteensä', pitkaLainat) : ''}
+    ${rHdr('LYHYTAIKAINEN VIERAS PÄÄOMA')}
+    ${lk.lyhytVelatTilit.map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${rTotal('Lyhytaikainen vieras pääoma yhteensä', lyhytVelat)}
+    ${rTotal('VIERAS PÄÄOMA YHTEENSÄ', pitkaLainat+lyhytVelat)}
+    ${rTotal('VASTATTAVAA YHTEENSÄ', vastattavaaYht)}
+  </table>
+</div>
+
+<!-- SIVU 6: TULOSLASKELMA -->
+<div class="sivu">
+  <h2>Tuloslaskelma ${curTilikausiVuosi}</h2>
+  <table>
+    ${rHdr('LIIKEVAIHTO')}
+    ${tRange(3000,3899).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${rTotal('LIIKEVAIHTO', liikevaihto)}
+    ${muutTuotot ? r('Liiketoiminnan muut tuotot', muutTuotot, '') : ''}
+    ${rHdr('Materiaalit ja palvelut')}
+    ${tRange(4000,4499).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${tRange(4500,4999).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${rTotal('Materiaalit ja palvelut yhteensä', -materYht)}
+    ${rHdr('Henkilöstökulut')}
+    ${tRange(5000,5099).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${tRange(6100,6499).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${rTotal('Henkilöstökulut yhteensä', -henkYht)}
+    ${poistotYht ? rHdr('Poistot ja arvonalentumiset') : ''}
+    ${tRange(6800,6899).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${poistotYht ? rTotal('Poistot yhteensä', -poistotYht) : ''}
+    ${rHdr('Liiketoiminnan muut kulut')}
+    ${tRange(6500,6799).concat(tRange(7000,8649)).map(t => r(TILIT.find(tt=>tt.nro===t)?.lbl||t, -(ts[t]||0), 'indent')).join('')}
+    ${rTotal('Liiketoiminnan muut kulut yhteensä', -liiketMuutKulut)}
+    ${rTotal('LIIKEVOITTO (-TAPPIO)', liikevoitto)}
+    ${rahoitustuotot||rahoituskulut ? rHdr('Rahoitustuotot ja -kulut') : ''}
+    ${rahoitustuotot ? r('Rahoitustuotot', rahoitustuotot, 'indent') : ''}
+    ${rahoituskulut ? r('Rahoituskulut', -rahoituskulut, 'indent') : ''}
+    ${rTotal('VOITTO ENNEN VEROJA', voittoEnnenVeroja)}
+    ${tuloverot ? r('Tuloverot', -tuloverot, 'indent') : ''}
+    ${rTotal('TILIKAUDEN VOITTO (TAPPIO)', tulos)}
+  </table>
+</div>
+
+<!-- SIVU 7: LIITETIEDOT -->
+<div class="sivu">
+  <h2>Liitetiedot</h2>
   ${liitetiedot}
+</div>
 
-  <div style="margin-top:32pt">
-    <h2>ALLEKIRJOITUKSET</h2>
-    <div style="font-size:10pt;margin-bottom:16pt">Paikka ja aika: _____________, ${new Date().toLocaleDateString('fi-FI')}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24pt">
-      ${['Hallituksen puheenjohtaja','Hallituksen jäsen','Hallituksen jäsen','Toimitusjohtaja'].map(r=>`
-        <div style="margin-top:32pt">
-          <div style="border-top:0.5pt solid #1a1a1a;padding-top:4pt;font-size:9pt;color:#444">${r}</div>
-        </div>`).join('')}
-    </div>
+<!-- ALLEKIRJOITUKSET -->
+<div class="sivu">
+  <h2>Allekirjoitukset</h2>
+  <div style="font-size:10pt;margin-bottom:16pt">Paikka ja aika: _____________, ${new Date().toLocaleDateString('fi-FI')}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24pt">
+    ${['Hallituksen puheenjohtaja','Hallituksen jäsen','Hallituksen jäsen','Toimitusjohtaja'].map(rooli=>`
+      <div style="margin-top:40pt">
+        <div style="border-top:0.5pt solid #1a1a1a;padding-top:4pt;font-size:9pt;color:#444">${rooli}</div>
+      </div>`).join('')}
+  </div>
+  <div style="margin-top:32pt;font-size:9pt;color:#666">
+    Tilinpäätös on laadittu pien- ja mikroyrityksen tilinpäätöksessä esitettävistä tiedoista annetun valtioneuvoston asetuksen (1753/2015) mukaisesti.
   </div>
 </div>
 
