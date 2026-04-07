@@ -117,8 +117,27 @@ export async function POST(request: NextRequest) {
         olRivit.push({ ...base, tili: '2871', selite, saldo: -brutto, alv_prosentti: null })
 
         const { error: olErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(olRivit)
-        if (olErr) console.error('Sisäinen OL-tosite epäonnistui:', olErr.message)
-        else console.log('Sisäinen lasku luotu:', vastaanottaja.id, olNro, olRivit.length, 'riviä')
+        if (olErr) {
+          console.error('Sisäinen OL-tosite epäonnistui:', olErr.message)
+        } else {
+          console.log('Sisäinen lasku luotu:', vastaanottaja.id, olNro, olRivit.length, 'riviä')
+          // Kopioi myyntilaskun PDF ostolaskun liitteeksi
+          if (laskuData.tosite_pdf_path) {
+            const mlPolku = laskuData.tosite_pdf_path
+            const olPolku = vastaanottaja.id + '/tositteet/' + olNro + '/lasku.pdf'
+            const { data: fileData } = await supabaseAdmin!.storage.from('tositteet').download(mlPolku)
+            if (fileData) {
+              await supabaseAdmin!.storage.from('tositteet').upload(olPolku, fileData, { contentType: 'application/pdf', upsert: true })
+              await supabaseAdmin!.from('ppr_tosite_liitteet').insert({
+                asiakas_id: vastaanottaja.id,
+                tosite_nro: olNro,
+                tiedostonimi: olNro + '.pdf',
+                storage_path: olPolku,
+                koko_bytes: 0,
+              })
+            }
+          }
+        }
       }
     }
 
