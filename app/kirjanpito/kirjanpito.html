@@ -6729,6 +6729,7 @@ function mlNayta(id) {
 
 let mlAsiakkaatLista = [];
 let mlValittuAsiakasId = null;
+let mlValittuAsiakas = null;
 
 async function lataaMlAsiakkaat() {
   if (!curYritys) return;
@@ -6774,6 +6775,7 @@ function mlHaeAsiakkaatDropdown(haku) {
 
 function mlValitseAsiakasDD(id, nimi) {
   mlValittuAsiakasId = id;
+  mlValittuAsiakas = mlAsiakkaatLista.find(a => a.id === id) || null;
   document.getElementById('ml-asiakas').value = nimi;
   document.getElementById('ml-asiakas-dd').style.display = 'none';
 }
@@ -6868,6 +6870,11 @@ async function mlTallenna(tila) {
   try {
     const res = await fetch('/api/ppr/myyntilaskut', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
       kirjanpitoasiakas_id:curYritys.id, asiakas_id:mlValittuAsiakasId, lasku_nro:nro, viite, asiakas_nimi:asiakas,
+      asiakas_ovt_tunnus:mlValittuAsiakas?.ovt_tunnus || null,
+      asiakas_ytunnus:mlValittuAsiakas?.ytunnus || null,
+      asiakas_osoite:mlValittuAsiakas?.katuosoite || null,
+      asiakas_postinro:mlValittuAsiakas?.postinro || null,
+      asiakas_kaupunki:mlValittuAsiakas?.kaupunki || null,
       pvm:document.getElementById('ml-pvm')?.value, erapv:document.getElementById('ml-era')?.value,
       laskutuskausi:document.getElementById('ml-kausi')?.value, tila, summa_brutto, summa_netto, rivit
     })});
