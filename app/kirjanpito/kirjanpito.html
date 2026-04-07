@@ -318,7 +318,8 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     <div class="nav-group">
       <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Ostot</span><span class="nav-arrow">›</span></div>
       <div class="nav-group-items" style="display:none">
-        <div style="padding:6px 24px;font-size:11px;color:rgba(255,255,255,.25)">Tulossa myöhemmin</div>
+        <div class="nav-item nav-sub" id="nav-ostolaskut" onclick="showPanel('ostolaskut')">Ostolaskut</div>
+        <div class="nav-item nav-sub" id="nav-toimittajat" onclick="showPanel('toimittajat');lataaToimittajat()">Toimittajarekisteri</div>
       </div>
     </div>
 
@@ -879,6 +880,57 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
         <!-- Progress -->
         <div style="margin-top:14px;font-size:11px;color:var(--inf);text-align:center" id="vt-progress"></div>
+      </div>
+    </div>
+
+    <!-- OSTOLASKUT PANEL -->
+    <div id="panel-ostolaskut" class="panel">
+      <h2>Ostolaskut</h2>
+      <div class="panel-sub">Saapuneet ostolaskut — tarkistus ja hyväksyntä</div>
+      <div style="padding:40px;text-align:center;color:var(--inu);font-size:13px">Tulossa pian — ostolaskujen hyväksyntäkierto</div>
+    </div>
+
+    <!-- TOIMITTAJAT PANEL -->
+    <div id="panel-toimittajat" class="panel" style="overflow:hidden;padding:0">
+      <div style="display:grid;grid-template-columns:340px 1fr;height:100%;overflow:hidden">
+        <!-- VASEN: toimittajalista -->
+        <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:16px 14px 10px">
+            <h2 style="font-size:16px;margin-bottom:4px">Toimittajarekisteri</h2>
+            <input id="tmv-search" type="text" placeholder="Hae toimittajaa..." oninput="tmvHae(this.value)" style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--bd);border-radius:6px;outline:none;margin-top:8px">
+          </div>
+          <div id="tmv-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
+        </div>
+        <!-- OIKEA: toimittajan tiedot -->
+        <div style="overflow-y:auto;padding:24px">
+          <div id="tmv-ei-valittu" style="text-align:center;padding:60px;color:var(--inu);font-size:13px">Valitse toimittaja vasemmalta</div>
+          <div id="tmv-tiedot" style="display:none">
+            <h3 id="tmv-nimi" style="font-size:18px;margin-bottom:4px"></h3>
+            <div id="tmv-ytunnus" style="font-size:12px;color:var(--inu);margin-bottom:16px"></div>
+            <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:16px">
+              <div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Kirjausasetukset tälle asiakkaalle</div>
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+                <label style="font-size:12px;color:var(--inm);width:80px">Oletustili</label>
+                <input id="tmv-tili" type="text" placeholder="esim. 4000" style="width:100px;padding:6px 8px;font-size:13px;border:1px solid var(--bd);border-radius:5px;font-family:var(--ffm)">
+                <span id="tmv-tili-nimi" style="font-size:11px;color:var(--inu)"></span>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+                <label style="font-size:12px;color:var(--inm);width:80px">ALV %</label>
+                <select id="tmv-alv" style="padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:5px">
+                  <option value="25.5">25,5%</option>
+                  <option value="14">14%</option>
+                  <option value="10">10%</option>
+                  <option value="0">0%</option>
+                </select>
+              </div>
+              <button onclick="tmvTallenna()" style="padding:7px 18px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna asetukset</button>
+            </div>
+            <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:16px">
+              <div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Globaali tilasto — kaikki PPR-asiakkaat</div>
+              <div id="tmv-globaali" style="font-size:12px;color:var(--inm)"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
