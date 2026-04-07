@@ -100,10 +100,6 @@ export async function POST(request: NextRequest) {
           alvRyhmat[alvP].alv += rAlv
         })
 
-        const olRivit: any[] = []
-        const selite = 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro
-        const base = { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, luonut_kayttaja_id: kayttaja?.id ?? null }
-
         // Hae toimittajan oletus kirjaustili
         let ostoTili = '4000'
         // Hae lähettäjä toimittajarekisteristä OVT-tunnuksella (yksilöivin tunniste)
@@ -147,39 +143,41 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        olRivit.push({ ...base, tili: ostoTili, selite, saldo: Math.round(kokonaisNetto * 100) / 100, alv_prosentti: null })
+        // Luo ostolasku hyväksyntäkiertoon suoran kirjauksen sijaan
+        const { data: olData, error: olErr } = await supabaseAdmin!
+          .from('ppr_ostolaskut')
+          .insert({
+            kirjanpitoasiakas_id: vastaanottaja.id,
+            toimittaja_nimi: lasku.asiakas_nimi || 'Tuntematon',
+            toimittaja_id: toimittaja?.id || null,
+            lasku_nro: tositeNro,
+            pvm: lasku.pvm,
+            erapv: lasku.erapv || null,
+            viite: lasku.viite || null,
+            summa_netto: Math.round(kokonaisNetto * 100) / 100,
+            summa_alv: Math.round((brutto - kokonaisNetto) * 100) / 100,
+            summa_brutto: brutto,
+            tila: 'saapunut',
+            tosite_pdf_path: null,
+          })
+          .select('id')
+          .single()
 
-        Object.entries(alvRyhmat).forEach(([alvP, summat]) => {
-          const alvNum = Number(alvP)
-          const alvTili = alvTilit[alvNum]
-          if (alvTili && summat.alv > 0.01) {
-            olRivit.push({ ...base, tili: alvTili, selite: selite + ' ALV ' + alvP + '%', saldo: Math.round(summat.alv * 100) / 100, alv_prosentti: alvNum })
-          }
-        })
-
-        olRivit.push({ ...base, tili: '2871', selite, saldo: -brutto, alv_prosentti: null })
-
-        const { error: olErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(olRivit)
         if (olErr) {
-          console.error('Sisäinen OL-tosite epäonnistui:', olErr.message)
+          console.error('Ostolasku insert epäonnistui:', olErr.message)
         } else {
-          console.log('Sisäinen lasku luotu:', vastaanottaja.id, olNro, olRivit.length, 'riviä')
-          // Kopioi myyntilaskun PDF ostolaskun liitteeksi
-          if (laskuData.tosite_pdf_path) {
-            const mlPolku = laskuData.tosite_pdf_path
-            const olPolku = vastaanottaja.id + '/tositteet/' + olNro + '/lasku.pdf'
-            const { data: fileData } = await supabaseAdmin!.storage.from('tositteet').download(mlPolku)
-            if (fileData) {
-              await supabaseAdmin!.storage.from('tositteet').upload(olPolku, fileData, { contentType: 'application/pdf', upsert: true })
-              await supabaseAdmin!.from('ppr_tosite_liitteet').insert({
-                asiakas_id: vastaanottaja.id,
-                tosite_nro: olNro,
-                tiedostonimi: olNro + '.pdf',
-                storage_path: olPolku,
-                koko_bytes: 0,
-              })
-            }
-          }
+          // Tallenna rivit
+          const olRivitInsert = Object.entries(alvRyhmat).map(([alvP, summat]) => ({
+            lasku_id: olData.id,
+            selite: 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro,
+            tili: alvTilit[Number(alvP)] ? '4000' : '4000',
+            alv_prosentti: Number(alvP),
+            netto: Math.round(summat.netto * 100) / 100,
+            alv: Math.round(summat.alv * 100) / 100,
+            brutto: Math.round((summat.netto + summat.alv) * 100) / 100,
+          }))
+          await supabaseAdmin!.from('ppr_ostolasku_rivit').insert(olRivitInsert)
+          console.log('Ostolasku luotu hyväksyntäkiertoon:', olData.id)
         }
       }
     }
