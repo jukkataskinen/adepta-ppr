@@ -104,7 +104,44 @@ export async function POST(request: NextRequest) {
         const selite = 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro
         const base = { asiakas_id: vastaanottaja.id, tosite_nro: olNro, paivamaara: lasku.pvm, luonut_kayttaja_id: kayttaja?.id ?? null }
 
-        olRivit.push({ ...base, tili: '4000', selite, saldo: Math.round(kokonaisNetto * 100) / 100, alv_prosentti: null })
+        // Hae toimittajan oletus kirjaustili
+        let ostoTili = '4000'
+        const { data: toimittaja } = await supabaseAdmin!
+          .from('ppr_toimittajat')
+          .select('id, ppr_toimittaja_oletukset(tili, kayttokerrat)')
+          .eq('ytunnus', lasku.kirjanpitoasiakas_ytunnus || '')
+          .maybeSingle()
+
+        if (toimittaja) {
+          // Asiakaskohtainen oletus
+          const asiakasOletus = (toimittaja.ppr_toimittaja_oletukset as any[])
+            ?.find((o: any) => o.kirjanpitoasiakas_id === vastaanottaja.id)
+          // Globaali oletus (eniten käytetty)
+          const globaaliOletus = (toimittaja.ppr_toimittaja_oletukset as any[])
+            ?.sort((a: any, b: any) => b.kayttokerrat - a.kayttokerrat)[0]
+          ostoTili = asiakasOletus?.tili || globaaliOletus?.tili || '4000'
+
+          // Päivitä käyttökerrat
+          await supabaseAdmin!.from('ppr_toimittaja_tilastot')
+            .upsert({ toimittaja_id: toimittaja.id, tili: ostoTili, kayttokerrat: 1 }, { onConflict: 'toimittaja_id,tili' })
+        } else if (lasku.kirjanpitoasiakas_ytunnus) {
+          // Luo toimittaja automaattisesti
+          const { data: uusiToimittaja } = await supabaseAdmin!
+            .from('ppr_toimittajat')
+            .insert({
+              nimi: lasku.asiakas_nimi,
+              ytunnus: lasku.kirjanpitoasiakas_ytunnus,
+              ovt_tunnus: lasku.asiakas_ovt_tunnus || null,
+            })
+            .select('id')
+            .single()
+          if (uusiToimittaja) {
+            await supabaseAdmin!.from('ppr_toimittaja_tilastot')
+              .insert({ toimittaja_id: uusiToimittaja.id, tili: '4000', kayttokerrat: 1 })
+          }
+        }
+
+        olRivit.push({ ...base, tili: ostoTili, selite, saldo: Math.round(kokonaisNetto * 100) / 100, alv_prosentti: null })
 
         Object.entries(alvRyhmat).forEach(([alvP, summat]) => {
           const alvNum = Number(alvP)
