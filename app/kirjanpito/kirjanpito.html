@@ -9278,16 +9278,21 @@ function renderTilinpaatos() {
         <div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Valitse liitetiedot mukaan</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           ${[
-            {id:'laadinta', nimi:'Laadintaperiaatteet', pakko:true},
-            {id:'hlot', nimi:'Henkilöstö', pakko:true},
-            {id:'johto', nimi:'Johdon palkat ja palkkiot', pakko:false},
-            {id:'hallitus', nimi:'Hallituksen jäsenet', pakko:false},
-            {id:'poistot_lt', nimi:'Poistomenetelmät', pakko:false},
-            {id:'pitkavelat', nimi:'Pitkäaikaiset velat (yli 5v)', pakko:false},
-            {id:'vakuudet', nimi:'Vakuudet ja vastuusitoumukset', pakko:false},
-            {id:'lahipiiri', nimi:'Lähipiirin liiketoimet', pakko:false},
-            {id:'lv_erittely', nimi:'Liikevaihdon erittely', pakko:false},
-          ].map(lt => `
+            {id:'laadinta', nimi:'Laadintaperiaatteet', pakko:true, kaikki:true},
+            {id:'hlot', nimi:'Henkilöstö', pakko:true, kaikki:true},
+            {id:'jalkeiset', nimi:'Tilikauden jälkeiset tapahtumat', pakko:true, kaikki:true},
+            {id:'pitkavelat', nimi:'Pitkäaikaiset lainat (yli 5v)', pakko:false, kaikki:true},
+            {id:'vakuudet', nimi:'Vakuudet ja vastuusitoumukset', pakko:false, kaikki:true},
+            {id:'omistukset', nimi:'Omistukset muissa yrityksissä', pakko:false, kaikki:true},
+            {id:'poikkeukset', nimi:'Poikkeukselliset erät', pakko:false, kaikki:true},
+            {id:'omapaaoma', nimi:'Oman pääoman erittely', pakko:true, oy:true},
+            {id:'voitonjako', nimi:'Hallituksen esitys voitonjaosta', pakko:true, oy:true},
+            {id:'johtolainar', nimi:'Lainat johdolle ja hallitukselle', pakko:false, oy:true},
+            {id:'omat_osakkeet', nimi:'Omien osakkeiden hankinnat', pakko:false, oy:true},
+            {id:'lahipiiri', nimi:'Lähipiirin liiketoimet', pakko:false, kaikki:true},
+            {id:'lv_erittely', nimi:'Liikevaihdon erittely', pakko:false, kaikki:true},
+            {id:'toimintakertomus', nimi:'Toimintakertomusta vastaavat tiedot (PMA 3:13)', pakko:false, kaikki:true},
+          ].filter(lt => lt.kaikki || (lt.oy && (curYritys?.yhtiomuoto || 'oy') === 'oy' || (curYritys?.yhtiomuoto || '') === 'oyj')).map(lt => `
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--pp)">
               <input type="checkbox" id="tp-lt-${lt.id}" ${lt.pakko ? 'checked disabled' : 'checked'}
                 onchange="tpPaivitaLiitetiedot()" style="width:14px;height:14px">
@@ -9321,6 +9326,8 @@ function tpPaivitaLiitetiedot() {
   if (!el) return;
   const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
   const nayta = id => document.getElementById('tp-lt-'+id)?.checked;
+  const yhtiomuoto = curYritys?.yhtiomuoto || 'oy';
+  const onOy = yhtiomuoto === 'oy' || yhtiomuoto === 'oyj';
   const lk = laskeKirjanpito(rptRows);
   const arvioHlot = Math.max(1, [...new Set(rptRows.filter(r=>r.d?.startsWith('5')).map(r=>r.selite))].length || 1);
   const johtopalkat = Math.abs(lk.tiliSaldot['5010'] || lk.tiliSaldot['5001'] || 0);
@@ -9404,6 +9411,56 @@ function tpPaivitaLiitetiedot() {
           placeholder="Liikevaihto toimialoittain tai alueittain..."></textarea>
       </div>
     </div>`;
+
+  if (nayta('jalkeiset')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">Tilikauden jälkeiset olennaiset tapahtumat</div>
+      <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+        placeholder="Kuvaa tilikauden päättymisen jälkeen tapahtuneet olennaiset muutokset..."></textarea>
+    </div>`;
+
+  if (nayta('omapaaoma') && onOy) {
+    const op = lk.omaPaaomaTilit.reduce((s,t) => s-(lk.tiliSaldot[t]||0), 0);
+    html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:8px">Oman pääoman erittely</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--inm)">Osakepääoma</td><td style="text-align:right;font-family:var(--ffm)">${fmt(lk.tiliSaldot['2000']||0)} €</td></tr>
+        <tr style="border-bottom:1px solid var(--bd)"><td style="padding:4px 0;color:var(--inm)">Edellisten tilikausien voitto/tappio</td><td style="text-align:right;font-family:var(--ffm)">${fmt(op)} €</td></tr>
+        <tr style="border-bottom:2px solid var(--ink)"><td style="padding:4px 0;color:var(--inm)">Tilikauden voitto/tappio</td><td style="text-align:right;font-family:var(--ffm)">${fmt(lk.tulos)} €</td></tr>
+        <tr><td style="padding:6px 0;font-weight:bold">Oma pääoma yhteensä</td><td style="text-align:right;font-family:var(--ffm);font-weight:bold">${fmt(lk.omaPaaoma)} €</td></tr>
+      </table>
+    </div>`;
+  }
+
+  if (nayta('voitonjako') && onOy) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">Hallituksen esitys voitonjaosta</div>
+      <div style="font-size:12px;color:var(--inm)">
+        Hallitus esittää, että tilikauden voitto <strong>${fmt(lk.tulos)} €</strong> käsitellään seuraavasti:<br>
+        <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px;margin-top:8px"
+          placeholder="Esim: Jaetaan osinkona 0,00 € / Siirretään edellisten tilikausien voittotilille"></textarea>
+      </div>
+    </div>`;
+
+  if (nayta('omistukset')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">Omistukset muissa yrityksissä</div>
+      <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:60px"
+        placeholder="Ilmoita omistukset joissa osuus yli 20%..."></textarea>
+    </div>`;
+
+  if (nayta('toimintakertomus')) html += `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:bold;margin-bottom:6px">Toimintakertomusta vastaavat tiedot (PMA 3:13)</div>
+      <textarea style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;height:100px"
+        placeholder="Kuvaa toiminnan kehittymistä, merkittäviä riskejä ja epävarmuustekijöitä..."></textarea>
+    </div>`;
+
+  // Pakollinen PMA-maininta loppuun
+  html += `<div style="margin-top:16px;padding:10px;background:var(--ppw);border-radius:6px;font-size:11px;color:var(--inu)">
+    Tilinpäätös on laadittu pien- ja mikroyrityksen tilinpäätöksessä esitettävistä tiedoista annetun valtioneuvoston asetuksen (1753/2015) mukaisesti.
+  </div>`;
 
   el.innerHTML = html;
 }
