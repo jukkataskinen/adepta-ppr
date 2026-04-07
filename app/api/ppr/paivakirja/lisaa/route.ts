@@ -19,6 +19,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'rivit vaaditaan' }, { status: 400 })
   }
 
+  // Tarkista tasapaino tositteittain
+  const tositeSummat: Record<string, number> = {}
+  rivit.forEach((r: any) => {
+    const nro = r.tosite_nro || 'default'
+    if (!tositeSummat[nro]) tositeSummat[nro] = 0
+    tositeSummat[nro] += Number(r.saldo)
+  })
+  const epatasapainot = Object.entries(tositeSummat)
+    .filter(([_, s]) => Math.abs(s) > 0.01)
+    .map(([nro, s]) => `${nro}: ${s.toFixed(2)}`)
+  if (epatasapainot.length > 0) {
+    return NextResponse.json({
+      error: 'Tositteet eivät täsmää: ' + epatasapainot.join(', ')
+    }, { status: 400 })
+  }
+
   const insert = rivit.map((r: any) => ({
     asiakas_id: r.asiakas_id,
     tosite_nro: r.tosite_nro ?? null,
