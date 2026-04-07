@@ -1013,6 +1013,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button class="rpt-tab act" onclick="showRpt('tulos',this)">Tuloslaskelma</button>
         <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
         <button class="rpt-tab" onclick="showRpt('alv',this)">ALV-laskelma</button>
+        <button class="rpt-tab" onclick="showRpt('tilinpaatos',this)">Tilinpäätös</button>
       </div>
       <div id="rpt-period-sel" style="display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:13px">
         <label><input type="radio" name="rptPeriod" value="vuosi" checked onchange="setRptPeriod('vuosi')"> Vuosi</label>
@@ -1034,6 +1035,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button onclick="setRptVuosi(new Date().getFullYear()-1)" style="padding:4px 10px;font-size:12px;border:1px solid var(--bd);border-radius:5px;cursor:pointer;background:var(--pp)">Edellinen vuosi (2025)</button>
       </div>
       <div id="rpt-content"></div>
+      <div id="rpt-tilinpaatos" style="display:none"></div>
     </div>
 
     <!-- ─── TILIKARTTA PANEL ─── -->
@@ -2840,7 +2842,17 @@ function showRpt(name, btn) {
   document.querySelectorAll('.rpt-tab').forEach(b => b.classList.remove('act'));
   if (btn) btn.classList.add('act');
   document.getElementById('rpt-period-sel').style.display = name === 'tulos' ? 'flex' : 'none';
-  renderRpt(name);
+  const tpEl = document.getElementById('rpt-tilinpaatos');
+  const cEl = document.getElementById('rpt-content');
+  if (name === 'tilinpaatos') {
+    if (tpEl) tpEl.style.display = 'block';
+    if (cEl) cEl.style.display = 'none';
+    renderTilinpaatos();
+  } else {
+    if (tpEl) tpEl.style.display = 'none';
+    if (cEl) cEl.style.display = 'block';
+    renderRpt(name);
+  }
 }
 function setRptPeriod(p) {
   rptPeriod = p;
@@ -9122,6 +9134,158 @@ async function tmvTallenna() {
       toast('Virhe: ' + (j.error || ''));
     }
   } catch(e) { toast('Virhe: ' + e.message); }
+}
+
+// ── TILINPÄÄTÖS ──────────────────────────────────────────────
+function renderTilinpaatos() {
+  if (!curYritys || !rows || !rows.length) {
+    document.getElementById('rpt-tilinpaatos').innerHTML = '<div style="padding:40px;text-align:center;color:var(--inu)">Ei kirjanpitodataa</div>';
+    return;
+  }
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const tiliSumma = (alku, loppu) => rows
+    .filter(r => { const n = parseInt(r.d || r.k); return n >= alku && n <= loppu; })
+    .reduce((s, r) => s + (r.d ? r.netto : -r.netto), 0);
+
+  // Tuloslaskelma-erät
+  const lv = Math.abs(tiliSumma(3000, 3899));
+  const muuttuotot = Math.abs(tiliSumma(3900, 3999));
+  const aineet = Math.abs(tiliSumma(4000, 4999));
+  const palkat = Math.abs(tiliSumma(5000, 5099));
+  const elake = Math.abs(tiliSumma(6100, 6199));
+  const sivukulut = Math.abs(tiliSumma(6200, 6499));
+  const poistot = Math.abs(tiliSumma(6800, 6899));
+  const korkotuotot = Math.abs(tiliSumma(7600, 7699));
+  const korkokulut = Math.abs(tiliSumma(7800, 7899));
+  const muutkulut = Math.abs(tiliSumma(6500, 6799)) + Math.abs(tiliSumma(7000, 7599));
+  const kulutYht = aineet + palkat + elake + sivukulut + muutkulut + poistot;
+  const liikevoitto = lv + muuttuotot - kulutYht;
+  const tulos = liikevoitto + korkotuotot - korkokulut;
+
+  // Tase-erät
+  const ainPaoma = Math.abs(tiliSumma(1000, 1199));
+  const kalusto = Math.abs(tiliSumma(1200, 1599));
+  const muutPitka = Math.abs(tiliSumma(1600, 1699));
+  const saamiset = Math.abs(tiliSumma(1700, 1899));
+  const rahat = Math.abs(tiliSumma(1900, 1999));
+  const vastaavaaYht = ainPaoma + kalusto + muutPitka + saamiset + rahat;
+  const omaPoama = Math.abs(tiliSumma(2000, 2099));
+  const edVoitto = Math.abs(tiliSumma(2100, 2199));
+  const vieras = Math.abs(tiliSumma(2800, 2999));
+  const vastattavaaYht = omaPoama + edVoitto + Math.abs(tulos) + vieras;
+
+  // Henkilömäärä palkkatileiltä
+  const palkkaKpl = rows.filter(r => parseInt(r.d||r.k) >= 5000 && parseInt(r.d||r.k) <= 5099).length;
+  const arvioHlot = Math.max(1, Math.round(palkkaKpl / 12));
+
+  const el = document.getElementById('rpt-tilinpaatos');
+  el.innerHTML = `
+    <div style="max-width:800px;margin:0 auto;padding:32px 24px;font-family:Georgia,serif">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="font-size:22px;font-weight:bold;color:var(--ink)">${curYritys.nimi}</div>
+        <div style="font-size:14px;color:var(--inu);margin-top:4px">Tilinpäätös ${curTilikausiVuosi}</div>
+        <div style="font-size:12px;color:var(--inu)">1.1.${curTilikausiVuosi} – 31.12.${curTilikausiVuosi}</div>
+      </div>
+
+      <div style="font-size:16px;font-weight:bold;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:16px">TULOSLASKELMA</div>
+      ${tpRivi('LIIKEVAIHTO', lv, false, true)}
+      ${lv > 0 && muuttuotot > 0 ? tpRivi('Muut tuotot', muuttuotot) : ''}
+      ${aineet > 0 ? tpRivi('Aineet ja tarvikkeet', -aineet) : ''}
+      ${palkat > 0 ? tpRivi('Palkat ja palkkiot', -palkat) : ''}
+      ${elake > 0 ? tpRivi('Eläkekulut', -elake) : ''}
+      ${sivukulut > 0 ? tpRivi('Muut henkilösivukulut', -sivukulut) : ''}
+      ${muutkulut > 0 ? tpRivi('Liiketoiminnan muut kulut', -muutkulut) : ''}
+      ${poistot > 0 ? tpRivi('Poistot', -poistot) : ''}
+      <div style="border-top:1px solid var(--bd);margin:4px 0"></div>
+      ${tpRivi('LIIKEVOITTO (-TAPPIO)', liikevoitto, true, true)}
+      ${korkotuotot > 0 ? tpRivi('Korkotuotot', korkotuotot) : ''}
+      ${korkokulut > 0 ? tpRivi('Korkokulut', -korkokulut) : ''}
+      <div style="border-top:2px solid var(--ink);margin:4px 0"></div>
+      ${tpRivi('TILIKAUDEN VOITTO (TAPPIO)', tulos, true, true)}
+
+      <div style="font-size:16px;font-weight:bold;border-bottom:2px solid var(--ink);padding-bottom:6px;margin:32px 0 16px">TASE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+        <div>
+          <div style="font-weight:bold;margin-bottom:8px;font-size:13px">VASTAAVAA</div>
+          <div style="font-size:11px;font-weight:bold;color:var(--inu);text-transform:uppercase;margin-bottom:4px">Pysyvät vastaavat</div>
+          ${ainPaoma > 0 ? tpRivi('Aineettomat hyödykkeet', ainPaoma) : ''}
+          ${kalusto > 0 ? tpRivi('Aineelliset hyödykkeet', kalusto) : ''}
+          <div style="font-size:11px;font-weight:bold;color:var(--inu);text-transform:uppercase;margin:8px 0 4px">Vaihtuvat vastaavat</div>
+          ${saamiset > 0 ? tpRivi('Saamiset', saamiset) : ''}
+          ${rahat > 0 ? tpRivi('Rahat ja pankkisaamiset', rahat) : ''}
+          <div style="border-top:2px solid var(--ink);margin:4px 0"></div>
+          ${tpRivi('Vastaavaa yhteensä', vastaavaaYht, true, true)}
+        </div>
+        <div>
+          <div style="font-weight:bold;margin-bottom:8px;font-size:13px">VASTATTAVAA</div>
+          <div style="font-size:11px;font-weight:bold;color:var(--inu);text-transform:uppercase;margin-bottom:4px">Oma pääoma</div>
+          ${omaPoama > 0 ? tpRivi('Osakepääoma / peruspääoma', omaPoama) : ''}
+          ${edVoitto > 0 ? tpRivi('Edellisten tilikausien voitto', edVoitto) : ''}
+          ${tpRivi('Tilikauden voitto (tappio)', tulos)}
+          <div style="font-size:11px;font-weight:bold;color:var(--inu);text-transform:uppercase;margin:8px 0 4px">Vieras pääoma</div>
+          ${vieras > 0 ? tpRivi('Lyhytaikainen vieras pääoma', vieras) : ''}
+          <div style="border-top:2px solid var(--ink);margin:4px 0"></div>
+          ${tpRivi('Vastattavaa yhteensä', vastattavaaYht, true, true)}
+        </div>
+      </div>
+
+      <div style="font-size:16px;font-weight:bold;border-bottom:2px solid var(--ink);padding-bottom:6px;margin:32px 0 16px">LIITETIEDOT</div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-weight:bold;margin-bottom:6px">1. Laadintaperiaatteet</div>
+        <div style="font-size:12px;color:var(--inm);line-height:1.7">
+          Tilinpäätös on laadittu suomalaisen kirjanpitolain ja kirjanpitolautakunnan ohjeiden mukaisesti.
+          Arvostus on tehty hankintamenoon. Poistot on laskettu suunnitelman mukaisina tasapoistoina.
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-weight:bold;margin-bottom:6px">2. Henkilöstö</div>
+        <div style="font-size:12px;color:var(--inm)">
+          Henkilöstön keskimääräinen lukumäärä tilikauden aikana: <strong>${arvioHlot}</strong> henkilöä.
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-weight:bold;margin-bottom:6px">3. Hallituksen allekirjoitukset</div>
+        <div style="font-size:12px;color:var(--inm);margin-bottom:24px">
+          Paikka ja aika: _____________, ${new Date().toLocaleDateString('fi-FI')}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px">
+          ${['Hallituksen puheenjohtaja','Hallituksen jäsen','Hallituksen jäsen','Toimitusjohtaja'].map(r => `
+            <div>
+              <div style="border-top:1px solid var(--ink);padding-top:4px;font-size:11px;color:var(--inu)">${r}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div style="margin-top:32px;text-align:center">
+        <button onclick="tpTulosta()" style="padding:10px 24px;font-size:13px;font-weight:500;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Tulosta tilinpäätös</button>
+      </div>
+    </div>
+  `;
+}
+
+function tpRivi(nimi, arvo, bold, iso) {
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const neg = arvo < 0;
+  return `<div style="display:flex;justify-content:space-between;padding:${iso?'5px 0':'3px 0'};font-size:${iso?'13px':'12px'};${bold?'font-weight:bold;':''}border-bottom:${bold?'1px solid var(--bd)':'none'}">
+    <span style="color:var(--inm)">${nimi}</span>
+    <span style="font-family:var(--ffm);color:${neg?'var(--red)':'var(--ink)'}">${neg?'-':''}${fmt(Math.abs(arvo))}</span>
+  </div>`;
+}
+
+function tpTulosta() {
+  const el = document.getElementById('rpt-tilinpaatos');
+  if (!el) return;
+  const w = window.open('', '_blank');
+  w.document.write('<html><head><title>Tilinpäätös</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px}@media print{button{display:none}}</style></head><body>');
+  w.document.write(el.innerHTML);
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(() => w.print(), 500);
 }
 </script>
 </body>
