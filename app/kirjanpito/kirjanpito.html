@@ -6605,8 +6605,10 @@ function lataaEtusivu() {
       const vF = Math.max(100-ovAste, 5);
       return '<div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center">' +
         '<div style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px">Omavaraisuusaste</div>' +
-        '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+oVari+'">'+ovAste.toFixed(1).replace('.',',')+' %</div>' +
-        '<div style="font-size:11px;color:'+oVari+';opacity:.8;margin-bottom:10px">'+oSelite+'</div>' +
+        '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">' +
+          '<div style="font-size:22px;font-weight:300;font-family:var(--ffd);color:'+oVari+'">'+ovAste.toFixed(1).replace('.',',')+' %</div>' +
+          '<div style="font-size:11px;color:'+oVari+';opacity:.8">'+oSelite+'</div>' +
+        '</div>' +
         '<div style="display:flex;gap:12px;align-items:flex-end;height:'+bH+'px;margin-bottom:6px">' +
           '<div style="display:flex;flex-direction:column;align-items:center;width:'+bW+'px">' +
             '<div style="background:var(--fg);width:'+bW+'px;height:'+bH+'px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff">' +
