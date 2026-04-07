@@ -1883,11 +1883,12 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
+  if (name === 'toimittajat') lataaToimittajat();
   if (name === 'tosite') paivitaTositeNro();
   if (name === 'raportit') {
     const rptSub = document.getElementById('rpt-sub');
@@ -9027,6 +9028,100 @@ async function tuoJournalData() {
   btn.textContent = 'Tuo päiväkirja →';
   await lataaRivit(curYritys.id);
   toast('Tuonti valmis — ' + tuotu + ' tositetta tuotu' + (virheet ? ', ' + virheet + ' epäonnistui' : ''));
+}
+
+// ── TOIMITTAJAREKISTERI ──────────────────────────────────────────
+let tmvToimittajat = [];
+let tmvValittu = null;
+
+async function lataaToimittajat() {
+  if (!curYritys) return;
+  try {
+    const res = await fetch('/api/ppr/toimittajat?kirjanpitoasiakas_id=' + curYritys.id);
+    if (res.ok) tmvToimittajat = await res.json();
+  } catch(e) { console.warn('lataaToimittajat:', e); }
+  tmvRenderLista();
+}
+
+function tmvHae(haku) {
+  const q = (haku||'').toLowerCase();
+  const lista = q ? tmvToimittajat.filter(t => (t.nimi||'').toLowerCase().includes(q)) : tmvToimittajat;
+  tmvRenderLista(lista);
+}
+
+function tmvRenderLista(lista) {
+  const data = lista || tmvToimittajat;
+  const el = document.getElementById('tmv-lista');
+  if (!el) return;
+  el.innerHTML = data.map(t => {
+    const akt = tmvValittu?.id === t.id;
+    const oletus = t.oletus?.tili || '4000';
+    return `<div onclick="tmvNayta('${t.id}')" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid ${akt?'rgba(29,158,117,.2)':'transparent'};background:${akt?'var(--fmist)':''};margin-bottom:2px">
+      <div style="font-family:var(--ffm);font-weight:600;color:var(--fl);font-size:13px">${t.nimi||''}</div>
+      <div style="font-size:10px;color:var(--inu);margin-top:2px">${t.ytunnus||''} · Tili: ${oletus}</div>
+    </div>`;
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--inu);font-size:12px">Ei toimittajia</div>';
+}
+
+function tmvNayta(id) {
+  tmvValittu = tmvToimittajat.find(t => t.id === id) || null;
+  tmvRenderLista();
+  if (!tmvValittu) return;
+  document.getElementById('tmv-ei-valittu').style.display = 'none';
+  document.getElementById('tmv-tiedot').style.display = 'block';
+  document.getElementById('tmv-nimi').textContent = tmvValittu.nimi || '';
+  document.getElementById('tmv-ytunnus').textContent = (tmvValittu.ytunnus ? 'Y-tunnus: ' + tmvValittu.ytunnus : '') + (tmvValittu.ovt_tunnus ? ' · OVT: ' + tmvValittu.ovt_tunnus : '');
+  document.getElementById('tmv-tili').value = tmvValittu.oletus?.tili || '4000';
+  document.getElementById('tmv-alv').value = tmvValittu.oletus?.alv_prosentti || '25.5';
+
+  // Päivitä tilin nimi
+  const tiliInfo = TILIT.find(t => t.nro === (tmvValittu.oletus?.tili || '4000'));
+  document.getElementById('tmv-tili-nimi').textContent = tiliInfo?.lbl || '';
+
+  // Globaali tilasto
+  const tilastot = tmvValittu.ppr_toimittaja_tilastot || [];
+  const globEl = document.getElementById('tmv-globaali');
+  if (globEl) {
+    if (tilastot.length) {
+      globEl.innerHTML = tilastot.sort((a,b) => b.kayttokerrat - a.kayttokerrat).map(s =>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bd)">
+          <span style="font-family:var(--ffm);color:var(--fl)">${s.tili}</span>
+          <span style="color:var(--inu)">${s.kayttokerrat} käyttökertaa</span>
+        </div>`
+      ).join('');
+    } else {
+      globEl.innerHTML = '<span style="color:var(--inu)">Ei tilastoja vielä</span>';
+    }
+  }
+}
+
+async function tmvTallenna() {
+  if (!tmvValittu || !curYritys) return;
+  const tili = document.getElementById('tmv-tili')?.value?.trim();
+  const alv = document.getElementById('tmv-alv')?.value;
+  if (!tili) { toast('Syötä tili'); return; }
+  try {
+    const res = await fetch('/api/ppr/toimittajat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        id: tmvValittu.id,
+        nimi: tmvValittu.nimi,
+        ytunnus: tmvValittu.ytunnus,
+        kirjanpitoasiakas_id: curYritys.id,
+        tili,
+        alv_prosentti: parseFloat(alv) || 25.5,
+      })
+    });
+    if (res.ok) {
+      toast('Asetukset tallennettu');
+      await lataaToimittajat();
+      tmvNayta(tmvValittu.id);
+    } else {
+      const j = await res.json();
+      toast('Virhe: ' + (j.error || ''));
+    }
+  } catch(e) { toast('Virhe: ' + e.message); }
 }
 </script>
 </body>
