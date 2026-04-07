@@ -1014,6 +1014,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <button class="rpt-tab" onclick="showRpt('tase',this)">Tase</button>
         <button class="rpt-tab" onclick="showRpt('alv',this)">ALV-laskelma</button>
         <button class="rpt-tab" onclick="showRpt('tilinpaatos',this)">Tilinpäätös</button>
+        <button class="rpt-tab" onclick="showRpt('taseerittely',this)">Tase-erittely</button>
       </div>
       <div id="rpt-period-sel" style="display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:13px">
         <label><input type="radio" name="rptPeriod" value="vuosi" checked onchange="setRptPeriod('vuosi')"> Vuosi</label>
@@ -1036,6 +1037,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
       <div id="rpt-content"></div>
       <div id="rpt-tilinpaatos" style="display:none"></div>
+      <div id="rpt-taseerittely" style="display:none"></div>
     </div>
 
     <!-- ─── TILIKARTTA PANEL ─── -->
@@ -2843,13 +2845,21 @@ function showRpt(name, btn) {
   if (btn) btn.classList.add('act');
   document.getElementById('rpt-period-sel').style.display = name === 'tulos' ? 'flex' : 'none';
   const tpEl = document.getElementById('rpt-tilinpaatos');
+  const teEl = document.getElementById('rpt-taseerittely');
   const cEl = document.getElementById('rpt-content');
   if (name === 'tilinpaatos') {
     if (tpEl) tpEl.style.display = 'block';
+    if (teEl) teEl.style.display = 'none';
     if (cEl) cEl.style.display = 'none';
     renderTilinpaatos();
+  } else if (name === 'taseerittely') {
+    if (tpEl) tpEl.style.display = 'none';
+    if (teEl) teEl.style.display = 'block';
+    if (cEl) cEl.style.display = 'none';
+    renderTaseErittely();
   } else {
     if (tpEl) tpEl.style.display = 'none';
+    if (teEl) teEl.style.display = 'none';
     if (cEl) cEl.style.display = 'block';
     renderRpt(name);
   }
@@ -9723,6 +9733,150 @@ function tpTulosta() {
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 800);
+}
+
+// ── TASE-ERITTELY ─────────────────────────────────────────────
+let teAvoinna = {};
+
+function renderTaseErittely() {
+  const el = document.getElementById('rpt-taseerittely');
+  if (!el) return;
+  const lk = laskeKirjanpito(rptRows);
+  const ts = lk.tiliSaldot;
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtS = v => { const n=Number(v||0); return (n<0?'-':'')+fmt(Math.abs(n)); };
+
+  const erikoistilit = {
+    '1701': () => teLaskuErittely('myyntisaamiset'),
+    '2871': () => teLaskuErittely('ostovelat'),
+  };
+
+  const tiliRivit = (tili) => {
+    const rivit = rptRows.filter(r => (r.d||r.k) === tili).sort((a,b) => a.pv?.localeCompare(b.pv));
+    if (!rivit.length) return '<div style="padding:8px 16px;font-size:11px;color:var(--inu)">Ei tapahtumia</div>';
+    let saldo = 0;
+    return `<div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:var(--ppw)">
+          <th style="padding:5px 8px;text-align:left;color:var(--inu)">Päivä</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--inu)">Tosite</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--inu)">Selite</th>
+          <th style="padding:5px 8px;text-align:right;color:#2a7a4f">Debet</th>
+          <th style="padding:5px 8px;text-align:right;color:#c0392b">Kredit</th>
+          <th style="padding:5px 8px;text-align:right;color:var(--inu)">Saldo</th>
+        </tr></thead>
+        <tbody>
+        ${rivit.map(r => {
+          const d = r.d ? r.netto : 0;
+          const k = r.k ? r.netto : 0;
+          saldo += d - k;
+          return `<tr style="border-bottom:1px solid var(--bd)">
+            <td style="padding:4px 8px;font-family:var(--ffm);color:var(--inu)">${r.pv||''}</td>
+            <td style="padding:4px 8px"><a href="#tosite=${r.ts}" onclick="porauduTosite('${r.ts}')" style="color:var(--fl);font-family:var(--ffm)">${r.ts||''}</a></td>
+            <td style="padding:4px 8px;color:var(--ink)">${r.sel||''}</td>
+            <td style="padding:4px 8px;text-align:right;font-family:var(--ffm);color:#2a7a4f">${d>0.005?fmt(d):''}</td>
+            <td style="padding:4px 8px;text-align:right;font-family:var(--ffm);color:#c0392b">${k>0.005?fmt(k):''}</td>
+            <td style="padding:4px 8px;text-align:right;font-family:var(--ffm);color:${saldo<-0.005?'var(--red)':'var(--ink)'}">${fmtS(saldo)}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--ppw);border-top:2px solid var(--bd2)">
+          <td colspan="5" style="padding:5px 8px;font-weight:600;font-size:11px">Loppusaldo</td>
+          <td style="padding:5px 8px;text-align:right;font-weight:700;font-family:var(--ffm)">${fmtS(saldo)}</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>`;
+  };
+
+  const tiliKortti = (tili, saldo) => {
+    if (Math.abs(saldo) < 0.005) return '';
+    const nimi = TILIT.find(t=>t.nro===tili)?.lbl || tili;
+    const avoinna = teAvoinna[tili];
+    const onErikois = erikoistilit[tili];
+    return `<div style="border:1px solid var(--bd);border-radius:6px;margin-bottom:4px;overflow:hidden">
+      <div onclick="teToggle('${tili}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;background:${avoinna?'var(--fmist)':'var(--pp)'};user-select:none">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--ffm);font-weight:600;color:var(--fl);font-size:12px">${tili}</span>
+          <span style="font-size:12px;color:var(--ink)">${nimi}</span>
+          ${onErikois ? '<span style="font-size:9px;background:var(--fg);color:#fff;padding:1px 5px;border-radius:4px">LASKUT</span>' : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:var(--ffm);font-weight:600;font-size:13px;color:${saldo<-0.005?'var(--red)':'var(--ink)'}">${fmtS(saldo)}</span>
+          <span style="color:var(--inu);font-size:12px">${avoinna?'▲':'▼'}</span>
+        </div>
+      </div>
+      ${avoinna ? `<div style="border-top:1px solid var(--bd);background:var(--ppw)">${tiliRivit(tili)}</div>` : ''}
+    </div>`;
+  };
+
+  const ryhma = (otsikko, tilit, yhteensa, taso) => {
+    const id = 'grp_'+otsikko.replace(/\s/g,'_');
+    const avoinna = teAvoinna[id];
+    const sisalto = tilit.map(t => tiliKortti(t, ts[t]||0)).join('');
+    if (!sisalto.trim()) return '';
+    return `<div style="margin-bottom:8px">
+      <div onclick="teToggle('${id}')" style="display:flex;justify-content:space-between;align-items:center;padding:${taso===1?'10px 12px':'7px 12px'};background:${taso===1?'var(--fd)':'var(--ppw)'};border-radius:6px;cursor:pointer;user-select:none">
+        <span style="font-size:${taso===1?'13px':'12px'};font-weight:600;color:${taso===1?'#fff':'var(--inm)'};text-transform:${taso===1?'uppercase':''};letter-spacing:${taso===1?'.04em':''}">${otsikko}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-family:var(--ffm);font-weight:700;font-size:13px;color:${taso===1?'#fff':'var(--ink)'}">${fmt(Math.abs(yhteensa))}</span>
+          <span style="color:${taso===1?'rgba(255,255,255,.6)':'var(--inu)'}">${avoinna?'▲':'▼'}</span>
+        </div>
+      </div>
+      ${avoinna ? `<div style="padding:8px 0">${sisalto}</div>` : ''}
+    </div>`;
+  };
+
+  const tRange = (a,b) => lk.kaikkiTilit.filter(t=>{const n=parseInt(t);return n>=a&&n<=b;});
+  const tSum = (tilit) => tilit.reduce((s,t)=>s+(ts[t]||0),0);
+  const tNeg = (tilit) => tilit.reduce((s,t)=>s-(ts[t]||0),0);
+
+  const aineetHyodYht = tSum(tRange(1000,1099));
+  const ainHyodYht = tSum(tRange(1100,1399));
+  const sijoitYht = tSum(tRange(1400,1599));
+  const pysyvatYht = aineetHyodYht + ainHyodYht + sijoitYht;
+  const saamisetYht = tSum(tRange(1700,1899));
+  const rahatYht = tSum(tRange(1900,1999));
+  const vaihtuvat = saamisetYht + rahatYht;
+
+  const omaPaaomaTilit = tRange(2000,2499);
+  const opYht = tNeg(omaPaaomaTilit) + lk.tulos;
+  const pitkaYht = tNeg(tRange(2500,2799));
+  const lyhytYht = tNeg(tRange(2800,2999));
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--ink)">Vastaavaa</div>
+        ${ryhma('Pysyvät vastaavat', tRange(1000,1599), pysyvatYht, 1)}
+        ${ryhma('Vaihtuvat vastaavat', tRange(1700,1999), vaihtuvat, 1)}
+        <div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--fd);border-radius:6px;margin-top:8px">
+          <span style="font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em">Vastaavaa yhteensä</span>
+          <span style="font-family:var(--ffm);font-weight:700;font-size:14px;color:#fff">${fmt(lk.vastaavaaYht)}</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--ink)">Vastattavaa</div>
+        ${ryhma('Oma pääoma', tRange(2000,2499), opYht, 1)}
+        ${pitkaYht ? ryhma('Pitkäaikainen vieras pääoma', tRange(2500,2799), pitkaYht, 1) : ''}
+        ${ryhma('Lyhytaikainen vieras pääoma', tRange(2800,2999), lyhytYht, 1)}
+        <div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--fd);border-radius:6px;margin-top:8px">
+          <span style="font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em">Vastattavaa yhteensä</span>
+          <span style="font-family:var(--ffm);font-weight:700;font-size:14px;color:#fff">${fmt(lk.vastattavaaYht)}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;font-weight:600;color:${Math.abs(lk.vastaavaaYht-lk.vastattavaaYht)<1?'var(--fg3)':'var(--red)'}">
+          ${Math.abs(lk.vastaavaaYht-lk.vastattavaaYht)<1 ? '✓ Tase tasapainossa' : '⚠ Erotus: '+fmt(Math.abs(lk.vastaavaaYht-lk.vastattavaaYht))}
+        </div>
+      </div>
+    </div>`;
+}
+
+function teToggle(id) {
+  teAvoinna[id] = !teAvoinna[id];
+  renderTaseErittely();
+}
+
+function teLaskuErittely(tyyppi) {
+  return '<div style="padding:12px;font-size:11px;color:var(--inu)">Laskukohtainen erittely tulossa...</div>';
 }
 </script>
 </body>
