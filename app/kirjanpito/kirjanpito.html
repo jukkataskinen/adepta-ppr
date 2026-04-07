@@ -885,7 +885,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
     <!-- OSTOLASKUT PANEL -->
     <div id="panel-ostolaskut" class="panel" style="overflow:hidden;padding:0">
-      <div style="display:grid;grid-template-columns:340px 1fr;height:100%;overflow:hidden">
+      <div style="display:grid;grid-template-columns:300px 1fr 380px;height:100%;overflow:hidden">
         <!-- VASEN: laskuLista -->
         <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
           <div style="padding:16px 14px 10px">
@@ -905,6 +905,13 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <div style="overflow-y:auto;padding:24px">
           <div id="ol-ei-valittu" style="text-align:center;padding:60px;color:var(--inu);font-size:13px">Valitse ostolasku vasemmalta tai luo uusi</div>
           <div id="ol-lomake" style="display:none"></div>
+        </div>
+        <!-- OIKEA: PDF-esikatselu -->
+        <div id="ol-pdf-palkki" style="border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.04em">Laskun kuva</div>
+          <div id="ol-pdf-preview" style="flex:1;overflow-y:auto;padding:8px;background:var(--ppw);display:flex;align-items:center;justify-content:center">
+            <div style="color:var(--inu);font-size:11px">Ei liitettä</div>
+          </div>
         </div>
       </div>
     </div>
@@ -10124,33 +10131,39 @@ function olNayta(id) {
           <th style="padding:6px 8px;text-align:right;width:90px">Brutto</th>
         </tr></thead>
         <tbody id="ol-rivit-tbody">
-          ${(l.rivit||[]).length ? (l.rivit||[]).map(r => `
-            <tr style="border-bottom:1px solid var(--bd)">
-              <td style="padding:6px 8px">${r.selite||''}</td>
-              <td style="padding:6px 8px;font-family:var(--ffm);color:var(--fl)">${r.tili||oletus_tili}</td>
-              <td style="padding:6px 8px;text-align:right">${r.alv_prosentti||0}%</td>
-              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(r.netto)}</td>
-              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(r.brutto)}</td>
-            </tr>`).join('') : `
-            <tr style="border-bottom:1px solid var(--bd)">
-              <td style="padding:6px 8px"><input id="ol-rivi-selite" value="${l.toimittaja_nimi||''}" style="width:100%;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>
-              <td style="padding:6px 8px"><input id="ol-rivi-tili" value="${oletus_tili}" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:12px"></td>
-              <td style="padding:6px 8px;text-align:right">
-                <select id="ol-rivi-alv" style="padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:11px">
-                  <option value="25.5">25,5%</option>
-                  <option value="14">14%</option>
-                  <option value="10">10%</option>
-                  <option value="0">0%</option>
+          ${(l.rivit||[]).map((r, i) => `
+            <tr style="border-bottom:1px solid var(--bd)" id="ol-rivi-${i}">
+              <td style="padding:4px 6px"><input value="${r.selite||''}" onchange="olPaivitaRivi(${i},'selite',this.value)" style="width:100%;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:11px"></td>
+              <td style="padding:4px 6px"><input value="${r.tili||oletus_tili}" onchange="olPaivitaRivi(${i},'tili',this.value)" style="width:65px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:11px;color:var(--fl)"></td>
+              <td style="padding:4px 6px;text-align:right">
+                <select onchange="olPaivitaRivi(${i},'alv_prosentti',parseFloat(this.value))" style="padding:3px;border:1px solid var(--bd);border-radius:4px;font-size:10px">
+                  <option value="25.5" ${r.alv_prosentti==25.5?'selected':''}>25,5%</option>
+                  <option value="14" ${r.alv_prosentti==14?'selected':''}>14%</option>
+                  <option value="10" ${r.alv_prosentti==10?'selected':''}>10%</option>
+                  <option value="0" ${r.alv_prosentti==0?'selected':''}>0%</option>
                 </select>
               </td>
-              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(l.summa_netto)}</td>
-              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(l.summa_brutto)}</td>
+              <td style="padding:4px 6px;text-align:right;font-family:var(--ffm);font-size:11px">${fmt(r.netto)}</td>
+              <td style="padding:4px 6px;text-align:right;font-family:var(--ffm);font-size:11px">${fmt(r.brutto)}</td>
+            </tr>`).join('') || `
+            <tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:4px 6px"><input id="ol-rivi-selite" value="${l.toimittaja_nimi||''}" style="width:100%;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:11px"></td>
+              <td style="padding:4px 6px"><input id="ol-rivi-tili" value="${oletus_tili}" style="width:65px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:11px;color:var(--fl)"></td>
+              <td style="padding:4px 6px;text-align:right">
+                <select id="ol-rivi-alv" style="padding:3px;border:1px solid var(--bd);border-radius:4px;font-size:10px">
+                  <option value="25.5">25,5%</option><option value="14">14%</option><option value="10">10%</option><option value="0">0%</option>
+                </select>
+              </td>
+              <td style="padding:4px 6px;text-align:right;font-family:var(--ffm);font-size:11px">${fmt(l.summa_netto)}</td>
+              <td style="padding:4px 6px;text-align:right;font-family:var(--ffm);font-size:11px">${fmt(l.summa_brutto)}</td>
             </tr>`}
         </tbody>
       </table>
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${l.tila !== 'kirjattu' ? `
+      <button onclick="olTallennaRivimuutokset('${l.id}')" style="padding:6px 14px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer;margin-right:8px">Tallenna muutokset</button>` : ''}
       ${l.tila === 'saapunut' ? `
         <button onclick="olVaihdaTila('${l.id}','tarkistuksessa')" style="padding:8px 16px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Ota tarkistukseen</button>` : ''}
       ${l.tila === 'tarkistuksessa' ? `
@@ -10161,6 +10174,41 @@ function olNayta(id) {
       ${l.tila === 'kirjattu' ? `
         <div style="font-size:12px;color:var(--fg3);padding:8px">✓ Kirjattu tositteelle ${l.tosite_nro||'—'}</div>` : ''}
     </div>`;
+
+  // Lataa PDF jos saatavilla
+  const preview = document.getElementById('ol-pdf-preview');
+  if (preview) {
+    if (l.tosite_pdf_path) {
+      const { data: urlData } = _sb.storage.from('tositteet').getPublicUrl(l.tosite_pdf_path);
+      if (urlData?.publicUrl) {
+        preview.innerHTML = '<canvas id="ol-pdf-canvas" style="width:100%;height:auto;border-radius:4px;display:block"></canvas>';
+        fetch(urlData.publicUrl).then(r=>r.arrayBuffer()).then(buf=>{
+          const b64 = btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+          renderLaskuSivu(b64, 1, document.getElementById('ol-pdf-canvas'));
+        });
+      }
+    } else {
+      preview.innerHTML = '<div style="color:var(--inu);font-size:11px;text-align:center">Ei PDF-liitettä</div>';
+    }
+  }
+}
+
+function olPaivitaRivi(idx, kentta, arvo) {
+  if (!olValittu?.rivit?.[idx]) return;
+  olValittu.rivit[idx][kentta] = arvo;
+}
+
+async function olTallennaRivimuutokset(id) {
+  if (!olValittu) return;
+  try {
+    const res = await fetch('/api/ppr/ostolaskut', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, rivit: olValittu.rivit })
+    });
+    if (res.ok) { toast('Muutokset tallennettu'); await lataaOlData(); olNayta(id); }
+    else { const j = await res.json(); toast('Virhe: '+(j.error||'')); }
+  } catch(e) { toast('Virhe: '+e.message); }
 }
 
 function olUusi() {
