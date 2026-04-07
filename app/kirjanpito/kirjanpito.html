@@ -885,9 +885,9 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
     <!-- OSTOLASKUT PANEL -->
     <div id="panel-ostolaskut" class="panel" style="overflow:hidden;padding:0">
-      <div style="display:grid;grid-template-columns:300px 1fr 380px;height:100%;overflow:hidden">
+      <div id="ol-layout" style="display:flex;height:100%;overflow:hidden">
         <!-- VASEN: laskuLista -->
-        <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+        <div style="width:300px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
           <div style="padding:16px 14px 10px">
             <h2 style="font-size:16px;margin-bottom:8px">Ostolaskut</h2>
             <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
@@ -901,13 +901,18 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
           </div>
           <div id="ol-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
         </div>
+        <!-- Raahattava jakaja -->
+        <div id="ol-divider" style="width:4px;background:var(--bd);cursor:col-resize;flex-shrink:0;transition:background .1s"
+          onmousedown="olAlotaRaahaus(event)"></div>
         <!-- OIKEA: laskun tiedot -->
-        <div style="overflow-y:auto;padding:24px">
+        <div style="flex:1;overflow-y:auto;padding:24px;min-width:200px">
           <div id="ol-ei-valittu" style="text-align:center;padding:60px;color:var(--inu);font-size:13px">Valitse ostolasku vasemmalta tai luo uusi</div>
           <div id="ol-lomake" style="display:none"></div>
         </div>
+        <div id="ol-divider2" style="width:4px;background:var(--bd);cursor:col-resize;flex-shrink:0;transition:background .1s"
+          onmousedown="olAlotaRaahaus2(event)"></div>
         <!-- OIKEA: PDF-esikatselu -->
-        <div id="ol-pdf-palkki" style="border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+        <div id="ol-pdf-palkki" style="width:380px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden">
           <div style="padding:12px 14px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.04em">Laskun kuva</div>
           <div id="ol-pdf-preview" style="flex:1;overflow-y:auto;padding:8px;background:var(--ppw);display:flex;align-items:center;justify-content:center">
             <div style="color:var(--inu);font-size:11px">Ei liitettä</div>
@@ -10159,6 +10164,8 @@ function olNayta(id) {
             </tr>`}
         </tbody>
       </table>
+      ${l.tila !== 'kirjattu' ? `
+      <button onclick="olLisaaRivi('${l.id}')" style="padding:4px 12px;font-size:11px;border:1px dashed var(--bd2);border-radius:4px;background:transparent;color:var(--fg);cursor:pointer;margin-top:4px">+ Lisää rivi</button>` : ''}
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -10191,6 +10198,48 @@ function olNayta(id) {
       preview.innerHTML = '<div style="color:var(--inu);font-size:11px;text-align:center">Ei PDF-liitettä</div>';
     }
   }
+}
+
+function olAlotaRaahaus(e) {
+  e.preventDefault();
+  const layout = document.getElementById('ol-layout');
+  const vasenDiv = layout.children[0];
+  const onMove = (ev) => {
+    const rect = layout.getBoundingClientRect();
+    const uusLev = Math.max(180, Math.min(500, ev.clientX - rect.left));
+    vasenDiv.style.width = uusLev + 'px';
+  };
+  const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function olAlotaRaahaus2(e) {
+  e.preventDefault();
+  const layout = document.getElementById('ol-layout');
+  const pdfDiv = document.getElementById('ol-pdf-palkki');
+  const onMove = (ev) => {
+    const rect = layout.getBoundingClientRect();
+    const uusLev = Math.max(200, Math.min(700, rect.right - ev.clientX));
+    pdfDiv.style.width = uusLev + 'px';
+  };
+  const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function olLisaaRivi(id) {
+  if (!olValittu) return;
+  if (!olValittu.rivit) olValittu.rivit = [];
+  olValittu.rivit.push({
+    selite: '',
+    tili: '4000',
+    alv_prosentti: 25.5,
+    netto: 0,
+    alv: 0,
+    brutto: 0,
+  });
+  olNayta(id);
 }
 
 function olPaivitaRivi(idx, kentta, arvo) {
