@@ -884,10 +884,29 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
     </div>
 
     <!-- OSTOLASKUT PANEL -->
-    <div id="panel-ostolaskut" class="panel">
-      <h2>Ostolaskut</h2>
-      <div class="panel-sub">Saapuneet ostolaskut — tarkistus ja hyväksyntä</div>
-      <div style="padding:40px;text-align:center;color:var(--inu);font-size:13px">Tulossa pian — ostolaskujen hyväksyntäkierto</div>
+    <div id="panel-ostolaskut" class="panel" style="overflow:hidden;padding:0">
+      <div style="display:grid;grid-template-columns:340px 1fr;height:100%;overflow:hidden">
+        <!-- VASEN: laskuLista -->
+        <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:16px 14px 10px">
+            <h2 style="font-size:16px;margin-bottom:8px">Ostolaskut</h2>
+            <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+              <button onclick="olFiltteri('')" id="ol-f-all" class="tos-f-btn tos-f-act" style="padding:4px 8px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--fmist);color:var(--fg)">Kaikki</button>
+              <button onclick="olFiltteri('saapunut')" id="ol-f-saapunut" class="tos-f-btn" style="padding:4px 8px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Saapunut</button>
+              <button onclick="olFiltteri('tarkistuksessa')" id="ol-f-tarkistuksessa" class="tos-f-btn" style="padding:4px 8px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Tarkistuksessa</button>
+              <button onclick="olFiltteri('hyvaksytty')" id="ol-f-hyvaksytty" class="tos-f-btn" style="padding:4px 8px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Hyväksytty</button>
+              <button onclick="olFiltteri('kirjattu')" id="ol-f-kirjattu" class="tos-f-btn" style="padding:4px 8px;font-size:10px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;background:var(--pp);color:var(--inu)">Kirjattu</button>
+            </div>
+            <button onclick="olUusi()" style="width:100%;padding:8px;font-size:12px;font-weight:500;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">+ Uusi ostolasku</button>
+          </div>
+          <div id="ol-lista" style="flex:1;overflow-y:auto;padding:0 10px 10px"></div>
+        </div>
+        <!-- OIKEA: laskun tiedot -->
+        <div style="overflow-y:auto;padding:24px">
+          <div id="ol-ei-valittu" style="text-align:center;padding:60px;color:var(--inu);font-size:13px">Valitse ostolasku vasemmalta tai luo uusi</div>
+          <div id="ol-lomake" style="display:none"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TOIMITTAJAT PANEL -->
@@ -1893,6 +1912,7 @@ function showPanel(name) {
 
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
   if (name === 'toimittajat') lataaToimittajat();
+  if (name === 'ostolaskut') lataaOlData();
   if (name === 'tosite') paivitaTositeNro();
   if (name === 'raportit') {
     const rptSub = document.getElementById('rpt-sub');
@@ -10011,6 +10031,293 @@ function teTulosta() {
 
 function teLaskuErittely(tyyppi) {
   return '<div style="padding:12px;font-size:11px;color:var(--inu)">Laskukohtainen erittely tulossa...</div>';
+}
+
+// ── OSTOLASKUT ────────────────────────────────────────────────
+let olLaskut = [];
+let olValittu = null;
+let olFiltterit = '';
+
+async function lataaOlData() {
+  if (!curYritys) return;
+  try {
+    const res = await fetch('/api/ppr/ostolaskut?kirjanpitoasiakas_id=' + curYritys.id);
+    if (res.ok) olLaskut = await res.json();
+  } catch(e) { console.warn('lataaOlData:', e); }
+  olRenderLista();
+}
+
+function olFiltteri(f) {
+  olFiltterit = f;
+  document.querySelectorAll('.tos-f-btn').forEach(b => {
+    b.style.background = 'var(--pp)'; b.style.color = 'var(--inu)';
+  });
+  const btn = document.getElementById('ol-f-' + (f||'all'));
+  if (btn) { btn.style.background = 'var(--fmist)'; btn.style.color = 'var(--fg)'; }
+  olRenderLista();
+}
+
+function olRenderLista() {
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let lista = [...olLaskut];
+  if (olFiltterit) lista = lista.filter(l => l.tila === olFiltterit);
+  const el = document.getElementById('ol-lista');
+  if (!el) return;
+  const tilaVari = t => t==='kirjattu'?'var(--fg3)':t==='hyvaksytty'?'var(--fl)':t==='tarkistuksessa'?'var(--amber)':'var(--inu)';
+  const tilaNimi = t => t==='kirjattu'?'Kirjattu':t==='hyvaksytty'?'Hyväksytty':t==='tarkistuksessa'?'Tarkistuksessa':t==='maksettu'?'Maksettu':'Saapunut';
+  el.innerHTML = lista.map(l => {
+    const akt = olValittu?.id === l.id;
+    return `<div onclick="olNayta('${l.id}')" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid ${akt?'rgba(29,158,117,.2)':'transparent'};background:${akt?'var(--fmist)':''};margin-bottom:2px">
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-family:var(--ffm);font-weight:600;color:var(--fl);font-size:12px">${l.toimittaja_nimi||'Tuntematon'}</span>
+        <span style="font-family:var(--ffm);font-size:12px;font-weight:600">${fmt(l.summa_brutto)} €</span>
+      </div>
+      <div style="font-size:11px;color:var(--inu);margin-top:2px">${fmtPv(l.pvm)} · ${l.lasku_nro||'—'}</div>
+      <div style="font-size:10px;margin-top:2px;color:${tilaVari(l.tila)};font-weight:500">${tilaNimi(l.tila)}</div>
+    </div>`;
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--inu);font-size:12px">Ei ostolaskuja</div>';
+}
+
+function olNayta(id) {
+  olValittu = olLaskut.find(l => l.id === id) || null;
+  olRenderLista();
+  if (!olValittu) return;
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const l = olValittu;
+  const tilaVari = t => t==='kirjattu'?'var(--fg3)':t==='hyvaksytty'?'var(--fl)':t==='tarkistuksessa'?'var(--amber)':'var(--inu)';
+  const tilaNimi = t => t==='kirjattu'?'Kirjattu':t==='hyvaksytty'?'Hyväksytty':t==='tarkistuksessa'?'Tarkistuksessa':t==='maksettu'?'Maksettu':'Saapunut';
+
+  const toimittaja = window._olToimittajat?.find(t => t.id === l.toimittaja_id);
+  const oletus_tili = toimittaja?.oletus?.tili || '4000';
+
+  document.getElementById('ol-ei-valittu').style.display = 'none';
+  const lom = document.getElementById('ol-lomake');
+  lom.style.display = 'block';
+  lom.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <h3 style="font-size:18px;margin-bottom:4px">${l.toimittaja_nimi||'Ostolasku'}</h3>
+        <div style="font-size:12px;color:var(--inu)">${fmtPv(l.pvm)} · Erä: ${fmtPv(l.erapv)} · <span style="color:${tilaVari(l.tila)};font-weight:600">${tilaNimi(l.tila)}</span></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:300;font-family:var(--ffd)">${fmt(l.summa_brutto)} €</div>
+        <div style="font-size:11px;color:var(--inu)">sis. ALV ${fmt(l.summa_alv)} €</div>
+      </div>
+    </div>
+
+    <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:16px;font-size:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div><div style="color:var(--inu);font-size:10px;text-transform:uppercase;margin-bottom:2px">Laskunro</div><div style="font-family:var(--ffm)">${l.lasku_nro||'—'}</div></div>
+        <div><div style="color:var(--inu);font-size:10px;text-transform:uppercase;margin-bottom:2px">Viite</div><div style="font-family:var(--ffm)">${l.viite||'—'}</div></div>
+        <div><div style="color:var(--inu);font-size:10px;text-transform:uppercase;margin-bottom:2px">Netto</div><div style="font-family:var(--ffm)">${fmt(l.summa_netto)} €</div></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;margin-bottom:8px">Laskurivit ja tiliöinti</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+          <th style="padding:6px 8px;text-align:left">Selite</th>
+          <th style="padding:6px 8px;text-align:left;width:80px">Tili</th>
+          <th style="padding:6px 8px;text-align:right;width:70px">ALV%</th>
+          <th style="padding:6px 8px;text-align:right;width:90px">Netto</th>
+          <th style="padding:6px 8px;text-align:right;width:90px">Brutto</th>
+        </tr></thead>
+        <tbody id="ol-rivit-tbody">
+          ${(l.rivit||[]).length ? (l.rivit||[]).map(r => `
+            <tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:6px 8px">${r.selite||''}</td>
+              <td style="padding:6px 8px;font-family:var(--ffm);color:var(--fl)">${r.tili||oletus_tili}</td>
+              <td style="padding:6px 8px;text-align:right">${r.alv_prosentti||0}%</td>
+              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(r.netto)}</td>
+              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(r.brutto)}</td>
+            </tr>`).join('') : `
+            <tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:6px 8px"><input id="ol-rivi-selite" value="${l.toimittaja_nimi||''}" style="width:100%;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:12px"></td>
+              <td style="padding:6px 8px"><input id="ol-rivi-tili" value="${oletus_tili}" style="width:70px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:12px"></td>
+              <td style="padding:6px 8px;text-align:right">
+                <select id="ol-rivi-alv" style="padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:11px">
+                  <option value="25.5">25,5%</option>
+                  <option value="14">14%</option>
+                  <option value="10">10%</option>
+                  <option value="0">0%</option>
+                </select>
+              </td>
+              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(l.summa_netto)}</td>
+              <td style="padding:6px 8px;text-align:right;font-family:var(--ffm)">${fmt(l.summa_brutto)}</td>
+            </tr>`}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${l.tila === 'saapunut' ? `
+        <button onclick="olVaihdaTila('${l.id}','tarkistuksessa')" style="padding:8px 16px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Ota tarkistukseen</button>` : ''}
+      ${l.tila === 'tarkistuksessa' ? `
+        <button onclick="olHyvaksy('${l.id}')" style="padding:8px 16px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Hyväksy ja kirjaa</button>
+        <button onclick="olVaihdaTila('${l.id}','saapunut')" style="padding:8px 16px;font-size:12px;border:1px solid var(--red);border-radius:5px;color:var(--red);background:var(--pp);cursor:pointer">Palauta</button>` : ''}
+      ${l.tila === 'hyvaksytty' ? `
+        <button onclick="olKirjaa('${l.id}')" style="padding:8px 16px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Kirjaa kirjanpitoon</button>` : ''}
+      ${l.tila === 'kirjattu' ? `
+        <div style="font-size:12px;color:var(--fg3);padding:8px">✓ Kirjattu tositteelle ${l.tosite_nro||'—'}</div>` : ''}
+    </div>`;
+}
+
+function olUusi() {
+  olValittu = null;
+  olRenderLista();
+  document.getElementById('ol-ei-valittu').style.display = 'none';
+  const lom = document.getElementById('ol-lomake');
+  lom.style.display = 'block';
+  const tanaan = new Date().toISOString().slice(0,10);
+  const era14 = new Date(Date.now()+14*86400000).toISOString().slice(0,10);
+  lom.innerHTML = `
+    <h3 style="margin-bottom:16px">Uusi ostolasku</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;font-size:12px">
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Toimittaja</label>
+        <input id="ol-toimittaja" placeholder="Toimittajan nimi" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Laskunumero</label>
+        <input id="ol-lasku-nro" placeholder="esim. 2026-001" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Laskupäivä</label>
+        <input id="ol-pvm" type="date" value="${tanaan}" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Eräpäivä</label>
+        <input id="ol-era" type="date" value="${era14}" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Summa brutto €</label>
+        <input id="ol-brutto" type="number" step="0.01" placeholder="0.00" oninput="olLaskeAlv()" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">ALV-kanta</label>
+        <select id="ol-alv-kanta" onchange="olLaskeAlv()" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px">
+          <option value="25.5">25,5%</option><option value="14">14%</option><option value="10">10%</option><option value="0">0%</option>
+        </select></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Kirjaustili</label>
+        <input id="ol-tili" value="4000" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;font-family:var(--ffm);margin-top:2px"></div>
+      <div><label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase">Viite</label>
+        <input id="ol-viite" placeholder="Viitenumero" style="width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:5px;font-size:13px;margin-top:2px"></div>
+    </div>
+    <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:6px;padding:10px;margin-bottom:16px;font-size:12px">
+      <span style="color:var(--inu)">Netto: </span><span id="ol-netto-naytto" style="font-family:var(--ffm)">0,00 €</span>
+      <span style="color:var(--inu);margin-left:16px">ALV: </span><span id="ol-alv-naytto" style="font-family:var(--ffm)">0,00 €</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="olTallenna()" style="padding:8px 18px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna saapuneeksi</button>
+    </div>`;
+}
+
+function olLaskeAlv() {
+  const brutto = parseFloat(document.getElementById('ol-brutto')?.value) || 0;
+  const alv = parseFloat(document.getElementById('ol-alv-kanta')?.value) || 0;
+  const netto = Math.round(brutto / (1 + alv/100) * 100) / 100;
+  const alvSumma = brutto - netto;
+  const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const n = document.getElementById('ol-netto-naytto');
+  const a = document.getElementById('ol-alv-naytto');
+  if (n) n.textContent = fmt(netto) + ' €';
+  if (a) a.textContent = fmt(alvSumma) + ' €';
+}
+
+async function olTallenna() {
+  if (!curYritys) return;
+  const toimittaja = document.getElementById('ol-toimittaja')?.value?.trim();
+  const brutto = parseFloat(document.getElementById('ol-brutto')?.value) || 0;
+  if (!toimittaja) { toast('Syötä toimittaja'); return; }
+  if (!brutto) { toast('Syötä summa'); return; }
+  const alv = parseFloat(document.getElementById('ol-alv-kanta')?.value) || 0;
+  const netto = Math.round(brutto / (1 + alv/100) * 100) / 100;
+  const alvSumma = Math.round((brutto - netto) * 100) / 100;
+  const tili = document.getElementById('ol-tili')?.value?.trim() || '4000';
+  try {
+    const res = await fetch('/api/ppr/ostolaskut', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        kirjanpitoasiakas_id: curYritys.id,
+        toimittaja_nimi: toimittaja,
+        lasku_nro: document.getElementById('ol-lasku-nro')?.value || null,
+        pvm: document.getElementById('ol-pvm')?.value,
+        erapv: document.getElementById('ol-era')?.value,
+        viite: document.getElementById('ol-viite')?.value || null,
+        summa_netto: netto,
+        summa_alv: alvSumma,
+        summa_brutto: brutto,
+        tila: 'saapunut',
+        rivit: [{
+          selite: toimittaja,
+          tili,
+          alv_prosentti: alv,
+          netto,
+          alv: alvSumma,
+          brutto,
+        }]
+      })
+    });
+    if (res.ok) {
+      toast('Ostolasku tallennettu');
+      await lataaOlData();
+    } else {
+      const j = await res.json();
+      toast('Virhe: ' + (j.error||''));
+    }
+  } catch(e) { toast('Virhe: ' + e.message); }
+}
+
+async function olVaihdaTila(id, tila) {
+  try {
+    const res = await fetch('/api/ppr/ostolaskut', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, tila })
+    });
+    if (res.ok) { await lataaOlData(); olNayta(id); }
+    else { const j = await res.json(); toast('Virhe: ' + (j.error||'')); }
+  } catch(e) { toast('Virhe: ' + e.message); }
+}
+
+async function olHyvaksy(id) {
+  await olVaihdaTila(id, 'hyvaksytty');
+}
+
+async function olKirjaa(id) {
+  const lasku = olLaskut.find(l => l.id === id);
+  if (!lasku) return;
+  const rivit = lasku.rivit || [];
+  const tili = document.getElementById('ol-rivi-tili')?.value || rivit[0]?.tili || '4000';
+  const alv = parseFloat(document.getElementById('ol-rivi-alv')?.value || rivit[0]?.alv_prosentti || '25.5');
+  const alvTilit = { 25.5: '1763', 14: '1764', 10: '1765' };
+  const alvTili = alvTilit[alv] || null;
+
+  const tositeRivit = [
+    { tili, selite: 'Ostolasku ' + lasku.toimittaja_nimi, saldo: lasku.summa_netto, tosite_nro: null, paivamaara: lasku.pvm, asiakas_id: curYritys.id },
+  ];
+  if (alvTili && lasku.summa_alv > 0.01) {
+    tositeRivit.push({ tili: alvTili, selite: 'ALV ' + alv + '% ' + lasku.toimittaja_nimi, saldo: lasku.summa_alv, tosite_nro: null, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
+  }
+  tositeRivit.push({ tili: '2871', selite: 'Ostolasku ' + lasku.toimittaja_nimi, saldo: -lasku.summa_brutto, tosite_nro: null, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
+
+  try {
+    const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id + '&laji=OL');
+    const nroData = await nroRes.json();
+    const tositeNro = nroData.tosite_nro;
+    tositeRivit.forEach(r => r.tosite_nro = tositeNro);
+
+    const summa = tositeRivit.reduce((s,r) => s + r.saldo, 0);
+    if (Math.abs(summa) > 0.01) { toast('Kirjausvirhe: erotus ' + summa.toFixed(2)); return; }
+
+    const pvkRes = await fetch('/api/ppr/paivakirja/lisaa', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ rivit: tositeRivit })
+    });
+    if (!pvkRes.ok) { const j = await pvkRes.json(); toast('Kirjausvirhe: ' + (j.error||'')); return; }
+
+    await fetch('/api/ppr/ostolaskut', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, tila: 'kirjattu', tosite_nro: tositeNro })
+    });
+    toast('Kirjattu tositteelle ' + tositeNro);
+    await lataaOlData();
+    await lataaRivit(curYritys.id);
+    olNayta(id);
+  } catch(e) { toast('Virhe: ' + e.message); }
 }
 </script>
 </body>
