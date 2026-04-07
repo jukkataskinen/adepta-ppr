@@ -106,17 +106,23 @@ export async function POST(request: NextRequest) {
 
         // Hae toimittajan oletus kirjaustili
         let ostoTili = '4000'
+        // Hae lähettäjä toimittajarekisteristä OVT-tunnuksella (yksilöivin tunniste)
+        // Lähettäjän OVT on tallennettu kirjanpitoasiakas.ovt_tunnus
+        const { data: lahettajanTiedot } = await supabaseAdmin!
+          .from('ppr_kirjanpitoasiakkaat')
+          .select('ovt_tunnus, y_tunnus')
+          .eq('id', lasku.kirjanpitoasiakas_id)
+          .maybeSingle()
+
         const { data: toimittaja } = await supabaseAdmin!
           .from('ppr_toimittajat')
-          .select('id, ppr_toimittaja_oletukset(tili, kayttokerrat)')
-          .eq('ytunnus', lasku.kirjanpitoasiakas_ytunnus || '')
+          .select('id, ppr_toimittaja_oletukset(kirjanpitoasiakas_id, tili, kayttokerrat)')
+          .eq('ovt_tunnus', lahettajanTiedot?.ovt_tunnus || '__EI_OVT__')
           .maybeSingle()
 
         if (toimittaja) {
-          // Asiakaskohtainen oletus
           const asiakasOletus = (toimittaja.ppr_toimittaja_oletukset as any[])
             ?.find((o: any) => o.kirjanpitoasiakas_id === vastaanottaja.id)
-          // Globaali oletus (eniten käytetty)
           const globaaliOletus = (toimittaja.ppr_toimittaja_oletukset as any[])
             ?.sort((a: any, b: any) => b.kayttokerrat - a.kayttokerrat)[0]
           ostoTili = asiakasOletus?.tili || globaaliOletus?.tili || '4000'
