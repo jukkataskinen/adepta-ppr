@@ -78,7 +78,10 @@ export async function PATCH(request: NextRequest) {
     if (rivit?.length) {
       await supabaseAdmin!.from('ppr_ostolasku_rivit').delete().eq('lasku_id', id)
       await supabaseAdmin!.from('ppr_ostolasku_rivit').insert(
-        rivit.map((r: any) => ({ ...r, lasku_id: id }))
+        rivit.map((r: any) => {
+          const { id: _id, lasku_id: _lid, created_at: _ca, ...rivi } = r
+          return { ...rivi, lasku_id: id }
+        })
       )
     }
 
