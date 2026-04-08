@@ -10139,7 +10139,7 @@ function olNayta(id) {
           ${(l.rivit||[]).map((r, i) => `
             <tr style="border-bottom:1px solid var(--bd)" id="ol-rivi-${i}">
               <td style="padding:4px 6px"><input value="${r.selite||''}" onchange="olPaivitaRivi(${i},'selite',this.value)" style="width:100%;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:11px"></td>
-              <td style="padding:4px 6px"><input value="${r.tili||oletus_tili}" onchange="olPaivitaRivi(${i},'tili',this.value)" style="width:65px;padding:4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:11px;color:var(--fl)"></td>
+              <td style="padding:4px 6px"><div id="ol-tili-ac-${i}" style="min-width:80px"></div></td>
               <td style="padding:4px 6px;text-align:right">
                 <select onchange="olPaivitaRivi(${i},'alv_prosentti',parseFloat(this.value))" style="padding:3px;border:1px solid var(--bd);border-radius:4px;font-size:10px">
                   <option value="25.5" ${r.alv_prosentti==25.5?'selected':''}>25,5%</option>
@@ -10182,6 +10182,13 @@ function olNayta(id) {
         <div style="font-size:12px;color:var(--fg3);padding:8px">✓ Kirjattu tositteelle ${l.tosite_nro||'—'}</div>` : ''}
     </div>`;
 
+  // Alusta tiliautocomplete jokaiselle riville
+  (l.rivit||[]).forEach((r, i) => {
+    luoTiliInput('ol-tili-ac-'+i, r.tili||oletus_tili, (nro) => {
+      olPaivitaRivi(i, 'tili', nro);
+    });
+  });
+
   // Lataa PDF jos saatavilla
   const preview = document.getElementById('ol-pdf-preview');
   if (preview) {
@@ -10197,6 +10204,57 @@ function olNayta(id) {
     } else {
       preview.innerHTML = '<div style="color:var(--inu);font-size:11px;text-align:center">Ei PDF-liitettä</div>';
     }
+  }
+}
+
+// ── TILI AUTOCOMPLETE (yleiskäyttöinen) ──────────────────────
+function luoTiliInput(containerId, nykyinenArvo, onChange) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  const id = containerId;
+  c.style.position = 'relative';
+  c.innerHTML = `
+    <input id="${id}-input" value="${nykyinenArvo||''}" placeholder="Hae tiliä..." autocomplete="off"
+      oninput="tiliAcHae('${id}', this.value)"
+      onkeydown="tiliAcKey(event, '${id}')"
+      onfocus="tiliAcHae('${id}', this.value)"
+      style="width:100%;padding:4px 6px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:12px;color:var(--fl)">
+    <div id="${id}-dd" style="display:none;position:absolute;top:100%;left:0;width:280px;background:var(--pp);border:1px solid var(--bd2);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:200;max-height:200px;overflow-y:auto;margin-top:2px"></div>`;
+  c._onChange = onChange;
+}
+
+function tiliAcHae(id, haku) {
+  const dd = document.getElementById(id+'-dd');
+  if (!dd) return;
+  const q = (haku||'').toLowerCase().trim();
+  const tulokset = q ? TILIT.filter(t =>
+    t.nro.startsWith(q) || (t.lbl||'').toLowerCase().includes(q)
+  ).slice(0, 15) : TILIT.filter(t => t.nro.startsWith('4') || t.nro.startsWith('7')).slice(0, 15);
+  if (!tulokset.length) { dd.style.display='none'; return; }
+  dd.innerHTML = tulokset.map((t,i) => `
+    <div onmousedown="tiliAcValitse('${id}','${t.nro}')"
+      style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bd)"
+      onmouseover="this.style.background='var(--fmist)'" onmouseout="this.style.background=''">
+      <span style="font-family:var(--ffm);font-weight:600;color:var(--fl)">${t.nro}</span>
+      <span style="color:var(--inu);margin-left:6px">${t.lbl||''}</span>
+    </div>`).join('');
+  dd.style.display = 'block';
+}
+
+function tiliAcValitse(id, nro) {
+  const input = document.getElementById(id+'-input');
+  const dd = document.getElementById(id+'-dd');
+  if (input) input.value = nro;
+  if (dd) dd.style.display = 'none';
+  const c = document.getElementById(id);
+  if (c?._onChange) c._onChange(nro);
+}
+
+function tiliAcKey(e, id) {
+  if (e.key === 'Escape') { document.getElementById(id+'-dd').style.display='none'; }
+  if (e.key === 'Enter') {
+    const val = document.getElementById(id+'-input')?.value?.trim();
+    if (val) tiliAcValitse(id, val);
   }
 }
 
