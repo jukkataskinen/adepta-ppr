@@ -10164,6 +10164,11 @@ function olNayta(id) {
             </tr>`}
         </tbody>
       </table>
+      <div id="ol-tasmaytys" style="display:flex;justify-content:flex-end;gap:16px;padding:6px 8px;font-size:12px;background:var(--ppw);border-radius:4px;margin-top:4px">
+        <span style="color:var(--inu)">Laskun summa: <strong>${fmt(l.summa_brutto)} €</strong></span>
+        <span style="color:var(--inu)">Rivit yhteensä: <strong id="ol-rivit-yht">0,00 €</strong></span>
+        <span id="ol-tasma-status" style="font-weight:600"></span>
+      </div>
       ${l.tila !== 'kirjattu' ? `
       <button onclick="olLisaaRivi('${l.id}')" style="padding:4px 12px;font-size:11px;border:1px dashed var(--bd2);border-radius:4px;background:transparent;color:var(--fg);cursor:pointer;margin-top:4px">+ Lisää rivi</button>` : ''}
     </div>
@@ -10188,6 +10193,7 @@ function olNayta(id) {
       olPaivitaRivi(i, 'tili', nro);
     });
   });
+  olPaivitaTasmaytys();
 
   // Lataa PDF jos saatavilla
   const preview = document.getElementById('ol-pdf-preview');
@@ -10289,13 +10295,18 @@ function olAlotaRaahaus2(e) {
 function olLisaaRivi(id) {
   if (!olValittu) return;
   if (!olValittu.rivit) olValittu.rivit = [];
+  const kaytetty = olValittu.rivit.reduce((s,r) => s + (Number(r.brutto)||0), 0);
+  const jaljella = Math.max(0, Math.round((Number(olValittu.summa_brutto) - kaytetty) * 100) / 100);
+  const alv = 25.5;
+  const netto = Math.round(jaljella / 1.255 * 100) / 100;
+  const alvSumma = Math.round((jaljella - netto) * 100) / 100;
   olValittu.rivit.push({
     selite: '',
     tili: '4000',
-    alv_prosentti: 25.5,
-    netto: 0,
-    alv: 0,
-    brutto: 0,
+    alv_prosentti: alv,
+    netto,
+    alv: alvSumma,
+    brutto: jaljella,
   });
   olNayta(id);
 }
@@ -10303,6 +10314,33 @@ function olLisaaRivi(id) {
 function olPaivitaRivi(idx, kentta, arvo) {
   if (!olValittu?.rivit?.[idx]) return;
   olValittu.rivit[idx][kentta] = arvo;
+  olPaivitaTasmaytys();
+}
+
+function olPaivitaTasmaytys() {
+  if (!olValittu) return;
+  const fmt = v => Math.abs(Number(v||0)).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const rivitYht = (olValittu.rivit||[]).reduce((s,r) => s + (Number(r.brutto)||0), 0);
+  const laskuBrutto = Number(olValittu.summa_brutto)||0;
+  const erotus = Math.abs(laskuBrutto - rivitYht);
+  const el = document.getElementById('ol-rivit-yht');
+  const status = document.getElementById('ol-tasma-status');
+  if (el) el.textContent = fmt(rivitYht) + ' €';
+  if (status) {
+    if (erotus < 0.01) {
+      status.textContent = '✓ Täsmää';
+      status.style.color = 'var(--fg3)';
+    } else {
+      status.textContent = '⚠ Erotus: ' + fmt(erotus) + ' €';
+      status.style.color = 'var(--red)';
+    }
+  }
+  const tallennaBtn = document.querySelector('[onclick*="olTallennaRivimuutokset"]');
+  const hyvaksyBtn = document.querySelector('[onclick*="olHyvaksy"]');
+  const kirjaaBtn = document.querySelector('[onclick*="olKirjaa"]');
+  if (tallennaBtn) tallennaBtn.disabled = erotus > 0.01;
+  if (hyvaksyBtn) hyvaksyBtn.disabled = erotus > 0.01;
+  if (kirjaaBtn) kirjaaBtn.disabled = erotus > 0.01;
 }
 
 async function olTallennaRivimuutokset(id) {
