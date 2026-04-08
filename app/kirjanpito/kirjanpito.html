@@ -10148,8 +10148,16 @@ function olNayta(id) {
                   <option value="0" ${r.alv_prosentti==0?'selected':''}>0%</option>
                 </select>
               </td>
-              <td style="padding:4px 6px;text-align:right;font-family:var(--ffm);font-size:11px">${fmt(r.netto)}</td>
-              <td style="padding:4px 6px;text-align:right;font-family:var(--ffm);font-size:11px">${fmt(r.brutto)}</td>
+              <td style="padding:4px 6px">
+                <input type="number" step="0.01" value="${r.netto||0}"
+                  onchange="olPaivitaRiviSumma(${i},'netto',parseFloat(this.value)||0)"
+                  style="width:80px;padding:3px 4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:11px;text-align:right">
+              </td>
+              <td style="padding:4px 6px">
+                <input type="number" step="0.01" value="${r.brutto||0}"
+                  onchange="olPaivitaRiviSumma(${i},'brutto',parseFloat(this.value)||0)"
+                  style="width:80px;padding:3px 4px;border:1px solid var(--bd);border-radius:4px;font-family:var(--ffm);font-size:11px;text-align:right">
+              </td>
             </tr>`).join('') || `
             <tr style="border-bottom:1px solid var(--bd)">
               <td style="padding:4px 6px"><input id="ol-rivi-selite" value="${l.toimittaja_nimi||''}" style="width:100%;padding:4px;border:1px solid var(--bd);border-radius:4px;font-size:11px"></td>
@@ -10314,6 +10322,22 @@ function olLisaaRivi(id) {
 function olPaivitaRivi(idx, kentta, arvo) {
   if (!olValittu?.rivit?.[idx]) return;
   olValittu.rivit[idx][kentta] = arvo;
+  olPaivitaTasmaytys();
+}
+
+function olPaivitaRiviSumma(idx, kentta, arvo) {
+  if (!olValittu?.rivit?.[idx]) return;
+  const rivi = olValittu.rivit[idx];
+  const alv = Number(rivi.alv_prosentti)||0;
+  if (kentta === 'brutto') {
+    rivi.brutto = arvo;
+    rivi.netto = Math.round(arvo / (1 + alv/100) * 100) / 100;
+    rivi.alv = Math.round((rivi.brutto - rivi.netto) * 100) / 100;
+  } else {
+    rivi.netto = arvo;
+    rivi.alv = Math.round(arvo * alv/100 * 100) / 100;
+    rivi.brutto = Math.round((arvo + rivi.alv) * 100) / 100;
+  }
   olPaivitaTasmaytys();
 }
 
