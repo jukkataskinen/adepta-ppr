@@ -10494,34 +10494,37 @@ async function olHyvaksy(id) {
 
 async function olKirjaa(id) {
   const lasku = olLaskut.find(l => l.id === id);
-  if (!lasku) return;
-  const rivit = lasku.rivit || [];
-  const tili = document.getElementById('ol-rivi-tili')?.value || rivit[0]?.tili || '4000';
-  const alv = parseFloat(document.getElementById('ol-rivi-alv')?.value || rivit[0]?.alv_prosentti || '25.5');
-  const alvTilit = { 25.5: '1763', 14: '1764', 10: '1765' };
-  const alvTili = alvTilit[alv] || null;
-
-  const tositeRivit = [
-    { tili, selite: 'Ostolasku ' + lasku.toimittaja_nimi, saldo: lasku.summa_netto, tosite_nro: null, paivamaara: lasku.pvm, asiakas_id: curYritys.id },
-  ];
-  if (alvTili && lasku.summa_alv > 0.01) {
-    tositeRivit.push({ tili: alvTili, selite: 'ALV ' + alv + '% ' + lasku.toimittaja_nimi, saldo: lasku.summa_alv, tosite_nro: null, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
-  }
-  tositeRivit.push({ tili: '2871', selite: 'Ostolasku ' + lasku.toimittaja_nimi, saldo: -lasku.summa_brutto, tosite_nro: null, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
-
+  if (!lasku || !curYritys) return;
   try {
     const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id + '&laji=OL');
     const nroData = await nroRes.json();
     const tositeNro = nroData.tosite_nro;
-    tositeRivit.forEach(r => r.tosite_nro = tositeNro);
+    if (!tositeNro) { toast('Tositenumeron haku epäonnistui'); return; }
 
-    const summa = tositeRivit.reduce((s,r) => s + r.saldo, 0);
+    const rivit = lasku.rivit || [];
+    const kirjausRivit = [];
+
+    rivit.forEach((r, i) => {
+      const tili = document.getElementById('ol-tili-ac-' + i + '-input')?.value || r.tili || '4000';
+      const alv = Number(r.alv_prosentti) || 0;
+      const alvTilit = { 25.5: '1763', 14: '1764', 10: '1765' };
+      const alvTili = alvTilit[alv];
+
+      kirjausRivit.push({ tili, selite: r.selite || lasku.toimittaja_nimi, saldo: Number(r.netto)||0, tosite_nro: tositeNro, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
+      if (alvTili && (Number(r.alv)||0) > 0.01) {
+        kirjausRivit.push({ tili: alvTili, selite: 'ALV ' + alv + '% ' + lasku.toimittaja_nimi, saldo: Number(r.alv)||0, tosite_nro: tositeNro, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
+      }
+    });
+
+    kirjausRivit.push({ tili: '2871', selite: 'Ostolasku ' + lasku.toimittaja_nimi, saldo: -Number(lasku.summa_brutto), tosite_nro: tositeNro, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
+
+    const summa = kirjausRivit.reduce((s, r) => s + r.saldo, 0);
     if (Math.abs(summa) > 0.01) { toast('Kirjausvirhe: erotus ' + summa.toFixed(2)); return; }
 
     const pvkRes = await fetch('/api/ppr/paivakirja/lisaa', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ rivit: tositeRivit })
+      body: JSON.stringify({ rivit: kirjausRivit })
     });
     if (!pvkRes.ok) { const j = await pvkRes.json(); toast('Kirjausvirhe: ' + (j.error||'')); return; }
 
