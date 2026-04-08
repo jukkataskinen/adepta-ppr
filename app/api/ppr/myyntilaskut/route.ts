@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (vastaanottaja) {
-        const olNro = 'OL' + lasku.lasku_nro
         const alvTilit: Record<number, string> = { 25.5: '1763', 14: '1764', 10: '1765' }
 
         const alvRyhmat: Record<number, { netto: number, alv: number }> = {}
