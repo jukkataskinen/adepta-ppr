@@ -68,13 +68,25 @@ export async function PATCH(request: NextRequest) {
 
     console.log('PATCH paivitys:', JSON.stringify(paivitys))
     console.log('PATCH rivit:', JSON.stringify(rivit?.length))
-    const { data, error } = await supabaseAdmin!
-      .from('ppr_ostolaskut')
-      .update(paivitys)
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    let data: any = null
+    if (Object.keys(paivitys).length > 0) {
+      const { data: updated, error } = await supabaseAdmin!
+        .from('ppr_ostolaskut')
+        .update(paivitys)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      data = updated
+    } else {
+      const { data: existing, error } = await supabaseAdmin!
+        .from('ppr_ostolaskut')
+        .select()
+        .eq('id', id)
+        .single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      data = existing
+    }
 
     // Päivitä rivit jos annettu
     if (rivit?.length) {
