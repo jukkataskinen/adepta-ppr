@@ -170,17 +170,19 @@ export async function POST(request: NextRequest) {
         if (olErr) {
           console.error('Ostolasku insert epäonnistui:', olErr.message)
         } else {
-          // Tallenna rivit
-          const olRivitInsert = Object.entries(alvRyhmat).map(([alvP, summat]) => ({
+          // Kopioi myyntilaskun rivit ostolaskun riveiksi
+          const olRivitInsert = (rivit || []).map((r: any) => ({
             lasku_id: olData.id,
-            selite: 'Ostolasku ' + lasku.asiakas_nimi + ' ' + tositeNro,
-            tili: alvTilit[Number(alvP)] ? '4000' : '4000',
-            alv_prosentti: Number(alvP),
-            netto: Math.round(summat.netto * 100) / 100,
-            alv: Math.round(summat.alv * 100) / 100,
-            brutto: Math.round((summat.netto + summat.alv) * 100) / 100,
+            selite: r.tuote_nimi || r.selite || lasku.asiakas_nimi,
+            tili: ostoTili,
+            alv_prosentti: Number(r.alv_prosentti) || 0,
+            netto: Number(r.summa_netto) || 0,
+            alv: Math.round((Number(r.summa_yhteensa) - Number(r.summa_netto)) * 100) / 100,
+            brutto: Number(r.summa_yhteensa) || 0,
           }))
-          await supabaseAdmin!.from('ppr_ostolasku_rivit').insert(olRivitInsert)
+          if (olRivitInsert.length > 0) {
+            await supabaseAdmin!.from('ppr_ostolasku_rivit').insert(olRivitInsert)
+          }
           console.log('Ostolasku luotu hyväksyntäkiertoon:', olData.id)
         }
       }
