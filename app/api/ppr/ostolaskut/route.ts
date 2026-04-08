@@ -66,6 +66,8 @@ export async function PATCH(request: NextRequest) {
     const { id, rivit, ...paivitys } = body
     if (!id) return NextResponse.json({ error: 'id vaaditaan' }, { status: 400 })
 
+    console.log('PATCH paivitys:', JSON.stringify(paivitys))
+    console.log('PATCH rivit:', JSON.stringify(rivit?.length))
     const { data, error } = await supabaseAdmin!
       .from('ppr_ostolaskut')
       .update(paivitys)
