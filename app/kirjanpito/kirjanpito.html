@@ -370,22 +370,20 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
         <h2 id="etusivu-nimi" style="font-size:22px;font-weight:600;margin:0">—</h2>
         <div id="etusivu-tilikausi" style="font-size:13px;color:var(--inu);margin-top:4px"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;align-items:start">
-        <!-- VASEN: Tehtävät + KK-chart -->
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <div id="etusivu-tehtavat" style="background:var(--pp);border:1px solid var(--bd);border-radius:12px;padding:20px">
-            <div id="etusivu-tehtavat-sisalto"><div style="color:var(--inu);font-size:12px">Ladataan...</div></div>
-          </div>
-          <div>
-            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Kuukausittainen liikevaihto</h3>
-            <div id="etusivu-chart" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px"></div>
-          </div>
+      <!-- YLÄOSA: Tehtävät + KPI-kortit -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+        <div id="etusivu-tehtavat" style="background:var(--pp);border:1px solid var(--bd);border-radius:12px;padding:20px">
+          <div id="etusivu-tehtavat-sisalto"><div style="color:var(--inu);font-size:12px">Ladataan...</div></div>
         </div>
-        <!-- OIKEA: KPI + mittarit -->
+        <div class="kpi-grid" id="etusivu-kpi" style="grid-template-columns:repeat(2,1fr);margin:0"></div>
+      </div>
+      <!-- ALAOSA: KK-chart + 3 mittaria samalla rivillä -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:24px;align-items:stretch">
         <div>
-          <div class="kpi-grid" id="etusivu-kpi" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px"></div>
-          <div id="etusivu-omavaraisuus"></div>
+          <h3 style="font-size:12px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Kuukausittainen liikevaihto</h3>
+          <div id="etusivu-chart" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;height:calc(100% - 28px)"></div>
         </div>
+        <div id="etusivu-omavaraisuus" style="grid-column:span 3"></div>
       </div>
       <div id="etusivu-data" style="display:none">
         <div>
