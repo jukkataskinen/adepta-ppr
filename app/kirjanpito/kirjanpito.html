@@ -6641,9 +6641,10 @@ function lataaEtusivu() {
   (async () => {
     const el = document.getElementById('etusivu-tehtavat-sisalto');
     if (!el || !curYritys) return;
-    const kayttajaNimi = curKayttaja?.nimi || curKayttaja?.email?.split('@')[0] || 'kirjanpitäjä';
-    let html = `<div style="font-size:16px;font-weight:600;margin-bottom:4px">Hei, ${kayttajaNimi} 👋</div>
-      <div style="font-size:12px;color:var(--inu);margin-bottom:16px">Sinulla on seuraavia tehtäviä</div>`;
+    const kayttajaNimi = window._PPR?.nimi || window._PPR?.email?.split('@')[0] || 'kirjanpitäjä';
+    let html = `
+      <div style="font-size:18px;font-weight:600;margin-bottom:4px">Hei, ${kayttajaNimi} 👋</div>
+      <div style="font-size:12px;color:var(--inu);margin-bottom:20px">Sinulla on seuraavia tehtäviä</div>`;
     try {
       const olRes = await fetch('/api/ppr/ostolaskut?kirjanpitoasiakas_id=' + curYritys.id + '&tila=saapunut');
       const olData = olRes.ok ? await olRes.json() : [];
@@ -6663,13 +6664,16 @@ function lataaEtusivu() {
         html += `<div style="text-align:center;padding:24px 0;color:var(--inu);font-size:13px">✓ Ei avoimia tehtäviä</div>`;
       } else {
         html += tehtavat.map(t => `
-          <div onclick="showPanel('${t.panel}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--bd);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--ppw)"
+          <div onclick="showPanel('${t.panel}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--bd);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--ppw);transition:background .1s"
             onmouseover="this.style.background='var(--fmist)'" onmouseout="this.style.background='var(--ppw)'">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:18px">${t.ikoni}</span>
-              <span style="font-size:13px;color:var(--ink)">${t.teksti}</span>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:20px">${t.ikoni}</span>
+              <div>
+                <div style="font-size:13px;font-weight:500;color:var(--ink)">${t.teksti}</div>
+                <div style="font-size:11px;color:var(--fl);margin-top:1px">Avaa → ${t.panel === 'ostolaskut' ? 'Ostolaskut' : t.panel}</div>
+              </div>
             </div>
-            <span style="font-size:15px;font-weight:700;color:${t.vari};background:var(--pp);padding:2px 10px;border-radius:20px;border:1px solid var(--bd)">${t.maara}</span>
+            <span style="font-size:16px;font-weight:700;color:${t.vari};background:var(--pp);padding:3px 12px;border-radius:20px;border:1px solid ${t.vari}">${t.maara} kpl</span>
           </div>`).join('');
       }
     } catch(e) {
