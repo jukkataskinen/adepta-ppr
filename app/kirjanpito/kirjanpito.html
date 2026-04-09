@@ -7311,6 +7311,8 @@ async function mlTulostaPdf() {
   const vaalea = rgb(0.97, 0.97, 0.96);
   const valko = rgb(1, 1, 1);
   const fE = v => Math.abs(Number(v||0)).toFixed(2).replace('.',',');
+  const fPv = iso => { if (!iso) return ''; const d = new Date(iso); return d.getDate().toString().padStart(2,'0')+'.'+(d.getMonth()+1).toString().padStart(2,'0')+'.'+d.getFullYear(); };
+  const fEt = v => { const n = Math.abs(Number(v||0)); return n.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2}); };
 
   let y = height - 40;
 
@@ -7330,10 +7332,10 @@ async function mlTulostaPdf() {
   const boxX = 340, boxY = height-65, boxW = 215, rowH = 16;
   const tietorivit = [
     ['Laskunumero', 'ML'+lasku.lasku_nro],
-    ['Laskupäivä', lasku.pvm||''],
-    ['Toimituspäivä', lasku.pvm||''],
+    ['Laskupäivä', fPv(lasku.pvm)],
+    ['Toimituspäivä', fPv(lasku.pvm)],
     ['Maksuehdot', (asiakas.maksuehto||14)+' päivää'],
-    ['Eräpäivä', lasku.erapv||''],
+    ['Eräpäivä', fPv(lasku.erapv)],
     ['Viivästyskorko', '7,5 %'],
     ['Huomautusaika', '8 pv'],
     ['Viitenumero', lasku.viite||''],
@@ -7387,10 +7389,10 @@ async function mlTulostaPdf() {
     page.drawText(r.tuote_nimi||r.selite||'', { x: cX.tuote+4, y: y-7, font, size: 8, color: tumma, maxWidth: 280 });
     ra(r.maara||'', colR.lkm, font, 8);
     ra(r.yksikko||'kpl', colR.yks, font, 8);
-    ra(fE(r.a_hinta), colR.hinta, font, 8);
+    ra(fEt(r.a_hinta), colR.hinta, font, 8);
     ra((r.alv_prosentti||0)+'%', colR.alv, font, 8);
-    ra(fE(r.summa_netto), colR.veroton, font, 8);
-    ra(fE(r.summa_yhteensa), colR.yht, fontB, 8);
+    ra(fEt(r.summa_netto), colR.veroton, font, 8);
+    ra(fEt(r.summa_yhteensa), colR.yht, fontB, 8);
     y -= 14;
   });
 
@@ -7409,15 +7411,15 @@ async function mlTulostaPdf() {
   y -= 4;
   page.drawLine({ start: { x: cX.veroton-40, y }, end: { x: RX, y }, thickness: 0.5, color: harmaa });
   y -= 14;
-  const yhtvRivit = [['Veroton yhteensä', fE(netto)], ['ALV yhteensä', fE(alv)], ['Maksettava yhteensä', fE(brutto)]];
+  const yhtvRivit = [['Veroton yhteensä', fEt(netto)+' €'], ['ALV yhteensä', fEt(alv)+' €'], ['Maksettava yhteensä', fEt(brutto)+' €']];
   yhtvRivit.forEach(([t,v], i) => {
     const isLast = i === yhtvRivit.length-1;
     const f = isLast ? fontB : font;
     const sz = isLast ? 9 : 8;
     const tw = f.widthOfTextAtSize(t, sz);
-    const vw = fontB.widthOfTextAtSize(v+' \u20ac', sz);
+    const vw = fontB.widthOfTextAtSize(v, sz);
     page.drawText(t, { x: colR.veroton-tw, y, font: f, size: sz, color: tumma });
-    page.drawText(v+' \u20ac', { x: colR.yht-vw, y, font: fontB, size: sz, color: tumma });
+    page.drawText(v, { x: colR.yht-vw, y, font: fontB, size: sz, color: tumma });
     y -= isLast ? 18 : 14;
   });
 
@@ -7429,9 +7431,6 @@ async function mlTulostaPdf() {
     ['Saaja', saaja],
     ['IBAN', curYritys?.iban || ''],
     ['BIC', curYritys?.bic || ''],
-    ['Viitenumero', lasku.viite || ''],
-    ['Eräpäivä', lasku.erapv || ''],
-    ['Maksettava', fE(brutto)+' €'],
   ];
   footRivit.forEach(([t,v], i) => {
     const fy = footY + 24 - i*12;
