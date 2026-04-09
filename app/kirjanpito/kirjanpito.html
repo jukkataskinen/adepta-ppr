@@ -1024,8 +1024,11 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
               </table>
             </div>
           </div>
+          <!-- Raahattava jakaja -->
+          <div id="tos-divider" style="display:none;width:4px;background:var(--bd);cursor:col-resize;flex-shrink:0"
+            onmousedown="tosAlotaRaahaus(event)"></div>
           <!-- Liitteet-palkki -->
-          <div id="tos-liitteet-palkki" style="display:none;border-left:1px solid var(--bd);flex-direction:column;overflow:hidden;width:500px;flex-shrink:0">
+          <div id="tos-liitteet-palkki" style="display:none;border-left:none;flex-direction:column;overflow:hidden;width:500px;flex-shrink:0">
             <div style="padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
               <span style="font-size:11px;font-weight:600;color:var(--inu);letter-spacing:.04em;text-transform:uppercase">Liitteet</span>
               <span id="tos-liite-lkm" style="font-size:10px;color:var(--inu)">0 kpl</span>
@@ -2543,6 +2546,7 @@ function tosNaytaTiedot(t) {
 
     // Hae ML-lasku PDF Storagesta
     document.getElementById('tos-liitteet-palkki').style.display = 'flex';
+    document.getElementById('tos-divider').style.display = 'block';
     const lasku = mlLaskut.find(l => 'ML' + l.lasku_nro === t.nro);
     if (lasku?.tosite_pdf_path) {
       const { data: urlData } = _sb.storage.from('tositteet').getPublicUrl(lasku.tosite_pdf_path);
@@ -2556,6 +2560,7 @@ function tosNaytaTiedot(t) {
       tosLiitteet = [];
       tosValittuLiite = null;
       document.getElementById('tos-liitteet-palkki').style.display = 'none';
+      document.getElementById('tos-divider').style.display = 'none';
     }
     return;
   }
@@ -2595,6 +2600,7 @@ function tosNaytaTiedot(t) {
 
   // Näytä liitteet-palkki ja lataa liitteet
   document.getElementById('tos-liitteet-palkki').style.display = 'flex';
+  document.getElementById('tos-divider').style.display = 'block';
   tosLataaLiitteet(t.nro);
 
   // PA-tosite: näytä palkkalaskelma-nappi
@@ -10324,6 +10330,23 @@ function tiliAcKey(e, id) {
     const val = document.getElementById(id+'-input')?.value?.trim();
     if (val) tiliAcValitse(id, val);
   }
+}
+
+function tosAlotaRaahaus(e) {
+  e.preventDefault();
+  const palkki = document.getElementById('tos-liitteet-palkki');
+  const layout = document.getElementById('panel-tositteet');
+  const onMove = (ev) => {
+    const rect = layout.getBoundingClientRect();
+    const uusLev = Math.max(200, Math.min(800, rect.right - ev.clientX));
+    palkki.style.width = uusLev + 'px';
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function olAlotaRaahaus(e) {
