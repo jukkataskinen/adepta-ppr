@@ -267,6 +267,13 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 .match-manual{background:var(--bluel);color:var(--blue)}
 
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Poista number-inputtien nuolet */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
