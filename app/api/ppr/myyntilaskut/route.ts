@@ -143,18 +143,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Luo ostolasku hyväksyntäkiertoon suoran kirjauksen sijaan
-        // Hae seuraava OL-numero vastaanottajalle
-        const { data: olNroData } = await supabaseAdmin!
-          .rpc('seuraava_tosite_nro', { p_asiakas_id: vastaanottaja.id, p_laji: 'OL' })
-        const olNro = olNroData || ('OL' + lasku.lasku_nro)
-
         const { data: olData, error: olErr } = await supabaseAdmin!
           .from('ppr_ostolaskut')
           .insert({
             kirjanpitoasiakas_id: vastaanottaja.id,
             toimittaja_nimi: (lahettajanTiedot as any)?.nimi || lasku.asiakas_nimi || 'Tuntematon',
             toimittaja_id: toimittaja?.id || null,
-            lasku_nro: olNro,
+            lasku_nro: null,
             toimittajan_lasku_nro: tositeNro,
             pvm: lasku.pvm,
             erapv: lasku.erapv || null,

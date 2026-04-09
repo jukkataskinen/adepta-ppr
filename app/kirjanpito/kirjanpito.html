@@ -10233,7 +10233,7 @@ function olRenderLista() {
         <span style="font-family:var(--ffm);font-weight:600;color:var(--fl);font-size:12px">${l.toimittaja_nimi||'Tuntematon'}</span>
         <span style="font-family:var(--ffm);font-size:12px;font-weight:600">${fmt(l.summa_brutto)} €</span>
       </div>
-      <div style="font-size:11px;color:var(--inu);margin-top:2px">${fmtPv(l.pvm)} · ${l.lasku_nro||'—'}</div>
+      <div style="font-size:11px;color:var(--inu);margin-top:2px">${fmtPv(l.pvm)} · ${l.lasku_nro || '<span style="color:var(--amber)">Odottaa kirjausta</span>'}</div>
       <div style="font-size:10px;margin-top:2px;color:${tilaVari(l.tila)};font-weight:500">${tilaNimi(l.tila)}</div>
     </div>`;
   }).join('') || '<div style="padding:24px;text-align:center;color:var(--inu);font-size:12px">Ei ostolaskuja</div>';
@@ -10259,6 +10259,7 @@ function olNayta(id) {
       <div>
         <h3 style="font-size:18px;margin-bottom:4px">${l.toimittaja_nimi||'Ostolasku'}</h3>
         <div style="font-size:12px;color:var(--inu)">${fmtPv(l.pvm)} · Erä: ${fmtPv(l.erapv)} · <span style="color:${tilaVari(l.tila)};font-weight:600">${tilaNimi(l.tila)}</span></div>
+        <div style="font-size:11px;color:var(--inu);margin-top:2px">${l.lasku_nro ? 'Laskunro: '+l.lasku_nro : '<span style="color:var(--amber)">OL-numero annetaan kirjattaessa</span>'} · Toimittajan viite: ${l.toimittajan_lasku_nro||'—'}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:22px;font-weight:300;font-family:var(--ffd)">${fmt(l.summa_brutto)} €</div>
