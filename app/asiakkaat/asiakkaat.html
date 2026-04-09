@@ -240,6 +240,59 @@ table.at td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
         </div>
       </div>
       <div style="margin-bottom:14px"></div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Katuosoite</label>
+          <input type="text" id="f-katuosoite" placeholder="Esimerkkikatu 1">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Postinro</label>
+          <input type="text" id="f-postinro" placeholder="00100">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Kaupunki</label>
+          <input type="text" id="f-kaupunki" placeholder="Helsinki">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>ALV-tunnus</label>
+          <input type="text" id="f-alv-tunnus" placeholder="FI12345678">
+        </div>
+      </div>
+      <div style="margin-bottom:14px"></div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Tilikausi alkaa</label>
+          <input type="date" id="f-tilikausi-alkaa">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Tilikausi loppuu</label>
+          <input type="date" id="f-tilikausi-loppuu">
+        </div>
+      </div>
+      <div style="margin-bottom:14px"></div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>IBAN</label>
+          <input type="text" id="f-iban" placeholder="FI12 3456 7890 1234 56">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>BIC</label>
+          <input type="text" id="f-bic" placeholder="NDEAFIHH">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>OVT-tunnus</label>
+          <input type="text" id="f-ovt" placeholder="003712345678">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Verkkolaskuoperaattori</label>
+          <input type="text" id="f-operaattori" placeholder="003723327487">
+        </div>
+      </div>
+      <div style="margin-bottom:14px"></div>
       <div class="form-row">
         <label>Vastuukirjanpitäjä</label>
         <select id="f-kirjanpitaja">
@@ -359,6 +412,16 @@ function avaaModal(asiakas) {
   document.getElementById('f-puhelin').value = asiakas?.puhelin || '';
   document.getElementById('f-alv').checked = asiakas ? !!asiakas.alv_velvollinen : true;
   document.getElementById('f-kirjanpitaja').value = asiakas?.vastuukirjanpitaja_id || '';
+  document.getElementById('f-katuosoite').value = asiakas?.katuosoite || '';
+  document.getElementById('f-postinro').value = asiakas?.postinro || '';
+  document.getElementById('f-kaupunki').value = asiakas?.kaupunki || '';
+  document.getElementById('f-alv-tunnus').value = asiakas?.alv_tunnus || '';
+  document.getElementById('f-tilikausi-alkaa').value = asiakas?.tilikausi_alkaa || '';
+  document.getElementById('f-tilikausi-loppuu').value = asiakas?.tilikausi_loppuu || '';
+  document.getElementById('f-iban').value = asiakas?.iban || '';
+  document.getElementById('f-bic').value = asiakas?.bic || '';
+  document.getElementById('f-ovt').value = asiakas?.ovt_tunnus || '';
+  document.getElementById('f-operaattori').value = asiakas?.verkkolaskuoperaattori || '';
   document.getElementById('modal-bg').classList.add('open');
   setTimeout(() => document.getElementById('f-nimi').focus(), 50);
 }
@@ -382,6 +445,16 @@ async function tallennaAsiakas() {
     puhelin: document.getElementById('f-puhelin').value.trim() || null,
     alv_velvollinen: document.getElementById('f-alv').checked,
     vastuukirjanpitaja_id: document.getElementById('f-kirjanpitaja').value || null,
+    katuosoite: document.getElementById('f-katuosoite').value.trim() || null,
+    postinro: document.getElementById('f-postinro').value.trim() || null,
+    kaupunki: document.getElementById('f-kaupunki').value.trim() || null,
+    alv_tunnus: document.getElementById('f-alv-tunnus').value.trim() || null,
+    tilikausi_alkaa: document.getElementById('f-tilikausi-alkaa').value || null,
+    tilikausi_loppuu: document.getElementById('f-tilikausi-loppuu').value || null,
+    iban: document.getElementById('f-iban').value.trim() || null,
+    bic: document.getElementById('f-bic').value.trim() || null,
+    ovt_tunnus: document.getElementById('f-ovt').value.trim() || null,
+    verkkolaskuoperaattori: document.getElementById('f-operaattori').value.trim() || null,
   };
 
   const url = id ? '/api/ppr/asiakkaat/' + id : '/api/ppr/asiakkaat';
