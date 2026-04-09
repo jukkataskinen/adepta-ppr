@@ -126,19 +126,29 @@ export async function POST(request: NextRequest) {
           await supabaseAdmin!.from('ppr_toimittaja_tilastot')
             .upsert({ toimittaja_id: toimittaja.id, tili: ostoTili, kayttokerrat: 1 }, { onConflict: 'toimittaja_id,tili' })
         } else if (lasku.kirjanpitoasiakas_ytunnus) {
-          // Luo toimittaja automaattisesti
-          const { data: uusiToimittaja } = await supabaseAdmin!
+          // Tarkista vielä kerran ettei OVT:llä löydy (race condition)
+          const { data: tarkistus } = await supabaseAdmin!
             .from('ppr_toimittajat')
-            .insert({
-              nimi: lasku.asiakas_nimi,
-              ytunnus: lasku.kirjanpitoasiakas_ytunnus,
-              ovt_tunnus: lasku.asiakas_ovt_tunnus || null,
-            })
             .select('id')
-            .single()
-          if (uusiToimittaja) {
-            await supabaseAdmin!.from('ppr_toimittaja_tilastot')
-              .insert({ toimittaja_id: uusiToimittaja.id, tili: '4000', kayttokerrat: 1 })
+            .eq('ovt_tunnus', lasku.asiakas_ovt_tunnus || '__EI__')
+            .maybeSingle()
+          if (tarkistus) {
+            // Toimittaja löytyi jo — käytetään sitä
+          } else {
+            // Luo toimittaja automaattisesti
+            const { data: uusiToimittaja } = await supabaseAdmin!
+              .from('ppr_toimittajat')
+              .insert({
+                nimi: lasku.asiakas_nimi,
+                ytunnus: lasku.kirjanpitoasiakas_ytunnus,
+                ovt_tunnus: lasku.asiakas_ovt_tunnus || null,
+              })
+              .select('id')
+              .single()
+            if (uusiToimittaja) {
+              await supabaseAdmin!.from('ppr_toimittaja_tilastot')
+                .insert({ toimittaja_id: uusiToimittaja.id, tili: '4000', kayttokerrat: 1 })
+            }
           }
         }
 
