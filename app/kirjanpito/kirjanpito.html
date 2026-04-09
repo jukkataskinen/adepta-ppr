@@ -344,6 +344,7 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 
     <div class="nav-item" id="nav-pankki" onclick="showPanel('pankki')">Pankkituonti</div>
     <div class="nav-item" id="nav-rpt" onclick="showPanel('raportit')">Raportit</div>
+    <div class="nav-item" id="nav-yritystiedot" onclick="showPanel('yritystiedot')">Yrityksen tiedot</div>
 
     <div class="sb-div"></div>
     <div class="nav-group">
@@ -1254,6 +1255,41 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
       </div>
     </div>
 
+    <!-- YRITYKSEN TIEDOT PANEL -->
+    <div id="panel-yritystiedot" class="panel" style="overflow-y:auto;padding:28px 32px;display:none">
+      <h2 style="font-size:18px;font-weight:600;margin-bottom:4px">Yrityksen tiedot</h2>
+      <div style="font-size:13px;color:var(--inu);margin-bottom:24px">Myyntilaskulle tulostuvat tiedot</div>
+      <div style="max-width:640px;display:grid;gap:16px">
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inu);margin-bottom:14px">Osoitetiedot</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">
+            <div style="grid-column:1/-1"><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Katuosoite</label><input id="yt-katuosoite" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Postinumero</label><input id="yt-postinro" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Kaupunki</label><input id="yt-kaupunki" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+          </div>
+        </div>
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inu);margin-bottom:14px">Pankkitiedot</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">
+            <div style="grid-column:1/-1"><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">IBAN</label><input id="yt-iban" placeholder="FI12 3456 7890 1234 56" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px;font-family:var(--ffm)"></div>
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">BIC</label><input id="yt-bic" placeholder="NDEAFIHH" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px;font-family:var(--ffm)"></div>
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Verotiliviite</label><input id="yt-verotiliviite" placeholder="esim. 12345" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px;font-family:var(--ffm)"></div>
+          </div>
+        </div>
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inu);margin-bottom:14px">Yhteystiedot</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Puhelin</label><input id="yt-puhelin" placeholder="+358 40 123 4567" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Sähköposti</label><input id="yt-sahkoposti" placeholder="info@yritys.fi" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+            <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Kotisivu</label><input id="yt-kotisivu" placeholder="www.yritys.fi" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="ytTallenna()" style="padding:9px 24px;font-size:13px;font-weight:500;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Tallenna muutokset</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── PALKAT PANEL ─── -->
     <div id="panel-palkat" class="panel" style="overflow:hidden;padding:0">
       <div style="display:flex;flex-direction:column;height:100%">
@@ -1947,6 +1983,7 @@ function showPanel(name) {
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
   if (name === 'toimittajat') lataaToimittajat();
   if (name === 'ostolaskut') lataaOlData();
+  if (name === 'yritystiedot') ytLataa();
   if (name === 'tosite') paivitaTositeNro();
   if (name === 'raportit') {
     const rptSub = document.getElementById('rpt-sub');
@@ -10371,6 +10408,46 @@ function tosAvaa(tositeNro) {
 }
 
 function porauduTosite(tositeNro) { tosAvaa(tositeNro); }
+
+async function ytLataa() {
+  if (!curYritys) return;
+  const { data } = await _sb.from('ppr_kirjanpitoasiakkaat').select('*').eq('id', curYritys.id).single();
+  if (!data) return;
+  document.getElementById('yt-katuosoite').value = data.katuosoite || '';
+  document.getElementById('yt-postinro').value = data.postinro || '';
+  document.getElementById('yt-kaupunki').value = data.kaupunki || '';
+  document.getElementById('yt-iban').value = data.iban || '';
+  document.getElementById('yt-bic').value = data.bic || '';
+  document.getElementById('yt-verotiliviite').value = data.verotiliviite || '';
+  document.getElementById('yt-puhelin').value = data.puhelin || '';
+  document.getElementById('yt-sahkoposti').value = data.sahkoposti || '';
+  document.getElementById('yt-kotisivu').value = data.kotisivu || '';
+}
+
+async function ytTallenna() {
+  if (!curYritys) return;
+  const body = {
+    katuosoite: document.getElementById('yt-katuosoite').value.trim() || null,
+    postinro: document.getElementById('yt-postinro').value.trim() || null,
+    kaupunki: document.getElementById('yt-kaupunki').value.trim() || null,
+    iban: document.getElementById('yt-iban').value.trim() || null,
+    bic: document.getElementById('yt-bic').value.trim() || null,
+    puhelin: document.getElementById('yt-puhelin').value.trim() || null,
+    sahkoposti: document.getElementById('yt-sahkoposti').value.trim() || null,
+  };
+  const res = await fetch('/api/ppr/asiakkaat/' + curYritys.id, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    toast('Tiedot tallennettu');
+    Object.assign(curYritys, body);
+  } else {
+    const j = await res.json();
+    toast('Virhe: ' + (j.error||''), 'err');
+  }
+}
 
 function mlAlotaRaahaus(e) {
   e.preventDefault();
