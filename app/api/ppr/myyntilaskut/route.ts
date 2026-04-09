@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
             toimittaja_nimi: (lahettajanTiedot as any)?.nimi || lasku.asiakas_nimi || 'Tuntematon',
             toimittaja_id: toimittaja?.id || null,
             lasku_nro: olNro,
+            toimittajan_lasku_nro: tositeNro,
             pvm: lasku.pvm,
             erapv: lasku.erapv || null,
             viite: lasku.viite || null,

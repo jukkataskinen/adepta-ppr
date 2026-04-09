@@ -44,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           await supabaseAdmin!
             .from('ppr_ostolaskut')
             .update({ tosite_pdf_path: olPolku })
-            .eq('lasku_nro', data.tosite_nro)
+            .eq('lasku_nro', olNro)
             .eq('kirjanpitoasiakas_id', vastaanottaja.id)
         }
       }
