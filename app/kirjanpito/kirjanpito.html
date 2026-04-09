@@ -6930,7 +6930,7 @@ let mlLaskuRivit=[]; // välimuisti uuden laskun riveille
 
 function mlTab(tab) {
   ['laskut','asiakkaat2','tuotteet'].forEach(t => {
-    document.getElementById('ml-'+t).style.display = t===tab ? (t==='laskut'?'grid':'block') : 'none';
+    document.getElementById('ml-'+t).style.display = t===tab ? (t==='laskut'?'flex':'block') : 'none';
     document.getElementById('ml-tab-'+t).classList.toggle('act', t===tab);
   });
   if (tab === 'asiakkaat2') mlRenderAsiakkaat();
