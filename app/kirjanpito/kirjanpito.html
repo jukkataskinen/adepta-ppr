@@ -7299,11 +7299,27 @@ async function mlTulostaPdf() {
   // Hae asiakkaan osoitetiedot loppuasiakkaista
   const asiakas = mlAsiakkaatLista.find(a => a.id === lasku.asiakas_id) || {};
 
+  // Hae lähettäjän täydet tiedot kannasta (IBAN, BIC, osoite)
+  let lahettajanTiedot = curYritys || {};
+  if (curYritys?.id && (!curYritys.iban && !curYritys.katuosoite)) {
+    try {
+      const { data: ytData } = await _sb
+        .from('ppr_kirjanpitoasiakkaat')
+        .select('nimi,katuosoite,postinro,kaupunki,iban,bic,puhelin,sahkoposti,y_tunnus')
+        .eq('id', curYritys.id)
+        .single();
+      if (ytData) {
+        lahettajanTiedot = { ...curYritys, ...ytData };
+        Object.assign(curYritys, ytData);
+      }
+    } catch(e) { console.warn('Lähettäjän tiedot:', e); }
+  }
+
   // Kirjanpitoasiakkaan (lähettäjän) tiedot
-  const lahettaja = curYritys?.nimi || window._PPR?.orgNimi || '';
+  const lahettaja = lahettajanTiedot?.nimi || window._PPR?.orgNimi || '';
   const lahOsoite = [];
-  if (curYritys?.katuosoite) lahOsoite.push(curYritys.katuosoite);
-  if (curYritys?.postinro || curYritys?.kaupunki) lahOsoite.push(((curYritys.postinro||'')+' '+(curYritys.kaupunki||'')).trim());
+  if (lahettajanTiedot?.katuosoite) lahOsoite.push(lahettajanTiedot.katuosoite);
+  if (lahettajanTiedot?.postinro || lahettajanTiedot?.kaupunki) lahOsoite.push(((lahettajanTiedot.postinro||'')+' '+(lahettajanTiedot.kaupunki||'')).trim().toUpperCase());
 
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const doc = await PDFDocument.create();
@@ -7436,8 +7452,8 @@ async function mlTulostaPdf() {
   const saaja = lahettaja;
   const footRivit = [
     ['Saaja', saaja],
-    ['IBAN', curYritys?.iban || ''],
-    ['BIC', curYritys?.bic || ''],
+    ['IBAN', lahettajanTiedot?.iban || ''],
+    ['BIC', lahettajanTiedot?.bic || ''],
   ];
   footRivit.forEach(([t,v], i) => {
     const fy = footY + 24 - i*12;
