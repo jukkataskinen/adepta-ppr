@@ -1615,6 +1615,9 @@ input[type=number] { -moz-appearance: textfield; }
         <div id="mg-kirjaus" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px">
           <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Ehdotettu kirjaus</div>
           <div style="display:flex;flex-direction:column;gap:6px;font-size:11px">
+            <input id="mg-tili-filter" type="text" placeholder="Hae tiliä numerolla tai nimellä..."
+              oninput="mgFilterTilit(this.value)"
+              style="padding:4px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
             <div style="display:flex;align-items:center;gap:4px">
               <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">D</span>
               <select id="mg-tili-select" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
@@ -4834,14 +4837,32 @@ function mgDropLasku(e) {
   if (!isNaN(laskuIdx)) mgVaihdaLasku(laskuIdx);
 }
 
-function mgPopulateTiliSelect() {
+function mgPopulateTiliSelect(filterText = '') {
   const sel = document.getElementById('mg-tili-select');
+  if (!sel) return;
   const current = sel.value;
+  const q = (filterText || '').toLowerCase().trim();
   sel.innerHTML = '<option value="" style="background:#1a2332;color:#e0e0e0">? Valitse tili</option>';
-  TILIT.forEach(t => {
+  const filtered = q
+    ? TILIT.filter(t =>
+        String(t.nro || '').toLowerCase().includes(q) ||
+        String(t.lbl || '').toLowerCase().includes(q)
+      )
+    : TILIT;
+  filtered.forEach(t => {
     sel.innerHTML += `<option value="${t.nro}" style="background:#1a2332;color:#e0e0e0">${t.nro} ${t.lbl}</option>`;
   });
+  if (current && !filtered.some(t => t.nro === current)) {
+    const selected = TILIT.find(t => t.nro === current);
+    if (selected) {
+      sel.innerHTML += `<option value="${selected.nro}" style="background:#1a2332;color:#e0e0e0">${selected.nro} ${selected.lbl}</option>`;
+    }
+  }
   if (current) sel.value = current;
+}
+
+function mgFilterTilit(query) {
+  mgPopulateTiliSelect(query || '');
 }
 
 function mgRenderKirjaus(t, lasku) {
@@ -4849,7 +4870,9 @@ function mgRenderKirjaus(t, lasku) {
   const brutto = Math.abs(t.summa);
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2});
 
-  mgPopulateTiliSelect();
+  const filterEl = document.getElementById('mg-tili-filter');
+  if (filterEl) filterEl.value = '';
+  mgPopulateTiliSelect('');
 
   const sel = document.getElementById('mg-tili-select');
   const alvSel = document.getElementById('mg-alv-select');
