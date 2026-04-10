@@ -5608,21 +5608,24 @@ async function parseNordeaOCR(base64) {
   const saldoRegex = /(\d{2}\.\d{2}\.\d{2})\s+Saldo\s+([0-9\s.,]+)\s*([+\-−t])?/gi;
   let saldoMatch;
   while ((saldoMatch = saldoRegex.exec(kaikki)) !== null) {
-    let saldoRaw = String(saldoMatch[2] || '').trim();
-    // Yhtenäistä välilyönnit ja poista OCR-kohina
-    saldoRaw = saldoRaw.replace(/\s+/g, '');
-    // Jos desimaalierotin on pilkku, poista tuhaterottimen pisteet.
-    // Jos pilkkua ei ole, käytä viimeistä pistettä desimaalierottimena.
+    const alkuperainen = String(saldoMatch[2] || '').trim();
+    let saldoRaw = alkuperainen;
+
+    // 1) Normaali FI-muoto: "10.568,84"
     if (saldoRaw.includes(',')) {
-      saldoRaw = saldoRaw.replace(/\./g, '').replace(',', '.');
+      saldoRaw = saldoRaw.replace(/\s+/g, '').replace(/\./g, '').replace(',', '.');
     } else {
-      const viimeinenPiste = saldoRaw.lastIndexOf('.');
-      if (viimeinenPiste > 0) {
-        const alku = saldoRaw.slice(0, viimeinenPiste).replace(/\./g, '');
-        const loppu = saldoRaw.slice(viimeinenPiste + 1);
-        saldoRaw = `${alku}.${loppu}`;
+      // 2) OCR-muoto: "10.568 84" tai "10568 84"
+      const ocrSpaceDec = saldoRaw.match(/^([\d.]+)\s+(\d{2})$/);
+      if (ocrSpaceDec) {
+        const intPart = ocrSpaceDec[1].replace(/\./g, '');
+        saldoRaw = `${intPart}.${ocrSpaceDec[2]}`;
+      } else {
+        // 3) Fallback: poista välit; piste oletetaan tuhaterottimeksi
+        saldoRaw = saldoRaw.replace(/\s+/g, '').replace(/\./g, '');
       }
     }
+
     const arvo = Math.abs(parseFloat(saldoRaw));
     if (isNaN(arvo)) continue;
     if (alkusaldo === null) alkusaldo = arvo;
