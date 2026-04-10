@@ -319,6 +319,8 @@ input[type=number] { -moz-appearance: textfield; }
         <div class="nav-item nav-sub" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
         <div class="nav-item nav-sub" id="nav-reskontra" onclick="showPanel('reskontra')">Laskuaineiston tuonti</div>
         <div class="nav-item nav-sub" id="nav-myyntilaskut" onclick="showPanel('myyntilaskut');lataaMlData()">Myyntilaskut</div>
+        <div class="nav-item nav-sub" id="nav-myynti-asiakkaat" onclick="showPanel('myynti-asiakkaat');lataaMlData()">Myynti-asiakasrekisteri</div>
+        <div class="nav-item nav-sub" id="nav-myynti-tuotteet" onclick="showPanel('myynti-tuotteet');lataaMlData()">Myynti-tuotteet</div>
       </div>
     </div>
 
@@ -1213,12 +1215,6 @@ input[type=number] { -moz-appearance: textfield; }
     <!-- ─── MYYNTILASKUT PANEL ─── -->
     <div id="panel-myyntilaskut" class="panel" style="overflow:hidden;padding:0">
       <div style="display:flex;flex-direction:column;height:100%">
-        <div style="display:flex;border-bottom:1px solid var(--bd);flex-shrink:0">
-          <button onclick="mlTab('laskut')" id="ml-tab-laskut" class="rpt-tab act" style="padding:10px 20px;font-size:13px">Laskut</button>
-          <button onclick="mlTab('asiakkaat2')" id="ml-tab-asiakkaat2" class="rpt-tab" style="padding:10px 20px;font-size:13px">Asiakkaat</button>
-          <button onclick="mlTab('tuotteet')" id="ml-tab-tuotteet" class="rpt-tab" style="padding:10px 20px;font-size:13px">Tuotteet</button>
-        </div>
-        <!-- Laskut -->
         <div id="ml-laskut" style="flex:1;overflow:hidden;display:flex;height:100%">
           <div style="width:320px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
             <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
@@ -1247,19 +1243,19 @@ input[type=number] { -moz-appearance: textfield; }
             </div>
           </div>
         </div>
-        <!-- Asiakkaat -->
-        <div id="ml-asiakkaat2" style="flex:1;overflow-y:auto;padding:20px 24px;display:none">
-          <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Laskutusasiakkaat</h3><button onclick="mlAvaaAsiakasModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää asiakas</button></div>
-          <div id="ml-asiakkaat-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
-        </div>
-        <!-- Tuotteet -->
-        <div id="ml-tuotteet" style="flex:1;overflow-y:auto;padding:20px 24px;display:none">
-          <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Tuotteet ja palvelut</h3><button onclick="mlAvaaTuoteModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää tuote</button></div>
-          <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
-            <th style="padding:8px;text-align:left">Nro</th><th style="padding:8px;text-align:left">Nimi</th><th style="padding:8px;text-align:left">Yksikkö</th><th style="padding:8px;text-align:right">À-hinta</th><th style="padding:8px;text-align:right">ALV%</th><th style="padding:8px;text-align:left">Tili</th>
-          </tr></thead><tbody id="ml-tuotteet-tbody"></tbody></table>
-        </div>
       </div>
+    </div>
+
+    <div id="panel-myynti-asiakkaat" class="panel" style="overflow-y:auto;padding:20px 24px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Laskutusasiakkaat</h3><button onclick="mlAvaaAsiakasModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää asiakas</button></div>
+      <div id="ml-asiakkaat-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+    </div>
+
+    <div id="panel-myynti-tuotteet" class="panel" style="overflow-y:auto;padding:20px 24px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Tuotteet ja palvelut</h3><button onclick="mlAvaaTuoteModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää tuote</button></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--ppw);border-bottom:2px solid var(--bd2)">
+        <th style="padding:8px;text-align:left">Nro</th><th style="padding:8px;text-align:left">Nimi</th><th style="padding:8px;text-align:left">Yksikkö</th><th style="padding:8px;text-align:right">À-hinta</th><th style="padding:8px;text-align:right">ALV%</th><th style="padding:8px;text-align:left">Tili</th>
+      </tr></thead><tbody id="ml-tuotteet-tbody"></tbody></table>
     </div>
 
     <!-- YRITYKSEN TIEDOT PANEL -->
@@ -1983,7 +1979,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'myynti-asiakkaat','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -6928,14 +6924,6 @@ async function arNaytaTiedot(o) {
 let mlLaskut=[], mlTuotteet=[], mlFiltteri='', mlValittu=null;
 let mlLaskuRivit=[]; // välimuisti uuden laskun riveille
 
-function mlTab(tab) {
-  ['laskut','asiakkaat2','tuotteet'].forEach(t => {
-    document.getElementById('ml-'+t).style.display = t===tab ? (t==='laskut'?'flex':'block') : 'none';
-    document.getElementById('ml-tab-'+t).classList.toggle('act', t===tab);
-  });
-  if (tab === 'asiakkaat2') mlRenderAsiakkaat();
-}
-
 async function lataaMlData() {
   if (!curYritys) return;
   try {
@@ -7167,8 +7155,6 @@ async function mlTallenna(tila) {
     const res = await fetch('/api/ppr/myyntilaskut', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
       kirjanpitoasiakas_id:curYritys.id, asiakas_id:mlValittuAsiakasId, lasku_nro:nro, viite, asiakas_nimi:asiakas,
       asiakas_ovt_tunnus:mlValittuAsiakas?.ovt_tunnus || null,
-      // DEBUG
-      ...(() => { console.log('mlTallenna asiakas:', JSON.stringify({id:mlValittuAsiakasId, ovt:mlValittuAsiakas?.ovt_tunnus, asiakas:mlValittuAsiakas?.nimi})); return {}; })(),
       kirjanpitoasiakas_ytunnus:curYritys?.ytunnus || null,
       asiakas_ytunnus:mlValittuAsiakas?.ytunnus || null,
       asiakas_osoite:mlValittuAsiakas?.katuosoite || null,

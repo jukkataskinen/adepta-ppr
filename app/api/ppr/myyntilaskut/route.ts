@@ -189,7 +189,6 @@ export async function POST(request: NextRequest) {
           if (olRivitInsert.length > 0) {
             await supabaseAdmin!.from('ppr_ostolasku_rivit').insert(olRivitInsert)
           }
-          console.log('Ostolasku luotu hyväksyntäkiertoon:', olData.id)
         }
       }
     }
