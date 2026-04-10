@@ -1246,8 +1246,21 @@ input[type=number] { -moz-appearance: textfield; }
     </div>
 
     <div id="panel-myynti-asiakkaat" class="panel" style="overflow-y:auto;padding:20px 24px;display:none">
-      <div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3>Laskutusasiakkaat</h3><button onclick="mlAvaaAsiakasModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää asiakas</button></div>
-      <div id="ml-asiakkaat-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <h3 style="margin:0">Laskutusasiakkaat</h3>
+        <button onclick="mlAvaaAsiakasModal()" style="padding:6px 14px;font-size:12px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">+ Lisää asiakas</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <input id="ml-asiakasrek-search" type="text" placeholder="Hae nimellä, Y-tunnuksella, OVT:llä, sähköpostilla..." oninput="mlRenderAsiakkaat()" style="flex:1;min-width:260px;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px">
+        <select id="ml-asiakasrek-filter" onchange="mlRenderAsiakkaat()" style="padding:8px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px;background:var(--pp)">
+          <option value="all">Kaikki kentät</option>
+          <option value="nimi">Nimi</option>
+          <option value="ytunnus">Y-tunnus</option>
+          <option value="ovt">OVT</option>
+          <option value="yhteys">Yhteystiedot</option>
+        </select>
+      </div>
+      <div id="ml-asiakkaat-lista"></div>
     </div>
 
     <div id="panel-myynti-tuotteet" class="panel" style="overflow-y:auto;padding:20px 24px;display:none">
@@ -7026,19 +7039,60 @@ async function lataaMlAsiakkaat() {
 function mlRenderAsiakkaat() {
   const el = document.getElementById('ml-asiakkaat-lista');
   if (!el) return;
-  if (!mlAsiakkaatLista.length) { el.innerHTML = '<p style="color:var(--inu);font-size:13px">Ei asiakkaita. Lisää asiakas painamalla + Lisää asiakas.</p>'; return; }
-  el.innerHTML = mlAsiakkaatLista.map(a => `
-    <div style="border:1px solid var(--bd);border-radius:8px;padding:14px;background:var(--pp)">
-      <div style="font-weight:600;font-size:14px;margin-bottom:4px">${a.nimi||''}</div>
-      ${a.ytunnus ? `<div style="font-size:12px;color:var(--inu)">Y-tunnus: ${a.ytunnus}</div>` : ''}
-      ${a.katuosoite ? `<div style="font-size:12px;color:var(--inu)">${a.katuosoite}, ${a.postinro||''} ${a.kaupunki||''}</div>` : ''}
-      <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--inu)">
-        ${a.email ? `<span>${a.email}</span>` : ''}
-        ${a.puhelin ? `<span>${a.puhelin}</span>` : ''}
-        <span>Maksuehto: ${a.maksuehto||14} pv</span>
-      </div>
-    </div>
-  `).join('');
+  const q = (document.getElementById('ml-asiakasrek-search')?.value || '').trim().toLowerCase();
+  const filt = document.getElementById('ml-asiakasrek-filter')?.value || 'all';
+
+  if (!mlAsiakkaatLista.length) {
+    el.innerHTML = '<p style="color:var(--inu);font-size:13px">Ei asiakkaita. Lisää asiakas painamalla + Lisää asiakas.</p>';
+    return;
+  }
+
+  const osumat = mlAsiakkaatLista.filter(a => {
+    if (!q) return true;
+    const nimi = String(a.nimi || '').toLowerCase();
+    const ytunnus = String(a.ytunnus || '').toLowerCase();
+    const ovt = String(a.ovt_tunnus || '').toLowerCase();
+    const email = String(a.email || '').toLowerCase();
+    const puhelin = String(a.puhelin || '').toLowerCase();
+    const osoite = String(`${a.katuosoite || ''} ${a.postinro || ''} ${a.kaupunki || ''}`).toLowerCase();
+
+    if (filt === 'nimi') return nimi.includes(q);
+    if (filt === 'ytunnus') return ytunnus.includes(q);
+    if (filt === 'ovt') return ovt.includes(q);
+    if (filt === 'yhteys') return email.includes(q) || puhelin.includes(q) || osoite.includes(q);
+    return nimi.includes(q) || ytunnus.includes(q) || ovt.includes(q) || email.includes(q) || puhelin.includes(q) || osoite.includes(q);
+  });
+
+  if (!osumat.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--inu);font-size:12px;border:1px solid var(--bd);border-radius:8px;background:var(--pp)">Ei hakutuloksia.</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="font-size:11px;color:var(--inu);margin-bottom:8px">${osumat.length} asiakasta</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:var(--pp)">
+      <thead>
+        <tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+          <th style="padding:8px;text-align:left">Nimi</th>
+          <th style="padding:8px;text-align:left">Y-tunnus</th>
+          <th style="padding:8px;text-align:left">OVT</th>
+          <th style="padding:8px;text-align:left">Yhteystiedot</th>
+          <th style="padding:8px;text-align:left">Maksuehto</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${osumat.map(a => `
+          <tr style="border-bottom:1px solid var(--bd)">
+            <td style="padding:8px;font-weight:600">${a.nimi || ''}</td>
+            <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ytunnus || '—'}</td>
+            <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ovt_tunnus || '—'}</td>
+            <td style="padding:8px;color:var(--inu)">${[a.email, a.puhelin].filter(Boolean).join(' · ') || '—'}</td>
+            <td style="padding:8px;color:var(--inu)">${a.maksuehto || 14} pv</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 function mlHaeAsiakkaatDropdown(haku) {
