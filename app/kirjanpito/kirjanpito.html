@@ -2730,7 +2730,23 @@ function tosNaytaTiedot(t) {
   // Näytä liitteet-palkki ja lataa liitteet
   document.getElementById('tos-liitteet-palkki').style.display = 'flex';
   document.getElementById('tos-divider').style.display = 'block';
-  tosLataaLiitteet(t.nro);
+  tosLataaLiitteet(t.nro).then(() => {
+    // Varmistus: jos tosite_pdf_path tuli paivakirjariveillä, näytä se aina liitteenä
+    // vaikka ppr_tosite_liitteet-taulussa ei olisi erillistä riviä.
+    const rowPdfPath = (t.rivit || []).map(r => r.tosite_pdf_path).find(Boolean);
+    if (rowPdfPath && !tosLiitteet.some(l => l.storage_path === rowPdfPath)) {
+      tosLiitteet.unshift({
+        id: 'rowpdf-' + t.nro,
+        tosite_nro: t.nro,
+        tiedostonimi: t.nro + '.pdf',
+        storage_path: rowPdfPath,
+        koko_bytes: 0,
+      });
+      tosValittuLiite = tosLiitteet[0];
+      tosRenderLiiteLista();
+      tosNaytaLiite(tosLiitteet[0]);
+    }
+  });
 
   // PA-tosite: näytä palkkalaskelma-nappi
   if (t.nro.startsWith('PA')) tosNaytaPalkkalaskelmaBtn(t.nro);
