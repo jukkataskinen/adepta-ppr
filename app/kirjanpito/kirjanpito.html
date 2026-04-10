@@ -316,10 +316,9 @@ input[type=number] { -moz-appearance: textfield; }
     <div class="nav-group">
       <div class="nav-group-title" onclick="toggleNavGrp(this)"><span>Myynnit</span><span class="nav-arrow" style="transform:rotate(90deg)">›</span></div>
       <div class="nav-group-items">
-        <div class="nav-item nav-sub" id="nav-asiakasrek" onclick="showPanel('asiakasrek');lataaOsakkaat()">Asiakasrekisteri</div>
+        <div class="nav-item nav-sub" id="nav-asiakasrek" onclick="showPanel('myynti-asiakkaat');lataaMlData()">Asiakasrekisteri</div>
         <div class="nav-item nav-sub" id="nav-reskontra" onclick="showPanel('reskontra')">Laskuaineiston tuonti</div>
         <div class="nav-item nav-sub" id="nav-myyntilaskut" onclick="showPanel('myyntilaskut');lataaMlData()">Myyntilaskut</div>
-        <div class="nav-item nav-sub" id="nav-myynti-asiakkaat" onclick="showPanel('myynti-asiakkaat');lataaMlData()">Myynti-asiakasrekisteri</div>
         <div class="nav-item nav-sub" id="nav-myynti-tuotteet" onclick="showPanel('myynti-tuotteet');lataaMlData()">Myynti-tuotteet</div>
       </div>
     </div>
@@ -1979,7 +1978,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'myynti-asiakkaat','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'asiakasrek','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 

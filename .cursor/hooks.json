@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "powershell -ExecutionPolicy Bypass -File .cursor/hooks/auto-git-push.ps1"
+      }
+    ]
+  }
+}
