@@ -6140,7 +6140,14 @@ Ehdota tili: puhelin→7950, vuokra→7210, sähkö→7390, markkinointi→7910,
   const promptMulti = `Tässä PDF:ssä on ostolaskuja tai myyntilaskuja. Tunnista jokainen lasku erikseen.
 Palauta VAIN JSON: {"laskut":[{"nro":"laskun numero","toimittaja":"nimi","pvm":"YYYY-MM-DD","erapv":"YYYY-MM-DD tai null","summa_brutto":150.00,"summa_netto":119.62,"alv_prosentti":25.5,"viite":"viitenumero tai null","kuvaus":"laskun sisältö","ehdotettu_tili":"7950 tai null","page_number":1}]}
 Ehdota tili: puhelin→7950, vuokra→7210, sähkö→7390, markkinointi→7910, palkka→5000, vakuutus→7414, kirjanpito→8060, siivous→7360.
-page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
+page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.
+
+TÄRKEÄT TULKINTASÄÄNNÖT:
+- toimittaja = laskun LÄHETTÄJÄ / myyjä, EI maksaja/asiakas.
+- Jos dokumentissa näkyy "Maksaja", "Laskutusosoite", "Vakuutuksenottaja", "Asiakas", ne ovat ostajan tietoja, eivät toimittajaa.
+- Älä käytä tuotteen tai ajoneuvon merkkiä toimittajana (esim. Volkswagen ei ole toimittaja).
+- Käytä toimittajana yritystä, joka esiintyy lähettäjänä (ylä-/alatunniste, Y-tunnus, IBAN/BIC-yhteydessä).
+- Jos kyseessä on maksuvaatimus/perintä, toimittaja on perintäkirjeen lähettäjä (esim. Intrum Oy).`;
 
   try {
     const pdfOsat = palat || [pdfBytesAll];
@@ -6162,10 +6169,16 @@ page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
 
       // Renderöi sivut kuviksi
       let sivuKuvat = [];
+      let sivuTekstit = [];
       try {
         const pdf = await pdfjsLib.getDocument({data: new Uint8Array(osaBytes)}).promise;
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
+          try {
+            const tc = await page.getTextContent();
+            const raw = tc.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+            if (raw) sivuTekstit.push(`Sivu ${i}: ${raw.slice(0, 4000)}`);
+          } catch (e) {}
           const vp = page.getViewport({scale: 1.5});
           const canvas = document.createElement('canvas');
           canvas.width = vp.width; canvas.height = vp.height;
@@ -6174,7 +6187,8 @@ page_number: PDF:n sivunumero (1-indeksoitu) jolta lasku löytyy.`;
         }
       } catch(e) { console.warn('PDF renderöinti:', e); }
 
-      const aktiiviPrompt = kayttaaYksiPromptia ? prompt : promptMulti;
+      const aktiiviPrompt = (kayttaaYksiPromptia ? prompt : promptMulti) +
+        `\n\nOCR-raakateksti (apuna, voi sisältää virheitä):\n${sivuTekstit.join('\n')}`;
       const content = sivuKuvat.length > 0
         ? [...sivuKuvat.map(b64 => ({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}})), {type:'text',text:aktiiviPrompt}]
         : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:osaBase64}}, {type:'text',text:aktiiviPrompt}];
