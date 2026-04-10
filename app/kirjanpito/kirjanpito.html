@@ -4681,6 +4681,76 @@ let mgPdfDoc = null;
 const laskuCanvasCache = {};
 let mgServerPrepared = null;
 let mgNeedsLedgerReload = false;
+let mgApplyQueue = [];
+let mgApplyInFlight = false;
+let mgFlushAfterQueue = false;
+
+async function mgUploadMatchedInvoicePdf(lasku, ti) {
+  if (!lasku?.pdfBase64 || !window._PPR?.orgId) return null;
+  try {
+    const sivuBytes = await erotaSivu(lasku.pdfBase64, lasku.pageNumber || 1);
+    const polku = `${window._PPR.orgId}/laskut/match-${Date.now()}-${ti}.pdf`;
+    return await lataaStorageen(window._PPR.orgId, polku, sivuBytes);
+  } catch (e) {
+    console.warn('Kohdistetun laskun liitteen upload epäonnistui:', e);
+    return null;
+  }
+}
+
+function mgEnqueueApply(task) {
+  mgApplyQueue.push(task);
+  mgProcessApplyQueue();
+}
+
+async function mgProcessApplyQueue() {
+  if (mgApplyInFlight) return;
+  mgApplyInFlight = true;
+  try {
+    while (mgApplyQueue.length > 0) {
+      const task = mgApplyQueue.shift();
+      const t = impTapahtumat[task.ti];
+      if (!t) continue;
+      try {
+        const tositePdfPath = await mgUploadMatchedInvoicePdf(task.lasku, task.ti);
+        const resp = await fetch('/api/ppr/matching/apply', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            asiakas_id: curYritys.id,
+            tapahtuma: t,
+            suggestion: task.lasku ? { invoiceIdx: task.lasku.idx } : null,
+            tosite_pdf_path: tositePdfPath,
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          t.tila = 'odottaa';
+          if (mgKirjattu > 0) mgKirjattu--;
+          toast('Virhe kirjauksessa: ' + (data.error || resp.status));
+          continue;
+        }
+        t.tila = 'tuotu';
+        mgNeedsLedgerReload = true;
+      } catch (e) {
+        t.tila = 'odottaa';
+        if (mgKirjattu > 0) mgKirjattu--;
+        console.warn('matching/apply jonossa virhe:', e);
+        toast('Verkkovirhe kirjauksessa');
+      }
+    }
+  } finally {
+    mgApplyInFlight = false;
+    if (mgFlushAfterQueue) {
+      mgFlushAfterQueue = false;
+      renderImpTable();
+      if (mgNeedsLedgerReload && curYritys?.id) {
+        const asiakasId = curYritys.id;
+        mgNeedsLedgerReload = false;
+        lataaRivit(asiakasId).catch(e => console.warn('lataaRivit (match game) epäonnistui:', e));
+      }
+    }
+  }
+}
 
 async function esirenderöiLaskut() {
   if (!laskut?.length || typeof pdfjsLib === 'undefined') return;
@@ -4703,6 +4773,9 @@ async function esirenderöiLaskut() {
 
 function aloitaMatchGame() {
   mgNeedsLedgerReload = false;
+  mgApplyQueue = [];
+  mgApplyInFlight = false;
+  mgFlushAfterQueue = false;
   const statsEl = document.getElementById('mg-stats');
   if (statsEl) statsEl.textContent = USE_SERVER_MATCHING ? 'Valmistellaan kohdistusta (serverisuositukset)...' : 'Valmistellaan kohdistusta...';
   const headerEl = document.getElementById('mg-header-info');
@@ -4713,11 +4786,11 @@ function aloitaMatchGame() {
       .map((t, i) => i)
       .filter(i => !jarjestetyt.includes(i));
     mgQueue = [...jarjestetyt, ...puuttuvat]
-      .filter(i => impTapahtumat[i]?.tila !== 'tuotu' && impTapahtumat[i]?.tila !== 'ohitettu');
+      .filter(i => impTapahtumat[i]?.tila !== 'tuotu' && impTapahtumat[i]?.tila !== 'ohitettu' && impTapahtumat[i]?.tila !== 'jonossa');
   } else {
     mgQueue = impTapahtumat
       .map((t, i) => i)
-      .filter(i => impTapahtumat[i].tila !== 'tuotu' && impTapahtumat[i].tila !== 'ohitettu');
+      .filter(i => impTapahtumat[i].tila !== 'tuotu' && impTapahtumat[i].tila !== 'ohitettu' && impTapahtumat[i].tila !== 'jonossa');
   }
   if (!mgQueue.length) { toast('Kaikki tapahtumat jo käsitelty ✓'); return; }
   mgIdx = 0;
@@ -4731,6 +4804,11 @@ function lopetaMatchGame() {
   document.getElementById('match-game').style.display = 'none';
   if (mgKirjattu > 0 || mgOhitettu2 > 0) {
     toast(`Täsmäytys valmis: ${mgKirjattu} kirjattu, ${mgOhitettu2} ohitettu`);
+  }
+  if (mgApplyInFlight || mgApplyQueue.length > 0) {
+    mgFlushAfterQueue = true;
+    toast('Kirjauksia viimeistellään taustalla...');
+    return;
   }
   renderImpTable();
   if (mgNeedsLedgerReload && curYritys?.id) {
@@ -4868,9 +4946,7 @@ function mgAlvChanged() {
 
 function mgRender() {
   if (mgIdx >= mgQueue.length) {
-    document.getElementById('match-game').style.display = 'none';
-    toast(`✓ Täsmäytys valmis: ${mgKirjattu} kirjattu, ${mgOhitettu2} ohitettu`);
-    renderImpTable();
+    lopetaMatchGame();
     return;
   }
 
@@ -5092,32 +5168,8 @@ async function mgHyvaksy() {
   btn.textContent = 'Kirjataan...';
 
   if (USE_SERVER_MATCHING) {
-    try {
-      const resp = await fetch('/api/ppr/matching/apply', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          asiakas_id: curYritys.id,
-          tapahtuma: t,
-          suggestion: lasku ? { invoiceIdx: lasku.idx } : null,
-        })
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        toast('Virhe: ' + (data.error || resp.status));
-        btn.disabled = false;
-        btn.textContent = '✓ Hyväksy ja siirry →';
-        return;
-      }
-      t.tila = 'tuotu';
-      mgNeedsLedgerReload = true;
-    } catch (e) {
-      console.warn('matching/apply virhe:', e);
-      btn.disabled = false;
-      btn.textContent = '✓ Hyväksy ja siirry →';
-      toast('Verkkovirhe');
-      return;
-    }
+    t.tila = 'jonossa';
+    mgEnqueueApply({ ti, lasku });
   } else {
     await impTuoRivi(ti, { reloadLedger: false });
   }

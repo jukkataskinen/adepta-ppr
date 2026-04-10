@@ -7,6 +7,7 @@ type ApplyBody = {
   tapahtuma: any
   suggestion?: any
   tosite_nro?: string | number
+  tosite_pdf_path?: string | null
 }
 
 export async function POST(request: NextRequest) {
@@ -84,7 +85,11 @@ export async function POST(request: NextRequest) {
       saldo: r.saldo,
       alv_prosentti: r.alv_prosentti,
       luonut_kayttaja_id: kayttaja?.id ?? null,
+      tosite_pdf_path: null as string | null,
     }))
+    if (insert.length > 0 && body.tosite_pdf_path) {
+      insert[0].tosite_pdf_path = body.tosite_pdf_path
+    }
     const { error: insErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(insert)
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
 
