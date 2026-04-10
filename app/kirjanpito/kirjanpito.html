@@ -4261,7 +4261,8 @@ function naytaLaskuPopup(event, tapIdx) {
     if (canvas) renderLaskuSivu(l.pdfBase64, l.pageNumber || 1, canvas);
   }
 }
-async function impTuoRivi(i) {
+async function impTuoRivi(i, opts = {}) {
+  const reloadLedger = opts.reloadLedger !== false;
   const t = impTapahtumat[i];
   const vak = t.vak || (t.vtNro ? {vt: t.vtNro, alv: t.alvp||0} : null);
   if (!vak) { avaaVtModal(i); return; }
@@ -4338,7 +4339,11 @@ async function impTuoRivi(i) {
     if (res.ok) {
       t.tila = 'tuotu';
       renderImpTable();
-      await lataaRivit(curYritys.id);
+      if (reloadLedger) {
+        await lataaRivit(curYritys.id);
+      } else {
+        mgNeedsLedgerReload = true;
+      }
       toast('✓ ' + selite + ' kirjattu tositteena ' + tosite_nro);
     } else {
       toast('Virhe: ' + json.error);
@@ -4675,6 +4680,7 @@ let mgPdfTotal = 1;
 let mgPdfDoc = null;
 const laskuCanvasCache = {};
 let mgServerPrepared = null;
+let mgNeedsLedgerReload = false;
 
 async function esirenderöiLaskut() {
   if (!laskut?.length || typeof pdfjsLib === 'undefined') return;
@@ -4696,6 +4702,7 @@ async function esirenderöiLaskut() {
 }
 
 function aloitaMatchGame() {
+  mgNeedsLedgerReload = false;
   const statsEl = document.getElementById('mg-stats');
   if (statsEl) statsEl.textContent = USE_SERVER_MATCHING ? 'Valmistellaan kohdistusta (serverisuositukset)...' : 'Valmistellaan kohdistusta...';
   const headerEl = document.getElementById('mg-header-info');
@@ -4726,6 +4733,11 @@ function lopetaMatchGame() {
     toast(`Täsmäytys valmis: ${mgKirjattu} kirjattu, ${mgOhitettu2} ohitettu`);
   }
   renderImpTable();
+  if (mgNeedsLedgerReload && curYritys?.id) {
+    const asiakasId = curYritys.id;
+    mgNeedsLedgerReload = false;
+    lataaRivit(asiakasId).catch(e => console.warn('lataaRivit (match game) epäonnistui:', e));
+  }
 }
 
 function mgUpdateStats() {
@@ -5098,7 +5110,7 @@ async function mgHyvaksy() {
         return;
       }
       t.tila = 'tuotu';
-      await lataaRivit(curYritys.id);
+      mgNeedsLedgerReload = true;
     } catch (e) {
       console.warn('matching/apply virhe:', e);
       btn.disabled = false;
@@ -5107,7 +5119,7 @@ async function mgHyvaksy() {
       return;
     }
   } else {
-    await impTuoRivi(ti);
+    await impTuoRivi(ti, { reloadLedger: false });
   }
   mgKirjattu++;
   mgIdx++;
@@ -5140,7 +5152,7 @@ async function mgKirjaaIlman() {
   }
   t._mgLasku = null;
   t.laskuIdx = null;
-  await impTuoRivi(ti);
+  await impTuoRivi(ti, { reloadLedger: false });
   mgKirjattu++;
   mgIdx++;
   mgRender();
