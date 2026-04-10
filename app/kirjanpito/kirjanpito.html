@@ -3723,7 +3723,7 @@ function rptTase() {
   const vastaavaaTilit = kaikkiTilit.filter(t => eka(t) === '1');
   const vastaavaaYht = vastaavaaTilit.reduce((s,t) => s + (tiliSaldot[t]||0), 0);
 
-  // Vastattavaa: tilit alkavat 2:lla (2000-2999, 29390 jne.)
+  // Vastattavaa: tilit alkavat 2:lla (2000-2999, ALV-velkatilit jne.)
   const vastattavaaTilit = kaikkiTilit.filter(t => eka(t) === '2');
   const omaPaaomaTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n<2500; });
   const pitkaVelatTilit = vastattavaaTilit.filter(t => { const n=parseInt(t); return n>=2500&&n<2800; });
@@ -3778,7 +3778,7 @@ function rptAlv() {
   <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--inu)">
     ALV tilitetään Verohallinnolle OmaVero-palvelussa. Ilmoitusjakso: neljännesvuosi.<br>
     Eräpäivä: <strong>12. päivä 2 kuukauden kuluttua ilmoitusjakson päättymisestä.</strong><br>
-    <span style="color:var(--fl);font-weight:500">ALV-tilit: 29390 Myynnin ALV-velka · 1763 ALV-saamiset ostoista</span>
+    <span style="color:var(--fl);font-weight:500">ALV-tilit: 292041/292042/292043/292040 Myynnin ALV-velat · 292051 Vähennettävä ALV</span>
   </div>`;
 }
 
@@ -3877,7 +3877,7 @@ async function genTestidata() {
     const brutto = myynnit[kk-1];
     const netto = brutto / 1.255;
     const alv = brutto - netto;
-    // Myyntilasku: 3000 kredit netto, 29390 kredit alv, 1910 debet brutto
+    // Myyntilasku: 3000 kredit netto, myynnin ALV-velkatili kredit, 1910 debet brutto
     await fetch('/api/ppr/paivakirja', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -3887,7 +3887,7 @@ async function genTestidata() {
         paivamaara: pv,
         rivit: [
           { tili: '3000', selite: 'Myynti ' + kk + '/' + vuosi, saldo: -netto },
-          { tili: '29390', selite: 'ALV 25,5%', saldo: -alv },
+          { tili: alvMyyntiVelkaTili(25.5), selite: 'ALV 25,5%', saldo: -alv },
           { tili: '1910', selite: 'Pankkitili', saldo: brutto }
         ]
       })
@@ -3906,7 +3906,7 @@ async function genTestidata() {
           paivamaara: pv,
           rivit: [
             { tili: '8060', selite: 'Kirjanpito ' + kk + '/' + vuosi, saldo: oNetto },
-            { tili: '1763', selite: 'ALV-saamiset', saldo: oAlv },
+            { tili: alvOstoVahennysTili(), selite: 'ALV-saamiset', saldo: oAlv },
             { tili: '1910', selite: 'Pankkitili', saldo: -500 }
           ]
         })
@@ -4481,7 +4481,7 @@ async function impTuoRivi(i, opts = {}) {
     rivit.push({ tili: '1910', selite: selite, saldo: brutto });
     if (alvp > 0) {
       rivit.push({ tili: vak.vt, selite: selite, saldo: -netto, alv_prosentti: alvp });
-      rivit.push({ tili: '29390', selite: 'ALV ' + alvp + '%', saldo: -alv });
+      rivit.push({ tili: alvMyyntiVelkaTili(alvp), selite: 'ALV ' + alvp + '%', saldo: -alv });
     } else {
       rivit.push({ tili: vak.vt, selite: selite, saldo: -brutto });
     }
@@ -4489,7 +4489,7 @@ async function impTuoRivi(i, opts = {}) {
     // Meno: vastatili debet, 1910 kredit
     if (alvp > 0) {
       rivit.push({ tili: vak.vt, selite: selite, saldo: netto, alv_prosentti: alvp });
-      rivit.push({ tili: '1763', selite: 'ALV ' + alvp + '%', saldo: alv });
+      rivit.push({ tili: alvOstoVahennysTili(), selite: 'ALV ' + alvp + '%', saldo: alv });
       rivit.push({ tili: '1910', selite: selite, saldo: -brutto });
     } else {
       rivit.push({ tili: vak.vt, selite: selite, saldo: brutto });
@@ -5134,7 +5134,7 @@ function mgRenderKirjaus(t, lasku) {
     if (toimittaja.length > 3) {
       const aiempi = rows.find(r =>
         (r.sel||'').toLowerCase().includes(toimittaja) &&
-        r.d && r.d !== '1910' && r.d !== '1763' && r.d !== '29390'
+        r.d && r.d !== '1910' && !['292040','292041','292042','292043','292045','292046','292048','292051'].includes(r.d)
       );
       if (aiempi) {
         autoTili = aiempi.d;
@@ -7392,7 +7392,7 @@ function lataaEtusivu() {
   const kassa = tiliSaldo(['1910','1920']);
   const myyntisaam = tiliSaldo(['1701','1711']);
   const ostovelat = -(rows.filter(r=>r.k==='2871').reduce((s,r)=>s+r.netto,0) - rows.filter(r=>r.d==='2871').reduce((s,r)=>s+r.netto,0));
-  const alvVelka = -tiliSaldo(['29390','29391','29392']);
+  const alvVelka = -tiliSaldo(['292040','292041','292042','292043','292045','292046','292048']);
   const omaPaaoma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0));
 
   const kpiData = [
@@ -9134,15 +9134,15 @@ function paivitaTositeTotals() {
       const veroton = brutto / (1 + alvPct / 100);
       const alvEuro = brutto - veroton;
       
-      // Determine ALV account and direction
+      // Determine ALV account and direction (uusi ALV-tilikartta)
       const isKredit = tsParseFi(r.kredit) > 0;
-      const alvTili = isKredit ? '29390' : '1763';
+      const alvTili = isKredit ? alvMyyntiVelkaTili(alvPct) : alvOstoVahennysTili();
       const alvKey = alvTili + (isKredit ? 'K' : 'D');
       
       if (!alvMap[alvKey]) {
         alvMap[alvKey] = {
           tili: alvTili,
-          tiliLbl: isKredit ? 'Myynti-ALV' : 'Osto-ALV',
+          tiliLbl: isKredit ? 'Myynnin ALV-velka' : 'Vähennettävä ALV',
           debet: 0,
           kredit: 0,
           sel: 'ALV ' + alvPct + '%'
@@ -9288,6 +9288,18 @@ function tsKey(e, rowIdx, col) {
 }
 
 function tsParseFi(v) { return parseFloat(String(v||'').replace(/\s/g,'').replace(',','.')) || 0; }
+
+function alvMyyntiVelkaTili(alvPct) {
+  const p = Number(alvPct || 0);
+  if (Math.abs(p - 25.5) < 0.01) return '292041';
+  if (Math.abs(p - 14) < 0.01) return '292042';
+  if (Math.abs(p - 10) < 0.01) return '292043';
+  return '292040';
+}
+
+function alvOstoVahennysTili() {
+  return '292051';
+}
 
 function tositeUpdField(i, f, v) {
   tositeRivit[i][f] = v;
@@ -11644,8 +11656,7 @@ async function olKirjaa(id) {
     rivit.forEach((r, i) => {
       const tili = document.getElementById('ol-tili-ac-' + i + '-input')?.value || r.tili || '4000';
       const alv = Number(r.alv_prosentti) || 0;
-      const alvTilit = { 25.5: '1763', 14: '1764', 10: '1765' };
-      const alvTili = alvTilit[alv];
+      const alvTili = alv > 0 ? alvOstoVahennysTili() : null;
 
       kirjausRivit.push({ tili, selite: r.selite || lasku.toimittaja_nimi, saldo: Number(r.netto)||0, tosite_nro: tositeNro, paivamaara: lasku.pvm, asiakas_id: curYritys.id });
       if (alvTili && (Number(r.alv)||0) > 0.01) {

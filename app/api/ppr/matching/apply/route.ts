@@ -10,6 +10,13 @@ type ApplyBody = {
   tosite_pdf_path?: string | null
 }
 
+function alvMyyntiVelkaTili(alvPct: number): string {
+  if (Math.abs(alvPct - 25.5) < 0.01) return '292041'
+  if (Math.abs(alvPct - 14) < 0.01) return '292042'
+  if (Math.abs(alvPct - 10) < 0.01) return '292043'
+  return '292040'
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth0.getSession(request)
@@ -61,14 +68,14 @@ export async function POST(request: NextRequest) {
       rivit.push({ tili: '1910', selite, saldo: brutto, alv_prosentti: null })
       if (alvp > 0) {
         rivit.push({ tili: vak.vt, selite, saldo: -netto, alv_prosentti: alvp })
-        rivit.push({ tili: '29390', selite: `ALV ${alvp}%`, saldo: -alv, alv_prosentti: null })
+        rivit.push({ tili: alvMyyntiVelkaTili(alvp), selite: `ALV ${alvp}%`, saldo: -alv, alv_prosentti: null })
       } else {
         rivit.push({ tili: vak.vt, selite, saldo: -brutto, alv_prosentti: null })
       }
     } else {
       if (alvp > 0) {
         rivit.push({ tili: vak.vt, selite, saldo: netto, alv_prosentti: alvp })
-        rivit.push({ tili: '1763', selite: `ALV ${alvp}%`, saldo: alv, alv_prosentti: null })
+        rivit.push({ tili: '292051', selite: `ALV ${alvp}%`, saldo: alv, alv_prosentti: null })
         rivit.push({ tili: '1910', selite, saldo: -brutto, alv_prosentti: null })
       } else {
         rivit.push({ tili: vak.vt, selite, saldo: brutto, alv_prosentti: null })
