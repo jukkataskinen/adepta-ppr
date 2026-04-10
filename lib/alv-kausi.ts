@@ -30,7 +30,7 @@ export function alvTarkasteluJakso(kausiKk: AlvKausiKk, anchorYyyyMm: string): A
   if (!/^\d{4}-\d{2}$/.test(ym)) return null
   const y = Number(ym.slice(0, 4))
   const m = Number(ym.slice(5, 7))
-  if (!y || !m) return null
+  if (!y || m < 1 || m > 12) return null
 
   if (kausiKk === 1) {
     const alku = `${y}-${String(m).padStart(2, '0')}-01`

@@ -7,6 +7,7 @@ import {
   laskeKirjaamattomatOstolaskutAikavalilla,
   validoiLukitusJarjestys,
 } from '@/lib/kuukausilukko'
+import { kirjaTapahtumaloki } from '@/lib/tapahtumaloki'
 
 async function assertAsiakasAccess(asiakasId: string, authSub: string) {
   const { data: kayttaja } = await supabaseAdmin!
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     const gate = await assertAsiakasAccess(asiakasId, session.user.sub)
     if ('error' in gate && gate.error) return gate.error
-    const { kayttaja } = gate as { kayttaja: { id: string; rooli: string } }
+    const { kayttaja } = gate as { kayttaja: { id: string; rooli: string; organisaatio_id: string } }
 
     if (kayttaja.rooli !== 'paakayttaja') {
       return NextResponse.json({ error: 'Vain pääkäyttäjä voi lukita kuukauden' }, { status: 403 })
@@ -138,6 +139,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    await kirjaTapahtumaloki(supabaseAdmin!, {
+      organisaatio_id: kayttaja.organisaatio_id,
+      asiakas_id: asiakasId,
+      kayttaja_id: kayttaja.id,
+      tyyppi: 'kirjanpito_kuukausilukko',
+      viesti: `Kuukausi lukittu: ${yyyyMm}`,
+      payload: { yyyy_mm: yyyyMm },
+    })
+
     return NextResponse.json({ ok: true, yyyy_mm: yyyyMm })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -158,7 +168,7 @@ export async function DELETE(request: NextRequest) {
 
     const gate = await assertAsiakasAccess(asiakasId, session.user.sub)
     if ('error' in gate && gate.error) return gate.error
-    const { kayttaja } = gate as { kayttaja: { rooli: string } }
+    const { kayttaja } = gate as { kayttaja: { id: string; rooli: string; organisaatio_id: string } }
 
     if (kayttaja.rooli !== 'paakayttaja') {
       return NextResponse.json({ error: 'Vain pääkäyttäjä voi avata lukituksen' }, { status: 403 })
@@ -178,6 +188,15 @@ export async function DELETE(request: NextRequest) {
       .eq('yyyy_mm', viimeisin)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await kirjaTapahtumaloki(supabaseAdmin!, {
+      organisaatio_id: kayttaja.organisaatio_id,
+      asiakas_id: asiakasId,
+      kayttaja_id: kayttaja.id,
+      tyyppi: 'kirjanpito_kuukausilukko_avaus',
+      viesti: `Kuukauden lukitus avattu: ${viimeisin}`,
+      payload: { yyyy_mm: viimeisin },
+    })
 
     return NextResponse.json({ ok: true, unlocked_yyyy_mm: viimeisin })
   } catch (e: unknown) {

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
 import { alvTarkasteluJakso, normalizeAlvKausiKk } from '@/lib/alv-kausi'
+import {
+  ALV_MYYNTI_ILMOITTAMATON_TILIT,
+  ALV_OSTO_ILMOITTAMATON_TILI,
+  ALV_SIIRTO_TILI,
+} from '@/lib/alv-tilit'
 import { laskeKirjaamattomatOstolaskutAikavalilla } from '@/lib/kuukausilukko'
-
-const ALV_MYYNTI_ILMOITTAMATON_TILIT = ['292041', '292042', '292043', '292045', '292046', '292048']
-const ALV_OSTO_ILMOITTAMATON_TILI = '292051'
-const ALV_SIIRTO_TILI = '292040'
 
 export async function POST(request: NextRequest) {
   try {

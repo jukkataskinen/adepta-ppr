@@ -3880,7 +3880,7 @@ function alvLaskeJakso(anchorYm, kausiKk) {
   if (!/^\d{4}-\d{2}$/.test(ym)) return null;
   const y = parseInt(ym.slice(0, 4), 10);
   const m = parseInt(ym.slice(5, 7), 10);
-  if (!y || !m) return null;
+  if (!y || m < 1 || m > 12) return null;
   if (k === 1) {
     const alku = `${y}-${String(m).padStart(2, '0')}-01`;
     const ld = new Date(y, m, 0);
@@ -7897,6 +7897,7 @@ function lataaEtusivu() {
   const kassa = tiliSaldo(['1910','1920']);
   const myyntisaam = tiliSaldo(['1701','1711']);
   const ostovelat = -(rows.filter(r=>r.k==='2871').reduce((s,r)=>s+r.netto,0) - rows.filter(r=>r.d==='2871').reduce((s,r)=>s+r.netto,0));
+  // Kertymätilit — pidä synkassa lib/alv-tilit.ts (alvKertymaTilitLista)
   const alvKertymatilit = ['292041','292042','292043','292045','292046','292048','292051'];
   const avoinKausiKertyvaAlv = -tiliSaldo(alvKertymatilit);
   const alvIlmoitusMap = {};
@@ -7914,9 +7915,8 @@ function lataaEtusivu() {
   const alvIlmoitukset = Object.entries(alvIlmoitusMap)
     .map(([kk, signed]) => ({ kk, velka: -Number(signed || 0) }))
     .sort((a, b) => String(b.kk).localeCompare(String(a.kk)));
-  const ilmoitus1 = alvIlmoitukset[0]?.velka || 0;
-  const ilmoitus2 = alvIlmoitukset[1]?.velka || 0;
-  const alvVelka = ilmoitus1 + ilmoitus2 + avoinKausiKertyvaAlv;
+  const alvIlmoituksiaYht = alvIlmoitukset.reduce((s, x) => s + x.velka, 0);
+  const alvVelka = alvIlmoituksiaYht + avoinKausiKertyvaAlv;
   const omaPaaoma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0));
 
   const kpiData = [
@@ -7926,13 +7926,15 @@ function lataaEtusivu() {
     {lbl:'Myyntisaamiset', val:myyntisaam, pos:true},
     {lbl:'Ostovelat', val:ostovelat, pos:false},
     {
-      lbl:'ALV-velka',
+      lbl:'ALV-velka (yhteensä)',
       val:alvVelka,
       pos:false,
       details: [
-        alvIlmoitukset[0] ? `Ilmoitus ${alvIlmoitukset[0].kk}: ${fmt(ilmoitus1)} €` : null,
-        alvIlmoitukset[1] ? `Ilmoitus ${alvIlmoitukset[1].kk}: ${fmt(ilmoitus2)} €` : null,
-        `Avoin kausi: ${fmt(avoinKausiKertyvaAlv)} €`,
+        `Kertymä (ei vielä siirretty 292040): ${fmt(avoinKausiKertyvaAlv)} €`,
+        `Kirjatut ilmoitusjaksot 292040: ${fmt(alvIlmoituksiaYht)} €`,
+        ...alvIlmoitukset.slice(0, 8).map(x => `  · Jakso ${x.kk}: ${fmt(x.velka)} €`),
+        alvIlmoitukset.length > 8 ? `  · … ja ${alvIlmoitukset.length - 8} muuta jaksoa` : null,
+        'Maksun tila: tarkista OmaVero / pankki.',
       ].filter(Boolean)
     },
     {lbl:'Kulut YTD', val:kulutYtd, pos:false},
