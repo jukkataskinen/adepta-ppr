@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   const { data: kayttaja } = await supabaseAdmin!
     .from('ppr_kayttajat')
-    .select('id, organisaatio_id, rooli')
+    .select('id, organisaatio_id, rooli, sallitut_kirjanpitoasiakas_ids')
     .eq('auth_sub', session.user.sub)
     .single()
 
@@ -22,7 +22,15 @@ export async function GET(request: NextRequest) {
     .order('nimi')
 
   if (kayttaja.rooli === 'kirjanpitaja') {
-    query = query.eq('vastuukirjanpitaja_id', kayttaja.id)
+    const allowedIds = Array.isArray(kayttaja.sallitut_kirjanpitoasiakas_ids)
+      ? kayttaja.sallitut_kirjanpitoasiakas_ids.map((x: unknown) => String(x || '')).filter(Boolean)
+      : []
+    if (allowedIds.length > 0) {
+      query = query.in('id', allowedIds)
+    } else {
+      // Backward compatible fallback if explicit environment rights are not yet set
+      query = query.eq('vastuukirjanpitaja_id', kayttaja.id)
+    }
   }
 
   const { data, error } = await query

@@ -97,6 +97,9 @@ table.kt td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
 .form-row label{display:block;font-size:11px;font-weight:500;color:var(--inu);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
 .form-row input,.form-row select{width:100%;padding:8px 12px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;outline:none;background:#fff;transition:border-color .12s}
 .form-row input:focus,.form-row select:focus{border-color:var(--fg2)}
+.checklist{border:1px solid var(--bd);border-radius:6px;padding:8px 10px;max-height:180px;overflow:auto;background:#fff}
+.checklist label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);padding:4px 0;text-transform:none;letter-spacing:0;font-weight:400}
+.checklist-empty{font-size:12px;color:var(--inu);padding:4px 0}
 .modal-ftr{padding:14px 24px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end}
 .btn-cancel{padding:7px 16px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--inm);cursor:pointer;transition:all .1s}
 .btn-cancel:hover{border-color:var(--bd2)}
@@ -161,12 +164,13 @@ table.kt td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
             <tr>
               <th>Sähköposti</th>
               <th>Rooli</th>
+              <th>Ympäristöt</th>
               <th>Tila</th>
               <th>Toiminnot</th>
             </tr>
           </thead>
           <tbody id="kayttaja-tbody">
-            <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--inu)">Ladataan...</td></tr>
+            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--inu)">Ladataan...</td></tr>
           </tbody>
         </table>
       </div>
@@ -193,6 +197,10 @@ table.kt td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
           <option value="kirjanpitaja">Kirjanpitäjä</option>
           <option value="paakayttaja">Pääkäyttäjä</option>
         </select>
+      </div>
+      <div class="form-row" id="kutsu-ymparistot-wrap">
+        <label>Ympäristöoikeudet (kirjanpitäjä)</label>
+        <div class="checklist" id="kutsu-ymparistot"></div>
       </div>
     </div>
     <div class="modal-ftr">
@@ -222,6 +230,10 @@ table.kt td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
           <option value="paakayttaja">Pääkäyttäjä</option>
         </select>
       </div>
+      <div class="form-row" id="rooli-ymparistot-wrap">
+        <label>Ympäristöoikeudet (kirjanpitäjä)</label>
+        <div class="checklist" id="rooli-ymparistot"></div>
+      </div>
     </div>
     <div class="modal-ftr">
       <button class="btn-cancel" onclick="suljeRooliModal()">Peruuta</button>
@@ -236,6 +248,7 @@ table.kt td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
 let kayttajat = [];
 let omaRooli = '';
 let omaId = '';
+let ymparistot = [];
 
 async function init() {
   const cfg = window._PPR || {};
@@ -257,6 +270,9 @@ async function init() {
   }
 
   await lataaKayttajat();
+  await lataaYmparistot();
+  paivitaYmpRightsUI('kutsu');
+  paivitaYmpRightsUI('rooli');
 }
 
 async function lataaKayttajat() {
@@ -265,6 +281,14 @@ async function lataaKayttajat() {
   kayttajat = await res.json();
   renderKayttajat();
   paivitaStats();
+}
+
+async function lataaYmparistot() {
+  const res = await fetch('/api/ppr/asiakkaat');
+  if (!res.ok) return;
+  ymparistot = await res.json();
+  renderYmparistoChecklist('kutsu-ymparistot', []);
+  renderYmparistoChecklist('rooli-ymparistot', []);
 }
 
 function paivitaStats() {
@@ -277,7 +301,7 @@ function paivitaStats() {
 function renderKayttajat() {
   const tbody = document.getElementById('kayttaja-tbody');
   if (!kayttajat.length) {
-    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="em-ic">👤</div><p>Ei käyttäjiä.</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="em-ic">👤</div><p>Ei käyttäjiä.</p></div></td></tr>';
     return;
   }
   tbody.innerHTML = kayttajat.map(k => {
@@ -286,11 +310,12 @@ function renderKayttajat() {
     return '<tr>' +
       '<td style="font-weight:500">' + esc(k.sahkoposti) + (onItsensa ? ' <span style="font-size:10px;color:var(--inu)">(sinä)</span>' : '') + '</td>' +
       '<td>' + rooliLabel(k.rooli) + '</td>' +
+      '<td>' + ymparistoLabel(k) + '</td>' +
       '<td>' + (k.aktiivinen
         ? '<span class="badge badge-green">Aktiivinen</span>'
         : '<span class="badge badge-gray">Ei aktiivinen</span>') + '</td>' +
       '<td><div class="act-btns">' +
-        (onPaakayttaja && !onItsensa ? '<button class="act-btn act-btn-edit" onclick="avaaRooliModal(\'' + k.id + '\',\'' + esc(k.sahkoposti) + '\',\'' + k.rooli + '\')">Muuta rooli</button>' : '') +
+        (onPaakayttaja && !onItsensa ? '<button class="act-btn act-btn-edit" onclick="avaaRooliModal(\'' + k.id + '\',\'' + esc(k.sahkoposti) + '\',\'' + k.rooli + '\')">Muuta rooli/oikeudet</button>' : '') +
         (onPaakayttaja && !onItsensa
           ? (k.aktiivinen
               ? '<button class="act-btn act-btn-deact" onclick="vaihdaTila(\'' + k.id + '\',false)">Deaktivoi</button>'
@@ -307,10 +332,49 @@ function rooliLabel(r) {
   return '<span class="badge badge-gray">' + esc(r) + '</span>';
 }
 
+function ymparistoLabel(k) {
+  if (k.rooli !== 'kirjanpitaja') return '<span class="badge badge-gray">Kaikki</span>';
+  const ids = Array.isArray(k.sallitut_kirjanpitoasiakas_ids) ? k.sallitut_kirjanpitoasiakas_ids : [];
+  if (!ids.length) return '<span class="badge badge-gray">Vastuukohteet (fallback)</span>';
+  if (!Array.isArray(ymparistot) || ymparistot.length === 0) return '<span class="badge badge-gray">' + ids.length + ' valittua</span>';
+  const names = ymparistot.filter(y => ids.includes(y.id)).map(y => y.nimi).filter(Boolean);
+  if (!names.length) return '<span class="badge badge-gray">' + ids.length + ' valittua</span>';
+  const txt = names.slice(0, 2).join(', ') + (names.length > 2 ? ' +' + (names.length - 2) : '');
+  return '<span class="badge badge-blue" title="' + esc(names.join(', ')) + '">' + esc(txt) + '</span>';
+}
+
+function renderYmparistoChecklist(containerId, selectedIds) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const picked = new Set((selectedIds || []).map(String));
+  if (!Array.isArray(ymparistot) || ymparistot.length === 0) {
+    el.innerHTML = '<div class="checklist-empty">Ei ympäristöjä.</div>';
+    return;
+  }
+  el.innerHTML = ymparistot.map(y =>
+    '<label><input type="checkbox" value="' + esc(y.id) + '"' + (picked.has(String(y.id)) ? ' checked' : '') + '> ' + esc(y.nimi || y.id) + '</label>'
+  ).join('');
+}
+
+function getSelectedYmparistot(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return [];
+  return Array.from(el.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value);
+}
+
+function paivitaYmpRightsUI(prefix) {
+  const roleEl = document.getElementById(prefix + '-rooli-val') || document.getElementById(prefix + '-rooli');
+  const wrap = document.getElementById(prefix + '-ymparistot-wrap');
+  if (!roleEl || !wrap) return;
+  wrap.style.display = roleEl.value === 'kirjanpitaja' ? 'block' : 'none';
+}
+
 // ── KUTSU MODAL ──
 function avaaKutsuModal() {
   document.getElementById('kutsu-email').value = '';
   document.getElementById('kutsu-rooli').value = 'kirjanpitaja';
+  renderYmparistoChecklist('kutsu-ymparistot', []);
+  paivitaYmpRightsUI('kutsu');
   document.getElementById('kutsu-modal-bg').classList.add('open');
   setTimeout(() => document.getElementById('kutsu-email').focus(), 50);
 }
@@ -322,6 +386,7 @@ function suljeKutsuModal() {
 async function lahetaKutsu() {
   const email = document.getElementById('kutsu-email').value.trim();
   const rooli = document.getElementById('kutsu-rooli').value;
+  const sallitut = rooli === 'kirjanpitaja' ? getSelectedYmparistot('kutsu-ymparistot') : null;
   if (!email) { document.getElementById('kutsu-email').focus(); return; }
 
   const btn = document.getElementById('kutsu-save-btn');
@@ -331,7 +396,7 @@ async function lahetaKutsu() {
   const res = await fetch('/api/ppr/kutsu', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, rooli }),
+    body: JSON.stringify({ email, rooli, sallitut_kirjanpitoasiakas_ids: sallitut }),
   });
   const json = await res.json();
 
@@ -346,9 +411,13 @@ async function lahetaKutsu() {
 
 // ── ROOLI MODAL ──
 function avaaRooliModal(id, email, rooli) {
+  const k = kayttajat.find(x => String(x.id) === String(id));
+  const selected = Array.isArray(k?.sallitut_kirjanpitoasiakas_ids) ? k.sallitut_kirjanpitoasiakas_ids : [];
   document.getElementById('rooli-id').value = id;
   document.getElementById('rooli-email').value = email;
   document.getElementById('rooli-val').value = rooli;
+  renderYmparistoChecklist('rooli-ymparistot', selected);
+  paivitaYmpRightsUI('rooli');
   document.getElementById('rooli-modal-bg').classList.add('open');
 }
 
@@ -359,10 +428,11 @@ function suljeRooliModal() {
 async function tallennaRooli() {
   const id = document.getElementById('rooli-id').value;
   const rooli = document.getElementById('rooli-val').value;
+  const sallitut = rooli === 'kirjanpitaja' ? getSelectedYmparistot('rooli-ymparistot') : null;
   const res = await fetch('/api/ppr/kayttajat/' + id, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rooli }),
+    body: JSON.stringify({ rooli, sallitut_kirjanpitoasiakas_ids: sallitut }),
   });
   if (!res.ok) { const j = await res.json(); toast(j.error || 'Virhe', 'err'); return; }
   suljeRooliModal();
@@ -399,6 +469,8 @@ function toast(msg, type) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { suljeKutsuModal(); suljeRooliModal(); }
 });
+document.getElementById('kutsu-rooli').addEventListener('change', () => paivitaYmpRightsUI('kutsu'));
+document.getElementById('rooli-val').addEventListener('change', () => paivitaYmpRightsUI('rooli'));
 document.getElementById('kutsu-modal-bg').addEventListener('click', e => {
   if (e.target === document.getElementById('kutsu-modal-bg')) suljeKutsuModal();
 });

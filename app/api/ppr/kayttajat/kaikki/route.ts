@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin!
     .from('ppr_kayttajat')
-    .select('id, sahkoposti, rooli, aktiivinen')
+    .select('id, sahkoposti, rooli, aktiivinen, sallitut_kirjanpitoasiakas_ids')
     .eq('organisaatio_id', kayttaja.organisaatio_id)
     .order('sahkoposti')
 

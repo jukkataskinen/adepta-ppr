@@ -33,8 +33,25 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, rooli } = body
+  const { email, rooli, sallitut_kirjanpitoasiakas_ids } = body
   if (!email || !rooli) return NextResponse.json({ error: 'email ja rooli vaaditaan' }, { status: 400 })
+
+  let sallitutYmparistot: string[] | null = null
+  if (rooli === 'kirjanpitaja' && Array.isArray(sallitut_kirjanpitoasiakas_ids)) {
+    const ids = sallitut_kirjanpitoasiakas_ids.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+    if (ids.length > 0) {
+      const { data: allowedRows, error: allowedErr } = await supabaseAdmin!
+        .from('ppr_kirjanpitoasiakkaat')
+        .select('id')
+        .eq('organisaatio_id', kutsuja.organisaatio_id)
+        .in('id', ids)
+      if (allowedErr) return NextResponse.json({ error: allowedErr.message }, { status: 500 })
+      const allowed = (allowedRows || []).map((r: any) => String(r.id))
+      sallitutYmparistot = ids.filter(id => allowed.includes(id))
+    } else {
+      sallitutYmparistot = []
+    }
+  }
 
   const token = await getManagementToken()
   console.log('token saatu:', !!token, 'domain:', process.env.AUTH0_DOMAIN)
@@ -71,6 +88,7 @@ export async function POST(request: NextRequest) {
     rooli,
     organisaatio_id: kutsuja.organisaatio_id,
     aktiivinen: true,
+    sallitut_kirjanpitoasiakas_ids: sallitutYmparistot,
   })
 
   return NextResponse.json({ ok: true, message: 'Kutsu lähetetty osoitteeseen ' + email })
