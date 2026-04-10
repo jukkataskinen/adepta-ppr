@@ -7030,6 +7030,7 @@ let mlAsiakkaatLista = [];
 let mlValittuAsiakasId = null;
 let mlValittuAsiakas = null;
 let mlRekValittuAsiakasId = null;
+let mlRekValittuAsiakas = null;
 
 async function lataaMlAsiakkaat() {
   if (!curYritys) return;
@@ -7086,8 +7087,8 @@ function mlRenderAsiakkaat() {
         </tr>
       </thead>
       <tbody>
-        ${osumat.map(a => `
-          <tr data-asiakas-id="${a.id}" style="border-bottom:1px solid var(--bd);cursor:pointer;background:${mlRekValittuAsiakasId===a.id?'var(--fmist)':'transparent'}">
+        ${osumat.map((a, i) => `
+          <tr data-asiakas-id="${a.id}" data-idx="${i}" style="border-bottom:1px solid var(--bd);cursor:pointer;background:${String(mlRekValittuAsiakasId)===String(a.id)?'var(--fmist)':'transparent'}">
             <td style="padding:8px;font-weight:600">${a.nimi || ''}</td>
             <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ytunnus || '—'}</td>
             <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ovt_tunnus || '—'}</td>
@@ -7099,13 +7100,15 @@ function mlRenderAsiakkaat() {
     </table>
   `;
   el.querySelectorAll('tr[data-asiakas-id]').forEach(row => {
-    row.addEventListener('click', () => mlValitseAsiakasRek(row.getAttribute('data-asiakas-id')));
+    const idx = Number(row.getAttribute('data-idx'));
+    row.addEventListener('click', () => mlValitseAsiakasRek(osumat[idx]));
   });
   mlRenderAsiakasDetail();
 }
 
-function mlValitseAsiakasRek(id) {
-  mlRekValittuAsiakasId = id ? String(id) : null;
+function mlValitseAsiakasRek(asiakas) {
+  mlRekValittuAsiakas = asiakas || null;
+  mlRekValittuAsiakasId = asiakas?.id ? String(asiakas.id) : null;
   mlRenderAsiakasDetail();
   const el = document.getElementById('ml-asiakkaat-lista');
   if (!el) return;
@@ -7122,7 +7125,7 @@ function mlAvaaLaskuAsiakasrekista(id) {
 function mlRenderAsiakasDetail() {
   const detailEl = document.getElementById('ml-asiakas-detail');
   if (!detailEl) return;
-  const a = mlAsiakkaatLista.find(x => String(x.id) === String(mlRekValittuAsiakasId));
+  const a = mlRekValittuAsiakas || mlAsiakkaatLista.find(x => String(x.id) === String(mlRekValittuAsiakasId));
   if (!a) {
     detailEl.innerHTML = 'Valitse asiakas listalta nähdäksesi tiedot ja laskut.';
     return;
