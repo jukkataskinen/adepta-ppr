@@ -5612,8 +5612,11 @@ async function parseNordeaOCR(base64) {
     else loppusaldo = arvo;
   }
 
-  // Tapahtumarivit: arkistointitunnus (16+ merkkiä) + A/J + PPKK + selite + /A|J + tap.nro + summa
-  const tapRegex = /[A-Z0-9]{16,}\s+[AJ]\s+(\d{2})(\d{2})\s+(.+?)\/[AJ]\s+(\d+)\s+([\d.]+,\d{2})(-?)/g;
+  // Tapahtumarivit OCR:ssä:
+  // - arkistointitunnuksessa voi olla myös pieniä kirjaimia
+  // - "/A" voi vääristyä muodoksi "IA" tai "|A"
+  // - summassa merkki voi olla "-", "−", "+" tai puuttua
+  const tapRegex = /[A-Za-z0-9]{16,}\s+[AJ]\s+(\d{2})(\d{2})\s+(.+?)(?:\/|I|\|)\s*[AJ]\s+(\d+)\s+([\d\s.]+,\d{2}\s*[+\-−]?)/g;
   let tapMatch;
   let edellinenTapNro = -1;
 
@@ -5627,8 +5630,14 @@ async function parseNordeaOCR(base64) {
     const kk = tapMatch[2];
     const seliteRaaka = tapMatch[3].trim();
     const tapNro = parseInt(tapMatch[4]);
-    const summaStr = tapMatch[5].replace(/\./g, '').replace(',', '.');
-    const miinus = tapMatch[6] === '-';
+    const summaToken = String(tapMatch[5] || '').trim();
+    const miinus = /[-−]\s*$/.test(summaToken);
+    const plus = /\+\s*$/.test(summaToken);
+    const summaNumeerinen = summaToken
+      .replace(/[+\-−]\s*$/g, '')
+      .replace(/[\s.]/g, '')
+      .replace(',', '.');
+    const summaParsed = parseFloat(summaNumeerinen);
 
     // Otetaan vain jos tap.nro kasvaa (erittelyrivit ohitetaan)
     if (tapNro > edellinenTapNro) {
@@ -5637,7 +5646,8 @@ async function parseNordeaOCR(base64) {
       // Selite: ota vain ensimmäinen osa ennen ylimääräisiä välilyöntejä
       const selite = seliteRaaka.split(/\s{2,}/)[0].trim();
 
-      const signedSumma = miinus ? -Math.abs(parseFloat(summaStr)) : Math.abs(parseFloat(summaStr));
+      if (isNaN(summaParsed)) continue;
+      const signedSumma = miinus ? -Math.abs(summaParsed) : (plus ? Math.abs(summaParsed) : -Math.abs(summaParsed));
       tapahtumat.push({
         kirjpv: vuosi + '-' + kk + '-' + pv,
         arvopv: vuosi + '-' + kk + '-' + pv,
