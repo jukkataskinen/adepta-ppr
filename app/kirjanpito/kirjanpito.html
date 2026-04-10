@@ -5603,11 +5603,28 @@ async function parseNordeaOCR(base64) {
   const ibanM = kaikki.match(/FI[\s]?\d{2}[\s]?\d{4}[\s]?\d{4}[\s]?\d{4}[\s]?\d{2}/);
   if (ibanM) iban = ibanM[0].replace(/\s/g, '');
 
-  // Saldo-rivit: "DD.MM.YY Saldo 10.568,84+" tai "DD.MM.YY Saldo 10 568,84+"
-  const saldoRegex = /(\d{2}\.\d{2}\.\d{2})\s+Saldo\s+([\d\s.]+,\d{2})[+-]/g;
+  // Saldo-rivit OCR:ssä voivat olla esim.
+  // "10.568 84-t", "10 .127 ,34+" tai "9.476 34-t"
+  const saldoRegex = /(\d{2}\.\d{2}\.\d{2})\s+Saldo\s+([0-9\s.,]+)\s*([+\-−t])?/gi;
   let saldoMatch;
   while ((saldoMatch = saldoRegex.exec(kaikki)) !== null) {
-    const arvo = parseFloat(saldoMatch[2].replace(/[\s.]/g, '').replace(',', '.'));
+    let saldoRaw = String(saldoMatch[2] || '').trim();
+    // Yhtenäistä välilyönnit ja poista OCR-kohina
+    saldoRaw = saldoRaw.replace(/\s+/g, '');
+    // Jos desimaalierotin on pilkku, poista tuhaterottimen pisteet.
+    // Jos pilkkua ei ole, käytä viimeistä pistettä desimaalierottimena.
+    if (saldoRaw.includes(',')) {
+      saldoRaw = saldoRaw.replace(/\./g, '').replace(',', '.');
+    } else {
+      const viimeinenPiste = saldoRaw.lastIndexOf('.');
+      if (viimeinenPiste > 0) {
+        const alku = saldoRaw.slice(0, viimeinenPiste).replace(/\./g, '');
+        const loppu = saldoRaw.slice(viimeinenPiste + 1);
+        saldoRaw = `${alku}.${loppu}`;
+      }
+    }
+    const arvo = Math.abs(parseFloat(saldoRaw));
+    if (isNaN(arvo)) continue;
     if (alkusaldo === null) alkusaldo = arvo;
     else loppusaldo = arvo;
   }
