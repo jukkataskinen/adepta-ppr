@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
-
-function buildMockReceipt(submissionId: string) {
-  const ts = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)
-  return {
-    provider: 'vero-mock',
-    receipt_id: `MOCK-ALV-${ts}-${submissionId.slice(0, 8)}`,
-    accepted_at: new Date().toISOString(),
-  }
-}
+import { submitVatReturn } from '@/lib/vero-api'
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -31,7 +23,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const { data: sub, error: subErr } = await supabaseAdmin!
       .from('ppr_alv_submissions')
-      .select('id, status, organisaatio_id, period_yyyy_mm')
+      .select('id, status, organisaatio_id, period_yyyy_mm, payload_json')
       .eq('id', submissionId)
       .single()
     if (subErr || !sub) return NextResponse.json({ error: 'Lähetystä ei löytynyt' }, { status: 404 })
@@ -42,15 +34,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: `Lähetystä ei voi lähettää tilassa ${sub.status}` }, { status: 409 })
     }
 
-    // Vaihe B: mock/sandbox-submit. Oikea Vero API -kutsu liitetään myöhemmässä vaiheessa.
-    const mockReceipt = buildMockReceipt(submissionId)
+    const submitResult = await submitVatReturn({
+      submissionId,
+      periodYyyyMm: String(sub.period_yyyy_mm || ''),
+      payload: (sub.payload_json || {}) as Record<string, unknown>,
+    })
 
     const { data: updated, error: updErr } = await supabaseAdmin!
       .from('ppr_alv_submissions')
       .update({
         status: 'submitted',
         submitted_at: new Date().toISOString(),
-        response_json: mockReceipt,
+        response_json: submitResult.receipt,
+        error_code: null,
+        error_message: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', submissionId)
@@ -61,14 +58,32 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     await supabaseAdmin!.from('ppr_alv_submission_events').insert({
       submission_id: submissionId,
       event_type: 'submitted',
-      message: `ALV-ilmoitus lähetetty (mock) kaudelle ${sub.period_yyyy_mm}`,
-      payload_json: mockReceipt,
+      message: `ALV-ilmoitus lähetetty (${submitResult.mode}) kaudelle ${sub.period_yyyy_mm}`,
+      payload_json: submitResult.receipt,
       created_by_kayttaja_id: kayttaja.id,
     })
 
-    return NextResponse.json({ ok: true, submission: updated, mock: true })
+    return NextResponse.json({ ok: true, submission: updated, mock: submitResult.mode === 'mock' })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
+    const submissionId = String(params.id || '').trim()
+    if (submissionId) {
+      await supabaseAdmin!
+        .from('ppr_alv_submissions')
+        .update({
+          status: 'failed',
+          error_code: 'SUBMIT_ERROR',
+          error_message: msg,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', submissionId)
+      await supabaseAdmin!.from('ppr_alv_submission_events').insert({
+        submission_id: submissionId,
+        event_type: 'submit_failed',
+        message: msg,
+        payload_json: { error: msg },
+      })
+    }
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
