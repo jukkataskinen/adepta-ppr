@@ -4465,6 +4465,8 @@ async function siirryVaihe3() {
   console.log('siirryVaihe3 kutsuttu', 'impTiliote:', impTiliote?.tapahtumat?.length, 'impTapahtumat:', impTapahtumat?.length, 'laskut:', laskut?.length);
   suljeTarkistus();
   impVaihe = 3;
+  // Anna selaimelle mahdollisuus piirtää modalin sulku ennen raskaita laskentoja.
+  await new Promise(r => setTimeout(r, 0));
 
   // Varmista että impTapahtumat on ladattu impTiliote:sta
   if (impTiliote?.tapahtumat?.length > 0 && impTapahtumat.length === 0) {
@@ -4474,8 +4476,9 @@ async function siirryVaihe3() {
 
   // Suorita laskujen täsmäytys jos laskuja on
   if (laskut.length > 0 && impTapahtumat.length > 0) {
-    laskut.forEach(lasku => {
-      if (lasku.tapIdx !== null) return;
+    for (let li = 0; li < laskut.length; li++) {
+      const lasku = laskut[li];
+      if (lasku.tapIdx !== null) continue;
       let bestMatch = null, bestScore = 0;
       impTapahtumat.forEach(t => {
         if (t.laskuIdx != null) return;
@@ -4495,7 +4498,9 @@ async function siirryVaihe3() {
         if (lasku.ehdotettu_tili && !bestMatch.vak)
           bestMatch.vak = {vt: lasku.ehdotettu_tili, alv: lasku.alv_prosentti||25.5, lbl: lasku.toimittaja};
       }
-    });
+      // Pilko työ pieniin eriin, jotta käyttöliittymä ei jäädy.
+      if (li % 20 === 0) await new Promise(r => setTimeout(r, 0));
+    }
     console.log('Täsmäytys:', laskut.filter(l=>l.tapIdx!==null).length, '/', laskut.length, 'laskua kohdistettu');
   }
 
@@ -4821,7 +4826,15 @@ function mgRenderLaskuLista(currentTapIdx) {
   document.getElementById('mg-lasku-cnt').textContent = kohdistamattomatLaskut.length;
   const lista = document.getElementById('mg-laskut-lista');
   lista.innerHTML = '';
-  kohdistamattomatLaskut.forEach(l => {
+  const MAKSIMI_KORTIT = 200;
+  const naytettavat = kohdistamattomatLaskut.slice(0, MAKSIMI_KORTIT);
+  if (kohdistamattomatLaskut.length > MAKSIMI_KORTIT) {
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:10px;color:rgba(255,255,255,.4);padding:6px 4px 8px';
+    info.textContent = `Näytetään ensimmäiset ${MAKSIMI_KORTIT} / ${kohdistamattomatLaskut.length} laskua`;
+    lista.appendChild(info);
+  }
+  naytettavat.forEach(l => {
     const card = document.createElement('div');
     card.draggable = true;
     card.style.cssText = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px;cursor:grab;font-size:11px;transition:border-color .15s';
