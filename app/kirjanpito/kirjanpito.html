@@ -5122,7 +5122,14 @@ function mgOhita() {
 async function mgKirjaaIlman() {
   const ti = mgQueue[mgIdx];
   const t = impTapahtumat[ti];
-  if (!t.vak && !t.vtNro) {
+  // Käytä samaa valittua tiliä kuin "Hyväksy ja siirry" -polussa.
+  const valittuTili = document.getElementById('mg-tili-select')?.value || '';
+  const valittuAlv = parseFloat(document.getElementById('mg-alv-select')?.value) || 0;
+  if (valittuTili) {
+    const tiliInfo = TILIT.find(tl => tl.nro === valittuTili);
+    t.vak = { vt: valittuTili, alv: valittuAlv, lbl: tiliInfo?.lbl || valittuTili };
+    t.alvp = valittuAlv;
+  } else if (!t.vak && !t.vtNro) {
     toast('Aseta vastatili ensin (Käy läpi)');
     return;
   }
