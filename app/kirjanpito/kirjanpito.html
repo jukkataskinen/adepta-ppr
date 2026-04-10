@@ -2924,8 +2924,27 @@ async function tosNaytaLiite(liite) {
       preview.innerHTML = '<canvas id="tos-liite-canvas" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:0 auto"></canvas>';
       const resp = await fetch(url);
       const buf = await resp.arrayBuffer();
-      const b64 = btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
-      await renderLaskuSivu(b64, 1, document.getElementById('tos-liite-canvas'));
+      // Vältä call stack -ylivuoto isoilla PDF-tiedostoilla: renderöi suoraan ArrayBufferista.
+      const canvas = document.getElementById('tos-liite-canvas');
+      if (typeof pdfjsLib !== 'undefined' && canvas) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        const page = await pdf.getPage(1);
+        const vp = page.getViewport({ scale: 1.4 });
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      } else {
+        // Fallback: chunkattu base64-muunnos ilman apply-pino-ylivuotoa.
+        const bytes = new Uint8Array(buf);
+        let bin = '';
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        const b64 = btoa(bin);
+        await renderLaskuSivu(b64, 1, canvas);
+      }
     } else {
       preview.innerHTML = '<img src="' + url + '" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px">';
     }
