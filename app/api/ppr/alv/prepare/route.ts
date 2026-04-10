@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { laskeKirjaamattomatOstolaskutKuukaudella } from '@/lib/kuukausilukko'
 
 const ALV_MYYNTI_ILMOITTAMATON_TILIT = ['292041', '292042', '292043', '292045', '292046', '292048']
 const ALV_OSTO_ILMOITTAMATON_TILI = '292051'
@@ -54,6 +55,20 @@ export async function POST(request: NextRequest) {
         ? allowedIds.includes(asiakasId)
         : String(asiakas.vastuukirjanpitaja_id || '') === String(kayttaja.id)
       if (!canAccess) return NextResponse.json({ error: 'Ei oikeutta ympäristöön' }, { status: 403 })
+    }
+
+    const force = body?.force === true
+    if (!force) {
+      const pending = await laskeKirjaamattomatOstolaskutKuukaudella(supabaseAdmin!, asiakasId, periodYyyyMm)
+      if (pending > 0) {
+        return NextResponse.json(
+          {
+            error: 'Kuukaudella on kirjaamattomia ostolaskuja',
+            pending_unposted_invoices: pending,
+          },
+          { status: 409 }
+        )
+      }
     }
 
     const { data: paivakirjaRows, error: rowsErr } = await supabaseAdmin!

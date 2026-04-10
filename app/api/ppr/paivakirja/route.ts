@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,6 +48,11 @@ export async function POST(request: NextRequest) {
 
     if (!asiakas_id || !tosite_nro || !paivamaara || !rivit?.length) {
       return NextResponse.json({ error: 'asiakas_id, tosite_nro, paivamaara ja rivit vaaditaan' }, { status: 400 })
+    }
+
+    const lukko = await tarkistaPaivamaaratEivatOleLukittuja(supabaseAdmin!, asiakas_id, [paivamaara])
+    if (!lukko.ok) {
+      return NextResponse.json({ error: lukko.viesti }, { status: 423 })
     }
 
     // Tarkista tasapaino: summa debet + kredit = 0

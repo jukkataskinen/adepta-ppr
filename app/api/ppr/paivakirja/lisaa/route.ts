@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
 
 export async function POST(request: NextRequest) {
   const session = await auth0.getSession(request)
@@ -33,6 +34,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       error: 'Tositteet eivät täsmää: ' + epatasapainot.join(', ')
     }, { status: 400 })
+  }
+
+  const asiakasIds = Array.from(new Set(rivit.map((r: any) => String(r.asiakas_id || '').trim()).filter(Boolean)))
+  if (asiakasIds.length !== 1) {
+    return NextResponse.json({ error: 'Kaikilla riveillä sama asiakas_id vaaditaan' }, { status: 400 })
+  }
+  const asiakasId = String(asiakasIds[0] ?? '')
+  const pvmList = rivit.map((r: any) => String(r.paivamaara || '').trim()).filter(Boolean)
+  const lukko = await tarkistaPaivamaaratEivatOleLukittuja(supabaseAdmin!, asiakasId, pvmList)
+  if (!lukko.ok) {
+    return NextResponse.json({ error: lukko.viesti }, { status: 423 })
   }
 
   const insert = rivit.map((r: any) => ({

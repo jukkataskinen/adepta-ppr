@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
 
 type ApplyBody = {
   asiakas_id: string
@@ -61,6 +62,12 @@ export async function POST(request: NextRequest) {
     }
     if (!tositeNro) {
       return NextResponse.json({ error: 'tosite_nro puuttuu (RPC palautti tyhjän)' }, { status: 500 })
+    }
+
+    const pv = String(t.arvopv || t.kirjpv || new Date().toISOString().slice(0, 10))
+    const lukko = await tarkistaPaivamaaratEivatOleLukittuja(supabaseAdmin!, body.asiakas_id, [pv])
+    if (!lukko.ok) {
+      return NextResponse.json({ error: lukko.viesti }, { status: 423 })
     }
 
     const rivit: any[] = []

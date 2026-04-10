@@ -1112,15 +1112,15 @@ input[type=number] { -moz-appearance: textfield; }
       <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
         <div>
           <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Kausi</label>
-          <select id="alv-kausi-tyyppi" onchange="renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);font-size:12px">
+          <select id="alv-kausi-tyyppi" onchange="void renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);font-size:12px">
             <option value="1kk" selected>Kuukausi (1 kk)</option>
           </select>
         </div>
         <div>
           <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Kuukausi</label>
-          <input type="month" id="alv-kuukausi" onchange="renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;font-size:12px">
+          <input type="month" id="alv-kuukausi" onchange="void renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;font-size:12px">
         </div>
-        <button onclick="renderAlvLaskelmaPanel()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä</button>
+        <button onclick="void renderAlvLaskelmaPanel()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä</button>
         <button onclick="alvValmisteleIlmoitus()" style="padding:8px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:#1f7a6b;color:#fff;cursor:pointer">Valmistele ALV-ilmoitus</button>
         <button onclick="alvKirjaaSiirto()" style="padding:8px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Kirjaa ALV-siirto → 292040</button>
       </div>
@@ -1132,6 +1132,25 @@ input[type=number] { -moz-appearance: textfield; }
           <button onclick="alvLataaLahetykset()" style="padding:5px 10px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä historia</button>
         </div>
         <div id="alv-submissions" style="font-size:12px;color:var(--inu)">Ei lähetyksiä.</div>
+      </div>
+      <div style="margin-top:14px;background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:12px">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inu)">Lukitut kuukaudet (ei uusia kirjauksia)</div>
+          <button type="button" id="alv-lukko-avaa-btn" onclick="alvAvaaViimeisinLukko()" style="display:none;padding:5px 12px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--red);cursor:pointer">Avaa viimeisin lukitus</button>
+        </div>
+        <div id="alv-lukitut-lista" style="font-size:12px;color:var(--inu)">—</div>
+      </div>
+    </div>
+
+    <div id="alv-preflight-modal" style="display:none;position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.48);align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:10px;max-width:480px;width:100%;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,.2)">
+        <h3 style="font-family:var(--ffd);font-size:18px;font-weight:500;color:var(--fd);margin-bottom:10px">Kirjaamattomat ostolaskut</h3>
+        <p id="alv-preflight-msg" style="font-size:13px;color:var(--inm);line-height:1.5;margin-bottom:18px"></p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
+          <button type="button" onclick="alvPreflightSulje()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Sulje</button>
+          <button type="button" onclick="alvPreflightOstolaskut()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Avaa ostolaskut</button>
+          <button type="button" onclick="alvPreflightJatka()" style="padding:7px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Jatka silti</button>
+        </div>
       </div>
     </div>
 
@@ -2163,7 +2182,7 @@ function showPanel(name) {
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
-  if (name === 'alvlaskelma') { alvAsetaOletusKk(); renderAlvLaskelmaPanel(); alvLataaLahetykset(); }
+  if (name === 'alvlaskelma') { alvAsetaOletusKk(); void renderAlvLaskelmaPanel(); alvLataaLahetykset(); alvLataaKuukausilukot(); }
   if (name === 'pankki') avaaPankkituontiOhjattu();
   if (name === 'toimittajat') lataaToimittajat();
   if (name === 'ostolaskut') lataaOlData();
@@ -3857,7 +3876,9 @@ function alvTiliJaksoSaldo(tili, alku, loppu) {
   return saldo;
 }
 
-function renderAlvLaskelmaPanel() {
+let alvPreflightYmPending = null;
+
+function renderAlvLaskelmaPanelCore() {
   try {
     const kk = document.getElementById('alv-kuukausi')?.value || '';
     const content = document.getElementById('alv-laskelma-content');
@@ -3897,8 +3918,96 @@ function renderAlvLaskelmaPanel() {
   } catch (e) {
     const content = document.getElementById('alv-laskelma-content');
     if (content) content.innerHTML = `<div style="font-size:12px;color:var(--red)">ALV-laskelman renderöinti epäonnistui: ${e?.message || e}</div>`;
-    console.warn('renderAlvLaskelmaPanel virhe:', e);
+    console.warn('renderAlvLaskelmaPanelCore virhe:', e);
   }
+}
+
+async function renderAlvLaskelmaPanel() {
+  const kk = document.getElementById('alv-kuukausi')?.value || '';
+  const content = document.getElementById('alv-laskelma-content');
+  if (!content) return;
+  if (!curYritys || !kk) {
+    renderAlvLaskelmaPanelCore();
+    return;
+  }
+  const skipKey = 'alv_unposted_ok_' + curYritys.id + '_' + kk;
+  if (sessionStorage.getItem(skipKey) === '1') {
+    renderAlvLaskelmaPanelCore();
+    return;
+  }
+  try {
+    const res = await fetch('/api/ppr/kirjanpito/kuukausilukko?asiakas_id=' + encodeURIComponent(curYritys.id) + '&yyyy_mm=' + encodeURIComponent(kk) + '&mode=preflight');
+    const j = await res.json().catch(() => ({}));
+    if (res.ok && (j.pending_unposted_invoices || 0) > 0) {
+      alvPreflightYmPending = kk;
+      const msgEl = document.getElementById('alv-preflight-msg');
+      const mod = document.getElementById('alv-preflight-modal');
+      if (msgEl) {
+        msgEl.textContent = 'Kuukaudella ' + kk + ' on ' + j.pending_unposted_invoices + ' ostolaskua, joita ei ole merkitty kirjatuiksi (tila ≠ kirjattu). Haluatko käsitellä ne ensin vai jatkaa ALV-laskentaan silti?';
+      }
+      if (mod) mod.style.display = 'flex';
+      content.innerHTML = '<div style="font-size:12px;color:var(--inu)">Odottaa valintaa…</div>';
+      return;
+    }
+  } catch (e) {
+    console.warn('ALV preflight:', e);
+  }
+  renderAlvLaskelmaPanelCore();
+}
+
+function alvPreflightSulje() {
+  document.getElementById('alv-preflight-modal').style.display = 'none';
+  alvPreflightYmPending = null;
+}
+
+function alvPreflightOstolaskut() {
+  document.getElementById('alv-preflight-modal').style.display = 'none';
+  alvPreflightYmPending = null;
+  showPanel('ostolaskut');
+}
+
+function alvPreflightJatka() {
+  const kk = alvPreflightYmPending;
+  document.getElementById('alv-preflight-modal').style.display = 'none';
+  alvPreflightYmPending = null;
+  if (curYritys && kk) sessionStorage.setItem('alv_unposted_ok_' + curYritys.id + '_' + kk, '1');
+  void renderAlvLaskelmaPanel();
+}
+
+async function alvLataaKuukausilukot() {
+  const el = document.getElementById('alv-lukitut-lista');
+  const btn = document.getElementById('alv-lukko-avaa-btn');
+  if (!el) return;
+  if (!curYritys) {
+    el.textContent = '—';
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  try {
+    const res = await fetch('/api/ppr/kirjanpito/kuukausilukko?asiakas_id=' + encodeURIComponent(curYritys.id));
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      el.textContent = 'Virhe: ' + (j.error || res.status);
+      if (btn) btn.style.display = 'none';
+      return;
+    }
+    const months = j.locked_months || [];
+    el.textContent = months.length ? months.join(', ') : 'Ei lukittuja kuukausia.';
+    if (btn) btn.style.display = (window._PPR?.rooli === 'paakayttaja' && months.length) ? 'inline-block' : 'none';
+  } catch (e) {
+    el.textContent = 'Lataus epäonnistui';
+    if (btn) btn.style.display = 'none';
+  }
+}
+
+async function alvAvaaViimeisinLukko() {
+  if (!curYritys || window._PPR?.rooli !== 'paakayttaja') return;
+  if (!confirm('Avataanko viimeksi lukittu kuukausi? Voit avata vain yhden kerrallaan (uusin ensin).')) return;
+  const res = await fetch('/api/ppr/kirjanpito/kuukausilukko?asiakas_id=' + encodeURIComponent(curYritys.id), { method: 'DELETE' });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) { toast('Lukituksen avaus epäonnistui: ' + (j.error || res.status)); return; }
+  toast('Lukitus avattu: ' + (j.unlocked_yyyy_mm || ''));
+  await alvLataaKuukausilukot();
 }
 
 function alvFmt(v) {
@@ -3942,15 +4051,29 @@ async function alvValmisteleIlmoitus() {
   const vali = alvKuukaudenVali(kk);
   if (!vali) { toast('Valitse kuukausi'); return; }
 
+  const skipKey = 'alv_unposted_ok_' + curYritys.id + '_' + kk;
+  const forceUnposted = sessionStorage.getItem(skipKey) === '1';
+
   const res = await fetch('/api/ppr/alv/prepare', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       asiakas_id: curYritys.id,
-      period_yyyy_mm: kk
+      period_yyyy_mm: kk,
+      force: forceUnposted
     })
   });
   const json = await res.json().catch(() => ({}));
+  if (res.status === 409 && (json.pending_unposted_invoices || 0) > 0 && !forceUnposted) {
+    alvPreflightYmPending = kk;
+    const msgEl = document.getElementById('alv-preflight-msg');
+    const mod = document.getElementById('alv-preflight-modal');
+    if (msgEl) {
+      msgEl.textContent = 'Kuukaudella ' + kk + ' on ' + json.pending_unposted_invoices + ' ostolaskua, joita ei ole merkitty kirjatuiksi (tila ≠ kirjattu). Haluatko käsitellä ne ensin vai jatkaa ALV-laskentaan silti?';
+    }
+    if (mod) mod.style.display = 'flex';
+    return;
+  }
   if (!res.ok) {
     toast('ALV-ilmoituksen valmistelu epäonnistui: ' + (json.error || res.status));
     return;
@@ -4067,7 +4190,21 @@ async function alvKirjaaSiirto() {
   }
   toast('ALV-siirto kirjattu tositteelle ' + tosite_nro);
   await lataaRivit(curYritys.id);
-  renderAlvLaskelmaPanel();
+  void renderAlvLaskelmaPanel();
+  await alvLataaKuukausilukot();
+  if (window._PPR?.rooli === 'paakayttaja') {
+    if (confirm('Lukitaanko kirjanpitokuukausi ' + kk + '? Uusia kirjauksia ei voi tehdä tälle kuukaudelle ennen kuin lukitus avataan (Avaa viimeisin lukitus).')) {
+      const lr = await fetch('/api/ppr/kirjanpito/kuukausilukko', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asiakas_id: curYritys.id, yyyy_mm: kk })
+      });
+      const lj = await lr.json().catch(() => ({}));
+      if (!lr.ok) toast('Kuukauden lukitus epäonnistui: ' + (lj.error || lr.status));
+      else toast('Kuukausi ' + kk + ' lukittu');
+      await alvLataaKuukausilukot();
+    }
+  }
 }
 
 function renderPaakirja() {

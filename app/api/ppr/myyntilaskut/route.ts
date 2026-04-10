@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
 
 function alvMyyntiVelkaTili(alvPct: number): string {
   if (Math.abs(alvPct - 25.5) < 0.01) return '292041'
@@ -83,6 +84,15 @@ export async function POST(request: NextRequest) {
         saldo: -alvSumma
       })
     })
+
+    const lukko = await tarkistaPaivamaaratEivatOleLukittuja(
+      supabaseAdmin!,
+      lasku.kirjanpitoasiakas_id,
+      [String(lasku.pvm || '').slice(0, 10)]
+    )
+    if (!lukko.ok) {
+      return NextResponse.json({ error: lukko.viesti }, { status: 423 })
+    }
 
     const tositeNro = 'ML' + lasku.lasku_nro
     const { error: pvkErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(tositeRivit.map(r => ({
