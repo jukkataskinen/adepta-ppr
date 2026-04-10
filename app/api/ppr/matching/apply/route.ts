@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
 import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
+import { kirjaTapahtumaloki } from '@/lib/tapahtumaloki'
 
 type ApplyBody = {
   asiakas_id: string
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const { data: kayttaja } = await supabaseAdmin!
       .from('ppr_kayttajat')
-      .select('id')
+      .select('id, organisaatio_id')
       .eq('auth_sub', session.user.sub)
       .maybeSingle()
 
@@ -106,6 +107,22 @@ export async function POST(request: NextRequest) {
     }
     const { error: insErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(insert)
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+
+    if (kayttaja?.organisaatio_id) {
+      await kirjaTapahtumaloki(supabaseAdmin!, {
+        organisaatio_id: kayttaja.organisaatio_id,
+        asiakas_id: body.asiakas_id,
+        kayttaja_id: kayttaja.id,
+        tyyppi: 'matching_pankki_kirjaus',
+        viesti: `Pankkitapahtuma kirjattu BA ${tositeNro}`,
+        payload: {
+          tosite_nro: tositeNro,
+          rivit_lkm: insert.length,
+          score: body.suggestion?.score ?? null,
+          reasons: body.suggestion?.reasons ?? null,
+        },
+      })
+    }
 
     return NextResponse.json({ ok: true, tosite_nro: tositeNro, rivit: insert.length })
   } catch (e: any) {

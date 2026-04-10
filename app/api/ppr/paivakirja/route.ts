@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
 import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
+import { kirjaTapahtumaloki } from '@/lib/tapahtumaloki'
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const { data: kayttaja } = await supabaseAdmin!
       .from('ppr_kayttajat')
-      .select('id')
+      .select('id, organisaatio_id')
       .eq('auth_sub', session.user.sub)
       .single()
 
@@ -90,6 +91,17 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('paivakirja POST insert error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (kayttaja?.organisaatio_id) {
+      await kirjaTapahtumaloki(supabaseAdmin!, {
+        organisaatio_id: kayttaja.organisaatio_id,
+        asiakas_id: asiakas_id,
+        kayttaja_id: kayttaja.id,
+        tyyppi: 'paivakirja_tosite',
+        viesti: `Tosite ${tosite_nro} (${insert.length} riviä)`,
+        payload: { tosite_nro, paivamaara, rivit_lkm: insert.length },
+      })
     }
 
     return NextResponse.json({ ok: true, tallennettu: insert.length })

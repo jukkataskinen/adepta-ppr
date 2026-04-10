@@ -8,6 +8,7 @@ import {
   ALV_SIIRTO_TILI,
 } from '@/lib/alv-tilit'
 import { laskeKirjaamattomatOstolaskutAikavalilla } from '@/lib/kuukausilukko'
+import { kirjaTapahtumaloki } from '@/lib/tapahtumaloki'
 
 export async function POST(request: NextRequest) {
   try {
@@ -135,6 +136,20 @@ export async function POST(request: NextRequest) {
       message: 'ALV-ilmoitus valmisteltu',
       payload_json: payload,
       created_by_kayttaja_id: kayttaja.id,
+    })
+
+    await kirjaTapahtumaloki(supabaseAdmin!, {
+      organisaatio_id: kayttaja.organisaatio_id,
+      asiakas_id: asiakasId,
+      kayttaja_id: kayttaja.id,
+      tyyppi: 'alv_valmistelu',
+      viesti: `ALV valmisteltu ${jakso.period_yyyy_mm} (${jakso.kausi_tyyppi})`,
+      payload: {
+        submission_id: submission.id,
+        period_yyyy_mm: jakso.period_yyyy_mm,
+        kausi_tyyppi: jakso.kausi_tyyppi,
+        net_transfer_292040: netTransfer,
+      },
     })
 
     return NextResponse.json({ ok: true, submission })

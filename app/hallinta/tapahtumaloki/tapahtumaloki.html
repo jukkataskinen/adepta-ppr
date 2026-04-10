@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tapahtumaloki — Adepta PPR</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f0; color: #1a1c18; }
+  header { background: #1c2b1e; color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header a { color: #5DCAA5; text-decoration: none; font-size: 13px; }
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 16px; }
+  .toolbar { margin-bottom: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input, button { padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #ccc; }
+  button { background: #1D9E75; color: #fff; border: none; cursor: pointer; }
+  button:hover { opacity: 0.9; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #dddbd4; border-radius: 8px; overflow: hidden; font-size: 12px; }
+  th { text-align: left; padding: 8px 10px; background: #f5f3ee; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #7a7d72; }
+  td { padding: 8px 10px; border-top: 1px solid #eeede8; vertical-align: top; }
+  .mono { font-family: ui-monospace, monospace; font-size: 11px; }
+  .err { color: #A32D2D; padding: 12px; background: #FCEBEB; border-radius: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <strong style="font-size:15px">Adepta PPR</strong>
+  <span style="opacity:0.5">·</span>
+  <span>Tapahtumaloki</span>
+  <span style="flex:1"></span>
+  <a href="/kirjanpito">← Kirjanpito</a>
+</header>
+<main>
+  <h1>Tapahtumaloki</h1>
+  <p style="font-size:13px;color:#7a7d72;margin-top:-8px">Viimeisimmät palvelintapahtumat tässä organisaatiossa (lukot, kirjaukset, ALV-valmistelut).</p>
+  <div class="toolbar">
+    <label style="font-size:12px;color:#555">Tyyppi <input type="text" id="f-tyyppi" placeholder="esim. paivakirja_tosite" style="width:200px"></label>
+    <label style="font-size:12px;color:#555">Rivejä <input type="number" id="f-limit" value="80" min="1" max="200" style="width:64px"></label>
+    <button type="button" onclick="lataa()">Päivitä</button>
+  </div>
+  <div id="msg"></div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Aika</th>
+          <th>Tyyppi</th>
+          <th>Viesti</th>
+          <th>Asiakas</th>
+          <th>Payload</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"><tr><td colspan="5" style="color:#7a7d72">Ladataan…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script>
+async function lataa() {
+  const msg = document.getElementById('msg');
+  const tbody = document.getElementById('tbody');
+  msg.innerHTML = '';
+  const tyyppi = document.getElementById('f-tyyppi').value.trim();
+  const limit = document.getElementById('f-limit').value || '80';
+  let url = '/api/ppr/hallinta/tapahtumaloki?limit=' + encodeURIComponent(limit);
+  if (tyyppi) url += '&tyyppi=' + encodeURIComponent(tyyppi);
+  const res = await fetch(url);
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    msg.innerHTML = '<div class="err">' + (j.error || res.status) + '</div>';
+    tbody.innerHTML = '<tr><td colspan="5">—</td></tr>';
+    return;
+  }
+  const rivit = j.rivit || [];
+  if (!rivit.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:#7a7d72">Ei merkintöjä.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rivit.map(function (r) {
+    const p = r.payload != null ? JSON.stringify(r.payload) : '';
+    const aika = r.created_at ? new Date(r.created_at).toLocaleString('fi-FI') : '—';
+    return '<tr><td class="mono">' + aika + '</td><td class="mono">' + esc(r.tyyppi || '') + '</td><td>' + esc(r.viesti || '') + '</td><td class="mono">' + esc(String(r.asiakas_id || '').slice(0, 8)) + '…</td><td class="mono" style="max-width:360px;word-break:break-all">' + esc(p.slice(0, 500)) + (p.length > 500 ? '…' : '') + '</td></tr>';
+  }).join('');
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+lataa();
+</script>
+</body>
+</html>
