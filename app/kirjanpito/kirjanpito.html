@@ -1108,16 +1108,14 @@ input[type=number] { -moz-appearance: textfield; }
     <!-- ─── ALV-LASKELMA PANEL ─── -->
     <div id="panel-alvlaskelma" class="panel">
       <h2>ALV-laskelma</h2>
-      <div class="panel-sub">Kirjanpito-teeman ALV-laskenta ja ALV-siirtokirjaus. Oletuskausi: kuukausi.</div>
+      <div class="panel-sub">ALV-tarkastelujakso tulee yrityksen kantatiedoista (1 kk / 3 kk / 12 kk). Valitse kuukausi, joka kuuluu laskettavaan jaksoon.</div>
       <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
         <div>
-          <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Kausi</label>
-          <select id="alv-kausi-tyyppi" onchange="void renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);font-size:12px">
-            <option value="1kk" selected>Kuukausi (1 kk)</option>
-          </select>
+          <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">ALV-jakso (yritys)</label>
+          <div id="alv-kausi-luku" style="padding:8px 12px;border:1px solid var(--bd);border-radius:6px;background:var(--ppw);font-size:12px;color:var(--inm);min-width:160px">1 kk</div>
         </div>
         <div>
-          <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Kuukausi</label>
+          <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Ankkurikuukausi</label>
           <input type="month" id="alv-kuukausi" onchange="void renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;font-size:12px">
         </div>
         <button onclick="void renderAlvLaskelmaPanel()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä</button>
@@ -1366,6 +1364,16 @@ input[type=number] { -moz-appearance: textfield; }
             <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Postinumero</label><input id="yt-postinro" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
             <div><label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:3px">Kaupunki</label><input id="yt-kaupunki" style="width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px"></div>
           </div>
+        </div>
+        <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inu);margin-bottom:14px">ALV-ilmoitusjakso</div>
+          <div style="font-size:12px;color:var(--inu);margin-bottom:8px">Miten pitkältä jaksolta ALV lasketaan ja tarkastellaan (kalenterikuukausi / neljännes / vuosi).</div>
+          <label style="font-size:10px;font-weight:600;color:var(--inu);display:block;margin-bottom:4px">Jakson pituus</label>
+          <select id="yt-alv-kausi-kk" style="width:100%;max-width:280px;padding:7px 9px;border:1px solid var(--bd);border-radius:5px;font-size:13px">
+            <option value="1">1 kk (kuukausi)</option>
+            <option value="3">3 kk (kalenterineljännes)</option>
+            <option value="12">12 kk (kalenterivuosi)</option>
+          </select>
         </div>
         <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inu);margin-bottom:14px">Pankkitiedot</div>
@@ -1892,6 +1900,7 @@ async function lataaYritykset() {
     kaupunki: a.kaupunki || '',
     iban: a.iban || '',
     bic: a.bic || '',
+    alv_kausi_kk: (a.alv_kausi_kk === 3 || a.alv_kausi_kk === 12) ? a.alv_kausi_kk : 1,
   }));
   if (YRITYKSET.length > 0) {
     const savedId = localStorage.getItem('ppr_last_asiakas');
@@ -3855,14 +3864,64 @@ function alvAsetaOletusKk() {
   if (inp && !inp.value) inp.value = new Date().toISOString().slice(0, 7);
 }
 
-function alvKuukaudenVali(yyyyMm) {
-  const y = Number(String(yyyyMm || '').slice(0, 4));
-  const m = Number(String(yyyyMm || '').slice(5, 7));
+function alvKkNro(yr) {
+  if (!yr) return 1;
+  const k = Number(yr.alv_kausi_kk);
+  return k === 3 || k === 12 ? k : 1;
+}
+
+/** Sama logiikka kuin lib/alv-kausi.ts — ankkurikuukausi voi olla mikä tahansa kk jakson sisällä */
+function alvLaskeJakso(anchorYm, kausiKk) {
+  const k = kausiKk === 3 || kausiKk === 12 ? kausiKk : 1;
+  const ym = String(anchorYm || '').trim().slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(ym)) return null;
+  const y = parseInt(ym.slice(0, 4), 10);
+  const m = parseInt(ym.slice(5, 7), 10);
   if (!y || !m) return null;
-  const alku = `${y}-${String(m).padStart(2, '0')}-01`;
-  const loppuDate = new Date(y, m, 0);
-  const loppu = `${y}-${String(m).padStart(2, '0')}-${String(loppuDate.getDate()).padStart(2, '0')}`;
-  return { alku, loppu };
+  if (k === 1) {
+    const alku = `${y}-${String(m).padStart(2, '0')}-01`;
+    const ld = new Date(y, m, 0);
+    const loppu = `${y}-${String(m).padStart(2, '0')}-${String(ld.getDate()).padStart(2, '0')}`;
+    return { alku, loppu, kuukaudet: [ym], period_yyyy_mm: ym, kausi_tyyppi: '1kk' };
+  }
+  if (k === 12) {
+    const kuukaudet = [];
+    for (let mm = 1; mm <= 12; mm++) kuukaudet.push(`${y}-${String(mm).padStart(2, '0')}`);
+    return { alku: `${y}-01-01`, loppu: `${y}-12-31`, kuukaudet, period_yyyy_mm: `${y}-12`, kausi_tyyppi: '12kk' };
+  }
+  const q = Math.floor((m - 1) / 3);
+  const mStart = q * 3 + 1;
+  const mEnd = mStart + 2;
+  const alku = `${y}-${String(mStart).padStart(2, '0')}-01`;
+  const ld = new Date(y, mEnd, 0);
+  const loppu = `${y}-${String(mEnd).padStart(2, '0')}-${String(ld.getDate()).padStart(2, '0')}`;
+  const kuukaudet = [
+    `${y}-${String(mStart).padStart(2, '0')}`,
+    `${y}-${String(mStart + 1).padStart(2, '0')}`,
+    `${y}-${String(mEnd).padStart(2, '0')}`,
+  ];
+  return {
+    alku,
+    loppu,
+    kuukaudet,
+    period_yyyy_mm: `${y}-${String(mEnd).padStart(2, '0')}`,
+    kausi_tyyppi: '3kk',
+  };
+}
+
+function alvPaivitaKausiNaytto() {
+  const el = document.getElementById('alv-kausi-luku');
+  if (!el) return;
+  if (!curYritys) {
+    el.textContent = '—';
+    return;
+  }
+  const k = alvKkNro(curYritys);
+  el.textContent = k === 1 ? '1 kk (kuukausi)' : (k === 3 ? '3 kk (neljännesvuosi)' : '12 kk (kalenterivuosi)');
+}
+
+function alvKuukaudenVali(yyyyMm) {
+  return alvLaskeJakso(yyyyMm, 1);
 }
 
 function alvTiliJaksoSaldo(tili, alku, loppu) {
@@ -3880,17 +3939,19 @@ let alvPreflightYmPending = null;
 
 function renderAlvLaskelmaPanelCore() {
   try {
+    alvPaivitaKausiNaytto();
     const kk = document.getElementById('alv-kuukausi')?.value || '';
     const content = document.getElementById('alv-laskelma-content');
     const jaksoTxt = document.getElementById('alv-jakso-teksti');
     if (!content || !jaksoTxt) return;
-    const vali = alvKuukaudenVali(kk);
-    if (!vali) {
+    const jakso = alvLaskeJakso(kk, alvKkNro(curYritys));
+    if (!jakso) {
       content.innerHTML = '<div style="font-size:12px;color:var(--inu)">Valitse kuukausi.</div>';
       return;
     }
-    const { alku, loppu } = vali;
-    jaksoTxt.textContent = `Jakso: ${fmtPv(alku)} – ${fmtPv(loppu)}`;
+    const { alku, loppu } = jakso;
+    const kkList = jakso.kuukaudet.join(', ');
+    jaksoTxt.textContent = `Jakso (${jakso.kausi_tyyppi}): ${fmtPv(alku)} – ${fmtPv(loppu)} · Kuukaudet: ${kkList}`;
 
     const myyntiRivit = ALV_MYYNTI_ILMOITTAMATON_TILIT.map(tili => ({
       tili,
@@ -3923,6 +3984,7 @@ function renderAlvLaskelmaPanelCore() {
 }
 
 async function renderAlvLaskelmaPanel() {
+  alvPaivitaKausiNaytto();
   const kk = document.getElementById('alv-kuukausi')?.value || '';
   const content = document.getElementById('alv-laskelma-content');
   if (!content) return;
@@ -3930,7 +3992,8 @@ async function renderAlvLaskelmaPanel() {
     renderAlvLaskelmaPanelCore();
     return;
   }
-  const skipKey = 'alv_unposted_ok_' + curYritys.id + '_' + kk;
+  const jaksoSkip = alvLaskeJakso(kk, alvKkNro(curYritys));
+  const skipKey = jaksoSkip ? 'alv_unposted_ok_' + curYritys.id + '_' + jaksoSkip.period_yyyy_mm : 'alv_unposted_ok_' + curYritys.id + '_' + kk;
   if (sessionStorage.getItem(skipKey) === '1') {
     renderAlvLaskelmaPanelCore();
     return;
@@ -3943,7 +4006,9 @@ async function renderAlvLaskelmaPanel() {
       const msgEl = document.getElementById('alv-preflight-msg');
       const mod = document.getElementById('alv-preflight-modal');
       if (msgEl) {
-        msgEl.textContent = 'Kuukaudella ' + kk + ' on ' + j.pending_unposted_invoices + ' ostolaskua, joita ei ole merkitty kirjatuiksi (tila ≠ kirjattu). Haluatko käsitellä ne ensin vai jatkaa ALV-laskentaan silti?';
+        const pm = (j.period_months && j.period_months.length) ? j.period_months.join(', ') : kk;
+        const pv = (j.period_start && j.period_end) ? (j.period_start + ' – ' + j.period_end) : '';
+        msgEl.textContent = 'ALV-jaksolla' + (pv ? ' (' + pv + ')' : '') + ', kuukaudet ' + pm + ', on ' + j.pending_unposted_invoices + ' ostolaskua, joita ei ole merkitty kirjatuiksi (tila ≠ kirjattu). Haluatko käsitellä ne ensin vai jatkaa ALV-laskentaan silti?';
       }
       if (mod) mod.style.display = 'flex';
       content.innerHTML = '<div style="font-size:12px;color:var(--inu)">Odottaa valintaa…</div>';
@@ -3970,7 +4035,11 @@ function alvPreflightJatka() {
   const kk = alvPreflightYmPending;
   document.getElementById('alv-preflight-modal').style.display = 'none';
   alvPreflightYmPending = null;
-  if (curYritys && kk) sessionStorage.setItem('alv_unposted_ok_' + curYritys.id + '_' + kk, '1');
+  if (curYritys && kk) {
+    const j = alvLaskeJakso(kk, alvKkNro(curYritys));
+    const keyYm = j ? j.period_yyyy_mm : kk;
+    sessionStorage.setItem('alv_unposted_ok_' + curYritys.id + '_' + keyYm, '1');
+  }
   void renderAlvLaskelmaPanel();
 }
 
@@ -4048,10 +4117,10 @@ async function alvLahetaVeroon(id) {
 async function alvValmisteleIlmoitus() {
   if (!curYritys) { toast('Valitse ensin yritys'); return; }
   const kk = document.getElementById('alv-kuukausi')?.value || '';
-  const vali = alvKuukaudenVali(kk);
-  if (!vali) { toast('Valitse kuukausi'); return; }
+  const jaksoV = alvLaskeJakso(kk, alvKkNro(curYritys));
+  if (!jaksoV) { toast('Valitse kuukausi'); return; }
 
-  const skipKey = 'alv_unposted_ok_' + curYritys.id + '_' + kk;
+  const skipKey = 'alv_unposted_ok_' + curYritys.id + '_' + jaksoV.period_yyyy_mm;
   const forceUnposted = sessionStorage.getItem(skipKey) === '1';
 
   const res = await fetch('/api/ppr/alv/prepare', {
@@ -4069,7 +4138,9 @@ async function alvValmisteleIlmoitus() {
     const msgEl = document.getElementById('alv-preflight-msg');
     const mod = document.getElementById('alv-preflight-modal');
     if (msgEl) {
-      msgEl.textContent = 'Kuukaudella ' + kk + ' on ' + json.pending_unposted_invoices + ' ostolaskua, joita ei ole merkitty kirjatuiksi (tila ≠ kirjattu). Haluatko käsitellä ne ensin vai jatkaa ALV-laskentaan silti?';
+      const pm = (json.period_months && json.period_months.length) ? json.period_months.join(', ') : kk;
+      const pv = (json.period_start && json.period_end) ? (json.period_start + ' – ' + json.period_end) : '';
+      msgEl.textContent = 'ALV-jaksolla' + (pv ? ' (' + pv + ')' : '') + ', kuukaudet ' + pm + ', on ' + json.pending_unposted_invoices + ' ostolaskua, joita ei ole merkitty kirjatuiksi (tila ≠ kirjattu). Haluatko käsitellä ne ensin vai jatkaa ALV-laskentaan silti?';
     }
     if (mod) mod.style.display = 'flex';
     return;
@@ -4143,9 +4214,9 @@ async function alvLataaLahetykset() {
 async function alvKirjaaSiirto() {
   if (!curYritys) { toast('Valitse ensin yritys'); return; }
   const kk = document.getElementById('alv-kuukausi')?.value || '';
-  const vali = alvKuukaudenVali(kk);
-  if (!vali) { toast('Valitse kuukausi'); return; }
-  const { alku, loppu } = vali;
+  const jakso = alvLaskeJakso(kk, alvKkNro(curYritys));
+  if (!jakso) { toast('Valitse kuukausi'); return; }
+  const { alku, loppu } = jakso;
 
   const siirtoRivit = [];
   [...ALV_MYYNTI_ILMOITTAMATON_TILIT, ALV_OSTO_ILMOITTAMATON_TILI].forEach(tili => {
@@ -4153,17 +4224,17 @@ async function alvKirjaaSiirto() {
     if (Math.abs(saldo) < 0.005) return;
     siirtoRivit.push({
       tili,
-      selite: `ALV-siirto ${kk}`,
+      selite: `ALV-siirto ${jakso.period_yyyy_mm}`,
       saldo: -saldo,
       alv_prosentti: null
     });
   });
 
-  if (!siirtoRivit.length) { toast('Ei ALV-siirtorivejä valitulla kuukaudella'); return; }
+  if (!siirtoRivit.length) { toast('Ei ALV-siirtorivejä valitulla jaksolla'); return; }
   const summa = siirtoRivit.reduce((s, r) => s + Number(r.saldo || 0), 0);
   siirtoRivit.push({
     tili: ALV_MYYNTI_YLEIS_TILI,
-    selite: `ALV velaksi ${kk}`,
+    selite: `ALV velaksi ${jakso.period_yyyy_mm}`,
     saldo: -summa,
     alv_prosentti: null
   });
@@ -4193,15 +4264,21 @@ async function alvKirjaaSiirto() {
   void renderAlvLaskelmaPanel();
   await alvLataaKuukausilukot();
   if (window._PPR?.rooli === 'paakayttaja') {
-    if (confirm('Lukitaanko kirjanpitokuukausi ' + kk + '? Uusia kirjauksia ei voi tehdä tälle kuukaudelle ennen kuin lukitus avataan (Avaa viimeisin lukitus).')) {
-      const lr = await fetch('/api/ppr/kirjanpito/kuukausilukko', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asiakas_id: curYritys.id, yyyy_mm: kk })
-      });
-      const lj = await lr.json().catch(() => ({}));
-      if (!lr.ok) toast('Kuukauden lukitus epäonnistui: ' + (lj.error || lr.status));
-      else toast('Kuukausi ' + kk + ' lukittu');
+    const kkStr = jakso.kuukaudet.join(', ');
+    if (confirm('Lukitaanko ALV-jakson kuukaudet: ' + kkStr + '? Uusia kirjauksia ei voi tehdä näille kuukausille ennen kuin lukitus avataan (Avaa viimeisin lukitus).')) {
+      for (const ym of jakso.kuukaudet) {
+        const lr = await fetch('/api/ppr/kirjanpito/kuukausilukko', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ asiakas_id: curYritys.id, yyyy_mm: ym })
+        });
+        const lj = await lr.json().catch(() => ({}));
+        if (!lr.ok) {
+          toast('Lukitus epäonnistui (' + ym + '): ' + (lj.error || lr.status));
+          break;
+        }
+      }
+      toast('Lukitus päivitetty');
       await alvLataaKuukausilukot();
     }
   }
@@ -11816,6 +11893,8 @@ async function ytLataa() {
   document.getElementById('yt-puhelin').value = data.puhelin || '';
   document.getElementById('yt-sahkoposti').value = data.sahkoposti || '';
   document.getElementById('yt-kotisivu').value = data.kotisivu || '';
+  const ak = document.getElementById('yt-alv-kausi-kk');
+  if (ak) ak.value = (data.alv_kausi_kk === 3 || data.alv_kausi_kk === 12) ? String(data.alv_kausi_kk) : '1';
 }
 
 async function ytTallenna() {
@@ -11828,18 +11907,23 @@ async function ytTallenna() {
     bic: document.getElementById('yt-bic').value.trim() || null,
     puhelin: document.getElementById('yt-puhelin').value.trim() || null,
     sahkoposti: document.getElementById('yt-sahkoposti').value.trim() || null,
+    alv_kausi_kk: Number(document.getElementById('yt-alv-kausi-kk')?.value) || 1,
   };
   const res = await fetch('/api/ppr/asiakkaat/' + curYritys.id, {
     method: 'PATCH',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(body)
   });
+  const out = await res.json().catch(() => ({}));
   if (res.ok) {
     toast('Tiedot tallennettu');
     Object.assign(curYritys, body);
+    if (out && out.alv_kausi_kk != null) curYritys.alv_kausi_kk = out.alv_kausi_kk;
+    const y = YRITYKSET.find(x => x.id === curYritys.id);
+    if (y && curYritys.alv_kausi_kk != null) y.alv_kausi_kk = curYritys.alv_kausi_kk;
+    alvPaivitaKausiNaytto();
   } else {
-    const j = await res.json();
-    toast('Virhe: ' + (j.error||''), 'err');
+    toast('Virhe: ' + (out.error || ''), 'err');
   }
 }
 

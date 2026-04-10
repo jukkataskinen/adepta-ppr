@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { normalizeAlvKausiKk } from '@/lib/alv-kausi'
 
 export async function GET(request: NextRequest) {
   const session = await auth0.getSession(request)
@@ -16,7 +17,9 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin!
     .from('ppr_kirjanpitoasiakkaat')
-    .select('id, nimi, y_tunnus, ytunnus, yhtiomuoto, sahkoposti, puhelin, osoite, katuosoite, postinro, kaupunki, ovt_tunnus, iban, bic, alv_velvollinen, aktiivinen, tilikausi_alkaa, tilikausi_loppuu')
+    .select(
+      'id, nimi, y_tunnus, ytunnus, yhtiomuoto, sahkoposti, puhelin, osoite, katuosoite, postinro, kaupunki, ovt_tunnus, iban, bic, alv_velvollinen, aktiivinen, tilikausi_alkaa, tilikausi_loppuu, alv_kausi_kk'
+    )
     .eq('organisaatio_id', kayttaja.organisaatio_id)
     .is('poistettu_at', null)
     .order('nimi')
@@ -62,6 +65,7 @@ export async function POST(request: NextRequest) {
       sahkoposti: body.sahkoposti ?? null,
       puhelin: body.puhelin ?? null,
       alv_velvollinen: body.alv_velvollinen ?? true,
+      alv_kausi_kk: normalizeAlvKausiKk(body.alv_kausi_kk),
     })
     .select()
     .single()

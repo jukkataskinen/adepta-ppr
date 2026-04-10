@@ -303,6 +303,14 @@ table.at td{padding:12px 14px;color:var(--ink);font-size:13px;vertical-align:mid
         <input type="checkbox" id="f-alv" checked>
         <label for="f-alv">ALV-velvollinen</label>
       </div>
+      <div class="form-row">
+        <label>ALV-ilmoitusjakso (kirjanpito)</label>
+        <select id="f-alv-kausi-kk">
+          <option value="1">1 kk (kuukausi)</option>
+          <option value="3">3 kk (kalenterineljännes)</option>
+          <option value="12">12 kk (kalenterivuosi)</option>
+        </select>
+      </div>
     </div>
     <div class="modal-ftr">
       <button class="btn-cancel" onclick="suljeModal()">Peruuta</button>
@@ -422,6 +430,7 @@ function avaaModal(asiakas) {
   document.getElementById('f-bic').value = asiakas?.bic || '';
   document.getElementById('f-ovt').value = asiakas?.ovt_tunnus || '';
   document.getElementById('f-operaattori').value = asiakas?.verkkolaskuoperaattori || '';
+  document.getElementById('f-alv-kausi-kk').value = (asiakas && (asiakas.alv_kausi_kk === 3 || asiakas.alv_kausi_kk === 12)) ? String(asiakas.alv_kausi_kk) : '1';
   document.getElementById('modal-bg').classList.add('open');
   setTimeout(() => document.getElementById('f-nimi').focus(), 50);
 }
@@ -455,6 +464,7 @@ async function tallennaAsiakas() {
     bic: document.getElementById('f-bic').value.trim() || null,
     ovt_tunnus: document.getElementById('f-ovt').value.trim() || null,
     verkkolaskuoperaattori: document.getElementById('f-operaattori').value.trim() || null,
+    alv_kausi_kk: Number(document.getElementById('f-alv-kausi-kk').value) || 1,
   };
 
   const url = id ? '/api/ppr/asiakkaat/' + id : '/api/ppr/asiakkaat';

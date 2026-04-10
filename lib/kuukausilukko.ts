@@ -146,6 +146,25 @@ export async function tarkistaPaivamaaratEivatOleLukittuja(
   return { ok: true }
 }
 
+/** Saapuneet ostolaskut päiväväillä [alku, loppu], joita ei ole vielä kirjattu. */
+export async function laskeKirjaamattomatOstolaskutAikavalilla(
+  supabase: SupabaseClient,
+  asiakasId: string,
+  alkuPvm: string,
+  loppuPvm: string
+): Promise<number> {
+  const { count, error } = await supabase
+    .from('ppr_ostolaskut')
+    .select('id', { count: 'exact', head: true })
+    .eq('kirjanpitoasiakas_id', asiakasId)
+    .gte('pvm', alkuPvm)
+    .lte('pvm', loppuPvm)
+    .neq('tila', 'kirjattu')
+
+  if (error) throw new Error(error.message)
+  return count ?? 0
+}
+
 /** Saapuneet ostolaskut kuukaudella, joita ei ole vielä kirjattu. */
 export async function laskeKirjaamattomatOstolaskutKuukaudella(
   supabase: SupabaseClient,
@@ -157,15 +176,5 @@ export async function laskeKirjaamattomatOstolaskutKuukaudella(
   const m = Number(yyyyMm.slice(5, 7))
   const loppuPvm = new Date(y, m, 0)
   const loppu = `${y}-${String(m).padStart(2, '0')}-${String(loppuPvm.getDate()).padStart(2, '0')}`
-
-  const { count, error } = await supabase
-    .from('ppr_ostolaskut')
-    .select('id', { count: 'exact', head: true })
-    .eq('kirjanpitoasiakas_id', asiakasId)
-    .gte('pvm', alku)
-    .lte('pvm', loppu)
-    .neq('tila', 'kirjattu')
-
-  if (error) throw new Error(error.message)
-  return count ?? 0
+  return laskeKirjaamattomatOstolaskutAikavalilla(supabase, asiakasId, alku, loppu)
 }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { alvTarkasteluJakso, normalizeAlvKausiKk } from '@/lib/alv-kausi'
 import {
   haeLukitutKuukaudet,
-  laskeKirjaamattomatOstolaskutKuukaudella,
+  laskeKirjaamattomatOstolaskutAikavalilla,
   validoiLukitusJarjestys,
 } from '@/lib/kuukausilukko'
 
@@ -17,7 +18,7 @@ async function assertAsiakasAccess(asiakasId: string, authSub: string) {
 
   const { data: asiakas } = await supabaseAdmin!
     .from('ppr_kirjanpitoasiakkaat')
-    .select('id, organisaatio_id, vastuukirjanpitaja_id')
+    .select('id, organisaatio_id, vastuukirjanpitaja_id, alv_kausi_kk')
     .eq('id', asiakasId)
     .single()
   if (!asiakas || asiakas.organisaatio_id !== kayttaja.organisaatio_id) {
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
 
     const gate = await assertAsiakasAccess(asiakasId, session.user.sub)
     if ('error' in gate && gate.error) return gate.error
+    const { asiakas } = gate as { asiakas: { alv_kausi_kk?: unknown } }
 
     const lukitut = await haeLukitutKuukaudet(supabaseAdmin!, asiakasId)
 
@@ -59,11 +61,32 @@ export async function GET(request: NextRequest) {
       if (!/^\d{4}-\d{2}$/.test(yyyyMm)) {
         return NextResponse.json({ error: 'yyyy_mm vaaditaan (YYYY-MM)' }, { status: 400 })
       }
-      const pending = await laskeKirjaamattomatOstolaskutKuukaudella(supabaseAdmin!, asiakasId, yyyyMm)
-      const jarjestys = await validoiLukitusJarjestys(supabaseAdmin!, asiakasId, yyyyMm, lukitut)
+      const kausiKk = normalizeAlvKausiKk(asiakas?.alv_kausi_kk)
+      const jakso = alvTarkasteluJakso(kausiKk, yyyyMm)
+      if (!jakso) {
+        return NextResponse.json({ error: 'Virheellinen yyyy_mm' }, { status: 400 })
+      }
+      const pending = await laskeKirjaamattomatOstolaskutAikavalilla(
+        supabaseAdmin!,
+        asiakasId,
+        jakso.alku,
+        jakso.loppu
+      )
+      const jarjestys = await validoiLukitusJarjestys(
+        supabaseAdmin!,
+        asiakasId,
+        jakso.period_yyyy_mm,
+        lukitut
+      )
       return NextResponse.json({
         locked_months: lukitut,
         yyyy_mm: yyyyMm,
+        alv_kausi_kk: kausiKk,
+        period_yyyy_mm: jakso.period_yyyy_mm,
+        period_start: jakso.alku,
+        period_end: jakso.loppu,
+        period_months: jakso.kuukaudet,
+        kausi_tyyppi: jakso.kausi_tyyppi,
         pending_unposted_invoices: pending,
         can_lock_sequentially: jarjestys.ok,
         lock_order_message: jarjestys.ok ? null : jarjestys.syy,

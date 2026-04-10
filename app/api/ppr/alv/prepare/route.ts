@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
-import { laskeKirjaamattomatOstolaskutKuukaudella } from '@/lib/kuukausilukko'
+import { alvTarkasteluJakso, normalizeAlvKausiKk } from '@/lib/alv-kausi'
+import { laskeKirjaamattomatOstolaskutAikavalilla } from '@/lib/kuukausilukko'
 
 const ALV_MYYNTI_ILMOITTAMATON_TILIT = ['292041', '292042', '292043', '292045', '292046', '292048']
 const ALV_OSTO_ILMOITTAMATON_TILI = '292051'
 const ALV_SIIRTO_TILI = '292040'
-
-function monthRange(yyyyMm: string): { alku: string; loppu: string } | null {
-  const y = Number(String(yyyyMm || '').slice(0, 4))
-  const m = Number(String(yyyyMm || '').slice(5, 7))
-  if (!y || !m) return null
-  const alku = `${y}-${String(m).padStart(2, '0')}-01`
-  const loppuDate = new Date(y, m, 0)
-  const loppu = `${y}-${String(m).padStart(2, '0')}-${String(loppuDate.getDate()).padStart(2, '0')}`
-  return { alku, loppu }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,12 +15,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const asiakasId = String(body?.asiakas_id || '').trim()
-    const periodYyyyMm = String(body?.period_yyyy_mm || '').trim()
-    if (!asiakasId || !periodYyyyMm) {
+    /** Ankkurikuukausi (mikä tahansa kk joka kuuluu ALV-jaksoon) */
+    const anchorYyyyMm = String(body?.period_yyyy_mm || '').trim()
+    if (!asiakasId || !anchorYyyyMm) {
       return NextResponse.json({ error: 'asiakas_id ja period_yyyy_mm vaaditaan' }, { status: 400 })
     }
-    const range = monthRange(periodYyyyMm)
-    if (!range) return NextResponse.json({ error: 'Virheellinen period_yyyy_mm' }, { status: 400 })
 
     const { data: kayttaja } = await supabaseAdmin!
       .from('ppr_kayttajat')
@@ -40,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const { data: asiakas } = await supabaseAdmin!
       .from('ppr_kirjanpitoasiakkaat')
-      .select('id, organisaatio_id, vastuukirjanpitaja_id')
+      .select('id, organisaatio_id, vastuukirjanpitaja_id, alv_kausi_kk')
       .eq('id', asiakasId)
       .single()
     if (!asiakas || asiakas.organisaatio_id !== kayttaja.organisaatio_id) {
@@ -57,14 +47,27 @@ export async function POST(request: NextRequest) {
       if (!canAccess) return NextResponse.json({ error: 'Ei oikeutta ympäristöön' }, { status: 403 })
     }
 
+    const kausiKk = normalizeAlvKausiKk((asiakas as { alv_kausi_kk?: unknown }).alv_kausi_kk)
+    const jakso = alvTarkasteluJakso(kausiKk, anchorYyyyMm)
+    if (!jakso) return NextResponse.json({ error: 'Virheellinen period_yyyy_mm' }, { status: 400 })
+
     const force = body?.force === true
     if (!force) {
-      const pending = await laskeKirjaamattomatOstolaskutKuukaudella(supabaseAdmin!, asiakasId, periodYyyyMm)
+      const pending = await laskeKirjaamattomatOstolaskutAikavalilla(
+        supabaseAdmin!,
+        asiakasId,
+        jakso.alku,
+        jakso.loppu
+      )
       if (pending > 0) {
         return NextResponse.json(
           {
-            error: 'Kuukaudella on kirjaamattomia ostolaskuja',
+            error: 'ALV-jaksolla on kirjaamattomia ostolaskuja',
             pending_unposted_invoices: pending,
+            period_start: jakso.alku,
+            period_end: jakso.loppu,
+            period_months: jakso.kuukaudet,
+            period_yyyy_mm: jakso.period_yyyy_mm,
           },
           { status: 409 }
         )
@@ -75,8 +78,8 @@ export async function POST(request: NextRequest) {
       .from('ppr_paivakirja')
       .select('tili, saldo, paivamaara')
       .eq('asiakas_id', asiakasId)
-      .gte('paivamaara', range.alku)
-      .lte('paivamaara', range.loppu)
+      .gte('paivamaara', jakso.alku)
+      .lte('paivamaara', jakso.loppu)
     if (rowsErr) return NextResponse.json({ error: rowsErr.message }, { status: 500 })
 
     const saldot: Record<string, number> = {}
@@ -95,9 +98,12 @@ export async function POST(request: NextRequest) {
     const netTransfer = Number(([...myynti.map((x: { saldo: number }) => x.saldo), osto].reduce((s, v) => s + v, 0)).toFixed(2))
 
     const payload = {
-      period_yyyy_mm: periodYyyyMm,
-      period_start: range.alku,
-      period_end: range.loppu,
+      anchor_yyyy_mm: anchorYyyyMm,
+      period_yyyy_mm: jakso.period_yyyy_mm,
+      period_start: jakso.alku,
+      period_end: jakso.loppu,
+      alv_kausi_kk: kausiKk,
+      period_months: jakso.kuukaudet,
       alv_siirto_tili: ALV_SIIRTO_TILI,
       myynti_tilit: myynti,
       osto_tili: { tili: ALV_OSTO_ILMOITTAMATON_TILI, saldo: osto },
@@ -109,10 +115,10 @@ export async function POST(request: NextRequest) {
       .insert({
         organisaatio_id: kayttaja.organisaatio_id,
         asiakas_id: asiakasId,
-        period_yyyy_mm: periodYyyyMm,
-        period_start: range.alku,
-        period_end: range.loppu,
-        kausi_tyyppi: '1kk',
+        period_yyyy_mm: jakso.period_yyyy_mm,
+        period_start: jakso.alku,
+        period_end: jakso.loppu,
+        kausi_tyyppi: jakso.kausi_tyyppi,
         status: 'prepared',
         totals: { net_transfer_292040: netTransfer },
         payload_json: payload,
