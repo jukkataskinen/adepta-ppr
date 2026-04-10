@@ -539,6 +539,10 @@ input[type=number] { -moz-appearance: textfield; }
     <div id="panel-pankki" class="panel">
       <h2>Pankkituonti &amp; laskuaineisto</h2>
       <div class="panel-sub">Lataa tiliote CSV:nä ja laskut erikseen PDF:nä — tai käytä yhdistettyä PDF-latausta.</div>
+      <div id="pankki-palautusbanneri" style="display:none;margin:0 0 12px 0;padding:10px 12px;border:1px solid rgba(29,158,117,.35);border-radius:8px;background:rgba(29,158,117,.10);color:#d9f3e9;font-size:12px;align-items:center;justify-content:space-between;gap:10px">
+        <span>Kohdistus kesken — jatka siitä mihin jäit.</span>
+        <button onclick="pwJatkaKohdistusta()" style="padding:6px 12px;font-size:11px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Jatka kohdistusta</button>
+      </div>
       <div style="margin-bottom:14px">
         <button onclick="avaaPankkituontiOhjattu()" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">
           Avaa ohjattu pankkituonti →
@@ -6611,6 +6615,7 @@ function pwPaivitaJatkaBtn() {
   const mgKesken = Array.isArray(mgQueue) && mgQueue.length > 0 && mgIdx < mgQueue.length;
   if (info) info.textContent = mgKesken ? 'Vaihe 4 / 4 kesken — jatka kohdistusta' : (tilioteOk && laskutOk ? 'Vaihe 3 / 4 valmis siirtymään' : 'Vaihe 1 / 4');
   if (jatkaMgBtn) jatkaMgBtn.style.display = mgKesken ? 'inline-block' : 'none';
+  paivitaPankkiPalautusBanneri(mgKesken);
   if (!btn) return;
   if (tilioteOk && laskutOk) {
     btn.disabled = false;
@@ -6623,6 +6628,12 @@ function pwPaivitaJatkaBtn() {
     btn.style.color = 'rgba(255,255,255,.35)';
     btn.style.cursor = 'not-allowed';
   }
+}
+
+function paivitaPankkiPalautusBanneri(mgKesken) {
+  const el = document.getElementById('pankki-palautusbanneri');
+  if (!el) return;
+  el.style.display = mgKesken ? 'flex' : 'none';
 }
 
 function pwJatkaKohdistusta() {
