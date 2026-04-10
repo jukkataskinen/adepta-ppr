@@ -3827,49 +3827,57 @@ function alvKuukaudenVali(yyyyMm) {
 
 function alvTiliJaksoSaldo(tili, alku, loppu) {
   let saldo = 0;
-  rows.forEach(r => {
+  const allRows = (typeof rows !== 'undefined' && Array.isArray(rows)) ? rows : [];
+  allRows.forEach(r => {
     if (!r || !r.pv || r.pv < alku || r.pv > loppu) return;
-    if (r.d === tili) saldo += Number(r.netto || 0);
-    if (r.k === tili) saldo -= Number(r.netto || 0);
+    if (String(r.d || '').trim() === tili) saldo += Number(r.netto || 0);
+    if (String(r.k || '').trim() === tili) saldo -= Number(r.netto || 0);
   });
   return saldo;
 }
 
 function renderAlvLaskelmaPanel() {
-  const kk = document.getElementById('alv-kuukausi')?.value || '';
-  const content = document.getElementById('alv-laskelma-content');
-  const jaksoTxt = document.getElementById('alv-jakso-teksti');
-  if (!content || !jaksoTxt) return;
-  const vali = alvKuukaudenVali(kk);
-  if (!vali) {
-    content.innerHTML = '<div style="font-size:12px;color:var(--inu)">Valitse kuukausi.</div>';
-    return;
+  try {
+    const kk = document.getElementById('alv-kuukausi')?.value || '';
+    const content = document.getElementById('alv-laskelma-content');
+    const jaksoTxt = document.getElementById('alv-jakso-teksti');
+    if (!content || !jaksoTxt) return;
+    const vali = alvKuukaudenVali(kk);
+    if (!vali) {
+      content.innerHTML = '<div style="font-size:12px;color:var(--inu)">Valitse kuukausi.</div>';
+      return;
+    }
+    const { alku, loppu } = vali;
+    jaksoTxt.textContent = `Jakso: ${fmtPv(alku)} – ${fmtPv(loppu)}`;
+
+    const myyntiRivit = ALV_MYYNTI_ILMOITTAMATON_TILIT.map(tili => ({
+      tili,
+      saldo: alvTiliJaksoSaldo(tili, alku, loppu),
+    }));
+    const ostoSaldo = alvTiliJaksoSaldo(ALV_OSTO_ILMOITTAMATON_TILI, alku, loppu);
+    const netto292040 = [...myyntiRivit.map(r => r.saldo), ostoSaldo].reduce((s, v) => s + v, 0);
+
+    const fmt = v => Number(v || 0).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const tilitLista = (typeof TILIT !== 'undefined' && Array.isArray(TILIT)) ? TILIT : [];
+    content.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+          <th style="padding:8px;text-align:left">Tili</th>
+          <th style="padding:8px;text-align:left">Nimi</th>
+          <th style="padding:8px;text-align:right">Jakson saldo</th>
+        </tr></thead>
+        <tbody>
+          ${myyntiRivit.map(r => `<tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px;font-family:var(--ffm)">${r.tili}</td><td style="padding:8px">${tilitLista.find(t => t.nro === r.tili)?.lbl || ''}</td><td style="padding:8px;text-align:right;font-family:var(--ffm)">${fmt(r.saldo)}</td></tr>`).join('')}
+          <tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px;font-family:var(--ffm)">${ALV_OSTO_ILMOITTAMATON_TILI}</td><td style="padding:8px">${tilitLista.find(t => t.nro === ALV_OSTO_ILMOITTAMATON_TILI)?.lbl || ''}</td><td style="padding:8px;text-align:right;font-family:var(--ffm)">${fmt(ostoSaldo)}</td></tr>
+        </tbody>
+        <tfoot><tr style="background:var(--fmist)"><td colspan="2" style="padding:8px;font-weight:600">Siirto tilille ${ALV_MYYNTI_YLEIS_TILI}</td><td style="padding:8px;text-align:right;font-family:var(--ffm);font-weight:700">${fmt(netto292040)}</td></tr></tfoot>
+      </table>
+    `;
+  } catch (e) {
+    const content = document.getElementById('alv-laskelma-content');
+    if (content) content.innerHTML = `<div style="font-size:12px;color:var(--red)">ALV-laskelman renderöinti epäonnistui: ${e?.message || e}</div>`;
+    console.warn('renderAlvLaskelmaPanel virhe:', e);
   }
-  const { alku, loppu } = vali;
-  jaksoTxt.textContent = `Jakso: ${fmtPv(alku)} – ${fmtPv(loppu)}`;
-
-  const myyntiRivit = ALV_MYYNTI_ILMOITTAMATON_TILIT.map(tili => ({
-    tili,
-    saldo: alvTiliJaksoSaldo(tili, alku, loppu),
-  }));
-  const ostoSaldo = alvTiliJaksoSaldo(ALV_OSTO_ILMOITTAMATON_TILI, alku, loppu);
-  const netto292040 = [...myyntiRivit.map(r => r.saldo), ostoSaldo].reduce((s, v) => s + v, 0);
-
-  const fmt = v => Number(v || 0).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  content.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
-        <th style="padding:8px;text-align:left">Tili</th>
-        <th style="padding:8px;text-align:left">Nimi</th>
-        <th style="padding:8px;text-align:right">Jakson saldo</th>
-      </tr></thead>
-      <tbody>
-        ${myyntiRivit.map(r => `<tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px;font-family:var(--ffm)">${r.tili}</td><td style="padding:8px">${TILIT.find(t => t.nro === r.tili)?.lbl || ''}</td><td style="padding:8px;text-align:right;font-family:var(--ffm)">${fmt(r.saldo)}</td></tr>`).join('')}
-        <tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px;font-family:var(--ffm)">${ALV_OSTO_ILMOITTAMATON_TILI}</td><td style="padding:8px">${TILIT.find(t => t.nro === ALV_OSTO_ILMOITTAMATON_TILI)?.lbl || ''}</td><td style="padding:8px;text-align:right;font-family:var(--ffm)">${fmt(ostoSaldo)}</td></tr>
-      </tbody>
-      <tfoot><tr style="background:var(--fmist)"><td colspan="2" style="padding:8px;font-weight:600">Siirto tilille ${ALV_MYYNTI_YLEIS_TILI}</td><td style="padding:8px;text-align:right;font-family:var(--ffm);font-weight:700">${fmt(netto292040)}</td></tr></tfoot>
-    </table>
-  `;
 }
 
 async function alvKirjaaSiirto() {
