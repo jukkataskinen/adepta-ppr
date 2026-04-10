@@ -545,6 +545,7 @@ input[type=number] { -moz-appearance: textfield; }
         </button>
       </div>
 
+      <div id="pankki-legacy-ui" style="display:none">
       <!-- ── TYÖVIRTAOHJE ── -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
         <div style="background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
@@ -797,6 +798,7 @@ input[type=number] { -moz-appearance: textfield; }
           <div>Palkka → <span style="font-family:var(--ffm);color:var(--fl)">5000</span> 0%</div>
           <div>Pankkipalvelut → <span style="font-family:var(--ffm);color:var(--fl)">8100</span> 0%</div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -1534,6 +1536,7 @@ input[type=number] { -moz-appearance: textfield; }
 
     <div style="flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px">
       <button onclick="suljePankkituontiOhjattu()" style="padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Sulje</button>
+      <button id="pw-jatka-kohdistus" onclick="pwJatkaKohdistusta()" style="display:none;padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.85);cursor:pointer">Jatka keskeytettyä kohdistusta</button>
       <div style="flex:1"></div>
       <button id="pw-jatka-tarkistus" onclick="pwSiirryTarkistukseen()" disabled style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.35);cursor:not-allowed">3. Siirry tiliotteen tarkastukseen →</button>
     </div>
@@ -1649,7 +1652,7 @@ input[type=number] { -moz-appearance: textfield; }
 
 <!-- ── MATCHING GAME MODAL ── -->
 <div id="match-game" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000">
-  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="lopetaMatchGame()"></div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)"></div>
   <div style="position:relative;max-width:900px;height:90vh;margin:5vh auto;display:flex;flex-direction:column;background:var(--fd);border-radius:12px;overflow:hidden;z-index:1">
     <!-- Yläpalkki -->
     <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08)">
@@ -6546,8 +6549,11 @@ function pwPaivitaJatkaBtn() {
   const tilioteOk = impTiliote?.tapahtumat?.length > 0;
   const laskutOk = laskut?.length > 0;
   const btn = document.getElementById('pw-jatka-tarkistus');
+  const jatkaMgBtn = document.getElementById('pw-jatka-kohdistus');
   const info = document.getElementById('pw-header-info');
-  if (info) info.textContent = tilioteOk && laskutOk ? 'Vaihe 3 / 4 valmis siirtymään' : 'Vaihe 1 / 4';
+  const mgKesken = Array.isArray(mgQueue) && mgQueue.length > 0 && mgIdx < mgQueue.length;
+  if (info) info.textContent = mgKesken ? 'Vaihe 4 / 4 kesken — jatka kohdistusta' : (tilioteOk && laskutOk ? 'Vaihe 3 / 4 valmis siirtymään' : 'Vaihe 1 / 4');
+  if (jatkaMgBtn) jatkaMgBtn.style.display = mgKesken ? 'inline-block' : 'none';
   if (!btn) return;
   if (tilioteOk && laskutOk) {
     btn.disabled = false;
@@ -6560,6 +6566,17 @@ function pwPaivitaJatkaBtn() {
     btn.style.color = 'rgba(255,255,255,.35)';
     btn.style.cursor = 'not-allowed';
   }
+}
+
+function pwJatkaKohdistusta() {
+  const mgKesken = Array.isArray(mgQueue) && mgQueue.length > 0 && mgIdx < mgQueue.length;
+  if (!mgKesken) {
+    toast('Ei keskeytynyttä kohdistusta');
+    return;
+  }
+  suljePankkituontiOhjattu();
+  document.getElementById('match-game').style.display = 'block';
+  mgRender();
 }
 
 function avaaPankkituontiOhjattu() {
