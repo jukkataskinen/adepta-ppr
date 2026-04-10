@@ -6,15 +6,30 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const session = await auth0.getSession(request)
   if (!session) return NextResponse.json({ error: 'Ei istuntoa' }, { status: 401 })
 
-  // Vain pääkäyttäjä voi muokata
+  // Vain pääkäyttäjä voi muokata oman organisaationsa käyttäjiä
   const { data: tekija } = await supabaseAdmin!
     .from('ppr_kayttajat')
-    .select('rooli')
+    .select('id, rooli, organisaatio_id')
     .eq('auth_sub', session.user.sub)
     .single()
 
   if (!tekija || tekija.rooli !== 'paakayttaja') {
     return NextResponse.json({ error: 'Ei oikeuksia' }, { status: 403 })
+  }
+
+  // Kohdekäyttäjän pitää kuulua samaan organisaatioon
+  const { data: kohde, error: kohdeErr } = await supabaseAdmin!
+    .from('ppr_kayttajat')
+    .select('id, organisaatio_id')
+    .eq('id', params.id)
+    .single()
+
+  if (kohdeErr || !kohde) {
+    return NextResponse.json({ error: 'Käyttäjää ei löytynyt' }, { status: 404 })
+  }
+
+  if (kohde.organisaatio_id !== tekija.organisaatio_id) {
+    return NextResponse.json({ error: 'Ei oikeuksia tämän organisaation ulkopuolelle' }, { status: 403 })
   }
 
   const body = await request.json()
