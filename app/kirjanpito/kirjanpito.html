@@ -1260,11 +1260,16 @@ input[type=number] { -moz-appearance: textfield; }
           <option value="yhteys">Yhteystiedot</option>
         </select>
       </div>
-      <div style="display:grid;grid-template-columns:minmax(420px,1fr) minmax(420px,1fr);gap:12px;align-items:start">
-        <div id="ml-asiakkaat-lista"></div>
-        <div id="ml-asiakas-detail" style="border:1px solid var(--bd);border-radius:8px;background:var(--pp);padding:14px;color:var(--inu);font-size:12px;min-height:220px">
-          Valitse asiakas listalta nähdäksesi tiedot ja laskut.
-        </div>
+      <div id="ml-asiakkaat-lista"></div>
+    </div>
+
+    <div id="panel-myynti-asiakas-detail" class="panel" style="overflow-y:auto;padding:20px 24px;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <h3 style="margin:0">Asiakkaan tiedot</h3>
+        <button onclick="showPanel('myynti-asiakkaat')" style="padding:6px 12px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">← Takaisin asiakaslistaan</button>
+      </div>
+      <div id="ml-asiakas-detail" style="border:1px solid var(--bd);border-radius:8px;background:var(--pp);padding:14px;color:var(--inu);font-size:12px;min-height:220px">
+        Valitse asiakas listalta nähdäksesi tiedot ja laskut.
       </div>
     </div>
 
@@ -1996,7 +2001,7 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'asiakasrek','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'asiakasrek','myynti-asiakas-detail':'asiakasrek','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
@@ -7072,7 +7077,6 @@ function mlRenderAsiakkaat() {
 
   if (!osumat.length) {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--inu);font-size:12px;border:1px solid var(--bd);border-radius:8px;background:var(--pp)">Ei hakutuloksia.</div>';
-    mlRenderAsiakasDetail();
     return;
   }
 
@@ -7105,14 +7109,13 @@ function mlRenderAsiakkaat() {
     const idx = Number(row.getAttribute('data-idx'));
     row.addEventListener('click', () => mlValitseAsiakasRek(osumat[idx]));
   });
-  mlRenderAsiakasDetail();
 }
 
 function mlValitseAsiakasRek(asiakas) {
   mlRekValittuAsiakas = asiakas || null;
   mlRekValittuAsiakasId = asiakas?.id ? String(asiakas.id) : null;
   mlRenderAsiakasDetail();
-  document.getElementById('ml-asiakas-detail')?.scrollIntoView({ block: 'nearest' });
+  showPanel('myynti-asiakas-detail');
   const el = document.getElementById('ml-asiakkaat-lista');
   if (!el) return;
   el.querySelectorAll('tr[data-asiakas-id]').forEach(row => {
