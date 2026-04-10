@@ -1643,6 +1643,13 @@ input[type=number] { -moz-appearance: textfield; }
           </div>
         </div>
         <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:rgba(255,255,255,.03)">
+            <span style="font-size:10px;color:rgba(255,255,255,.7)">Tallennetaanko oletukseksi?</span>
+            <div style="display:flex;gap:6px">
+              <button id="mg-save-default-yes" onclick="mgSetSaveDefault(true)" style="padding:4px 8px;font-size:10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:transparent;color:#cfe8de;cursor:pointer">Kyllä</button>
+              <button id="mg-save-default-no" onclick="mgSetSaveDefault(false)" style="padding:4px 8px;font-size:10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Ei</button>
+            </div>
+          </div>
           <button id="mg-hyvaksy" onclick="mgHyvaksy()" disabled title="Valitse ensin kirjaustili" style="padding:9px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:not-allowed">✓ Hyväksy ja siirry →</button>
           <button onclick="mgKirjaaIlman()" style="padding:6px;font-size:11px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer">Kirjaa ilman laskua</button>
           <button onclick="mgOhita()" style="padding:6px;font-size:11px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:transparent;color:rgba(255,255,255,.35);cursor:pointer">Ohita →</button>
@@ -4740,6 +4747,62 @@ let mgApplyQueue = [];
 let mgApplyInFlight = false;
 let mgFlushAfterQueue = false;
 
+function mgDefaultsKey() {
+  return curYritys?.id ? ('ppr_ba_defaults_' + curYritys.id) : '';
+}
+
+function mgLoadDefaults() {
+  try {
+    const key = mgDefaultsKey();
+    if (!key) return {};
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function mgSaveDefaults(map) {
+  try {
+    const key = mgDefaultsKey();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(map || {}));
+  } catch (e) {}
+}
+
+function mgSupplierKey(lasku, t) {
+  return (lasku?.toimittaja || t?.maksu || t?.sel || '').toLowerCase().trim();
+}
+
+function mgSetSaveDefault(yes) {
+  const ti = mgQueue[mgIdx];
+  if (ti === undefined) return;
+  const t = impTapahtumat[ti];
+  t._saveDefault = !!yes;
+  const yesBtn = document.getElementById('mg-save-default-yes');
+  const noBtn = document.getElementById('mg-save-default-no');
+  if (yesBtn) {
+    yesBtn.style.background = yes ? 'rgba(29,158,117,.2)' : 'transparent';
+    yesBtn.style.color = yes ? '#fff' : '#cfe8de';
+    yesBtn.style.borderColor = yes ? 'rgba(29,158,117,.45)' : 'rgba(255,255,255,.14)';
+  }
+  if (noBtn) {
+    noBtn.style.background = yes ? 'transparent' : 'rgba(255,255,255,.09)';
+    noBtn.style.color = yes ? 'rgba(255,255,255,.6)' : '#fff';
+    noBtn.style.borderColor = yes ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.22)';
+  }
+}
+
+function mgPersistDefaultIfSelected(task) {
+  if (!task?.saveDefault) return;
+  const t = impTapahtumat[task.ti];
+  const supplier = mgSupplierKey(task.lasku, t);
+  if (!supplier || !task.vt) return;
+  const map = mgLoadDefaults();
+  map[supplier] = { vt: task.vt, alv: Number(task.alv || 0), updatedAt: new Date().toISOString() };
+  mgSaveDefaults(map);
+}
+
 async function mgUploadMatchedInvoicePdf(lasku, ti) {
   if (!lasku?.pdfBase64 || !window._PPR?.orgId) return null;
   try {
@@ -4786,6 +4849,7 @@ async function mgProcessApplyQueue() {
         }
         t.tila = 'tuotu';
         mgNeedsLedgerReload = true;
+        mgPersistDefaultIfSelected(task);
       } catch (e) {
         t.tila = 'odottaa';
         if (mgKirjattu > 0) mgKirjattu--;
@@ -4930,9 +4994,15 @@ function mgRenderKirjaus(t, lasku) {
   const alvSel = document.getElementById('mg-alv-select');
   let autoTili = '';
   let autoAlv = 25.5;
+  const supplierKey = mgSupplierKey(lasku, t);
+  const defaults = mgLoadDefaults();
+  const defaultRule = supplierKey ? defaults[supplierKey] : null;
 
-  // Prioriteetti: 1) laskun AI-ehdotus 2) vakiokirjaus 3) aiempi kirjaus samalle toimittajalle
-  if (lasku?.ehdotettu_tili) {
+  // Prioriteetti: 1) asiakaskohtainen tallennettu oletus 2) laskun AI-ehdotus 3) vakiokirjaus 4) aiempi kirjaus samalle toimittajalle
+  if (defaultRule?.vt) {
+    autoTili = defaultRule.vt;
+    autoAlv = Number(defaultRule.alv || 0);
+  } else if (lasku?.ehdotettu_tili) {
     autoTili = lasku.ehdotettu_tili;
     autoAlv = lasku.alv_prosentti || 25.5;
   } else if (t.vak) {
@@ -4956,6 +5026,7 @@ function mgRenderKirjaus(t, lasku) {
 
   sel.value = autoTili || '';
   alvSel.value = String(autoAlv);
+  mgSetSaveDefault(!!t._saveDefault);
 
   // D/K labelit ja summat suunnan mukaan
   const dLabel = sel.parentElement.querySelector('span:first-child');
@@ -5244,7 +5315,13 @@ async function mgHyvaksy() {
 
   if (USE_SERVER_MATCHING) {
     t.tila = 'jonossa';
-    mgEnqueueApply({ ti, lasku });
+    mgEnqueueApply({
+      ti,
+      lasku,
+      saveDefault: !!t._saveDefault,
+      vt: valittuTili,
+      alv: valittuAlv
+    });
   } else {
     await impTuoRivi(ti, { reloadLedger: false });
   }
