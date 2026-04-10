@@ -997,7 +997,7 @@ input[type=number] { -moz-appearance: textfield; }
 
     <!-- ─── TOSITTEET PANEL ─── -->
     <div id="panel-tositteet" class="panel" style="overflow:hidden;padding:0">
-      <div style="display:grid;grid-template-columns:320px 1fr;height:100%;overflow:hidden">
+      <div style="display:grid;grid-template-columns:420px 1fr;height:100%;overflow:hidden">
         <!-- VASEN: tosittelista -->
         <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden">
           <div style="padding:16px 14px 10px">
@@ -3156,26 +3156,39 @@ function renderTositteet() {
 
   const lista = document.getElementById('tos-lista');
   if (!lista) return;
-  lista.innerHTML = '';
-  tositteet.forEach(t => {
-    const card = document.createElement('div');
-    const aktiivi = tosValittuNro === t.nro;
-    card.style.cssText = 'display:flex;gap:10px;padding:9px 12px;border-radius:6px;cursor:pointer;transition:background .1s;border:1px solid ' + (aktiivi ? 'rgba(29,158,117,.2)' : 'transparent') + ';background:' + (aktiivi ? 'var(--fmist)' : '') + ';margin-bottom:2px';
-    card.onmouseover = () => { if (!aktiivi) card.style.background = 'var(--fpale)'; };
-    card.onmouseout = () => { if (!aktiivi) card.style.background = ''; };
-    card.onclick = () => { tosValittuNro = t.nro; renderTositteet(); tosNaytaTiedot(t); };
-    card.innerHTML = `
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-family:var(--ffm);font-size:12px;font-weight:600;color:var(--fl)">${t.nro}</span>
-          <span style="font-family:var(--ffm);font-size:11px;font-weight:600">${fmt(t.debetYht)} €</span>
-        </div>
-        <div style="font-size:11px;color:var(--inu);margin-top:2px">${fmtPv(t.pv)} · ${t.rivit.length} vientiä</div>
-        <div style="font-size:10px;color:var(--inf);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.selitteet[0] || ''}</div>
-      </div>
+  if (tositteet.length) {
+    lista.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px;background:var(--pp);border:1px solid var(--bd);border-radius:8px;overflow:hidden">
+        <thead>
+          <tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+            <th style="padding:7px 8px;text-align:left">Tosite</th>
+            <th style="padding:7px 8px;text-align:left">Päiväys</th>
+            <th style="padding:7px 8px;text-align:left">Nimi</th>
+            <th style="padding:7px 8px;text-align:right">Summa</th>
+          </tr>
+        </thead>
+        <tbody id="tos-lista-body"></tbody>
+      </table>
     `;
-    lista.appendChild(card);
-  });
+    const tbody = document.getElementById('tos-lista-body');
+    tositteet.forEach(t => {
+      const tr = document.createElement('tr');
+      const aktiivi = tosValittuNro === t.nro;
+      tr.style.cssText = `border-bottom:1px solid var(--bd);cursor:pointer;background:${aktiivi ? 'var(--fmist)' : 'transparent'}`;
+      tr.onmouseover = () => { if (!aktiivi) tr.style.background = 'var(--fpale)'; };
+      tr.onmouseout = () => { if (!aktiivi) tr.style.background = 'transparent'; };
+      tr.onclick = () => { tosValittuNro = t.nro; renderTositteet(); tosNaytaTiedot(t); };
+      tr.innerHTML = `
+        <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">${t.nro}</td>
+        <td style="padding:7px 8px;color:var(--inu)">${fmtPv(t.pv)}</td>
+        <td style="padding:7px 8px;color:var(--inm);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.selitteet[0] || ''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:var(--ffm);font-weight:600">${fmt(t.debetYht)} €</td>
+      `;
+      tbody?.appendChild(tr);
+    });
+  } else {
+    lista.innerHTML = '';
+  }
 
   if (!tositteet.length) {
     const lajiteksti =
