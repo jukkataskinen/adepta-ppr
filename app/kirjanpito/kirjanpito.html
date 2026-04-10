@@ -7105,12 +7105,12 @@ function mlRenderAsiakkaat() {
 }
 
 function mlValitseAsiakasRek(id) {
-  mlRekValittuAsiakasId = id;
+  mlRekValittuAsiakasId = id ? String(id) : null;
   mlRenderAsiakasDetail();
   const el = document.getElementById('ml-asiakkaat-lista');
   if (!el) return;
   el.querySelectorAll('tr[data-asiakas-id]').forEach(row => {
-    row.style.background = row.getAttribute('data-asiakas-id') === id ? 'var(--fmist)' : 'transparent';
+    row.style.background = String(row.getAttribute('data-asiakas-id')) === mlRekValittuAsiakasId ? 'var(--fmist)' : 'transparent';
   });
 }
 
@@ -7122,14 +7122,14 @@ function mlAvaaLaskuAsiakasrekista(id) {
 function mlRenderAsiakasDetail() {
   const detailEl = document.getElementById('ml-asiakas-detail');
   if (!detailEl) return;
-  const a = mlAsiakkaatLista.find(x => x.id === mlRekValittuAsiakasId);
+  const a = mlAsiakkaatLista.find(x => String(x.id) === String(mlRekValittuAsiakasId));
   if (!a) {
     detailEl.innerHTML = 'Valitse asiakas listalta nähdäksesi tiedot ja laskut.';
     return;
   }
 
   const laskut = (mlLaskut || [])
-    .filter(l => (l.asiakas_id && l.asiakas_id === a.id) || (!l.asiakas_id && (l.asiakas_nimi || '') === (a.nimi || '')))
+    .filter(l => (l.asiakas_id && String(l.asiakas_id) === String(a.id)) || (!l.asiakas_id && (l.asiakas_nimi || '') === (a.nimi || '')))
     .sort((x, y) => String(y.pvm || '').localeCompare(String(x.pvm || '')));
 
   const fmt = v => Math.abs(Number(v || 0)).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
