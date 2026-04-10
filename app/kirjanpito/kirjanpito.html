@@ -2780,6 +2780,28 @@ async function tosLataaLiitteet(tositeNro) {
       .eq('tosite_nro', tositeNro)
       .order('created_at');
     if (!error && data) tosLiitteet = data;
+
+    // Fallback: jos liite on tallennettu suoraan paivakirjan tosite_pdf_path-kenttään
+    // (esim. BA-kohdistus), näytä se myös liitelistassa.
+    const { data: paivakirjaRows, error: pkErr } = await _sb
+      .from('ppr_paivakirja')
+      .select('tosite_pdf_path')
+      .eq('asiakas_id', curYritys?.id || '')
+      .eq('tosite_nro', tositeNro)
+      .not('tosite_pdf_path', 'is', null)
+      .limit(1);
+    if (!pkErr) {
+      const pdfPath = paivakirjaRows?.[0]?.tosite_pdf_path;
+      if (pdfPath && !tosLiitteet.some(l => l.storage_path === pdfPath)) {
+        tosLiitteet.unshift({
+          id: 'pkpdf-' + tositeNro,
+          tosite_nro: tositeNro,
+          tiedostonimi: tositeNro + '.pdf',
+          storage_path: pdfPath,
+          koko_bytes: 0,
+        });
+      }
+    }
   } catch(e) { console.warn('tosLataaLiitteet:', e); }
   tosRenderLiiteLista();
   if (tosLiitteet.length > 0) tosNaytaLiite(tosLiitteet[0]);
