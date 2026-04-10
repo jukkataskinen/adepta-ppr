@@ -1552,6 +1552,45 @@ input[type=number] { -moz-appearance: textfield; }
   </div>
 </div>
 
+<!-- ── VAIHE 2.5: LASKUAINEISTON TARKISTUS ── -->
+<div id="laskuaineisto-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1000;background:var(--fd)">
+  <div style="display:flex;flex-direction:column;height:100%">
+    <div style="flex-shrink:0;padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:15px;font-weight:600;color:#fff">Laskuaineiston tarkistus</div>
+      <div id="la-header-info" style="font-size:12px;color:rgba(255,255,255,.45)">—</div>
+      <div style="margin-left:auto"><button onclick="suljeLaskuaineistoTarkistus()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1">✕</button></div>
+    </div>
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden">
+      <div style="padding:14px;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Laskun tiedot</div>
+        <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;font-size:12px;margin-bottom:10px">
+          <span style="color:rgba(255,255,255,.4)">Toimittaja</span>
+          <input id="la-toimittaja" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+          <span style="color:rgba(255,255,255,.4)">Summa brutto</span>
+          <input id="la-summa" type="number" step="0.01" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none;text-align:right">
+          <span style="color:rgba(255,255,255,.4)">Laskun nro</span>
+          <input id="la-nro" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+          <span style="color:rgba(255,255,255,.4)">Päiväys</span>
+          <input id="la-pvm" type="date" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">Kysymys: onko tämän laskun tiedot oikein?</div>
+      </div>
+      <div style="padding:14px;overflow-y:auto">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Laskun kuva</div>
+        <div style="background:rgba(0,0,0,.15);border-radius:6px;padding:8px;display:flex;justify-content:center;min-height:420px">
+          <canvas id="la-canvas" style="max-width:100%;height:auto;display:block;border-radius:4px"></canvas>
+        </div>
+      </div>
+    </div>
+    <div style="flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px">
+      <button onclick="laEdellinen()" style="padding:7px 12px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.75);cursor:pointer">← Edellinen</button>
+      <button onclick="laMuuta()" style="padding:7px 12px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.75);cursor:pointer">Muuta</button>
+      <div style="flex:1"></div>
+      <button onclick="laOk()" style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">OK →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MATCHING GAME MODAL ── -->
 <div id="match-game" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000">
   <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="lopetaMatchGame()"></div>
@@ -4460,6 +4499,67 @@ function suljeTarkistus() {
   document.getElementById('tarkistus-modal').style.display = 'none';
 }
 
+let laIdx = 0;
+
+function suljeLaskuaineistoTarkistus() {
+  document.getElementById('laskuaineisto-modal').style.display = 'none';
+}
+
+function laTallennaNykyinen() {
+  const l = laskut[laIdx];
+  if (!l) return;
+  l.toimittaja = document.getElementById('la-toimittaja')?.value?.trim() || l.toimittaja || '';
+  l.summa_brutto = parseFloat(document.getElementById('la-summa')?.value) || l.summa_brutto || 0;
+  l.nro = document.getElementById('la-nro')?.value?.trim() || l.nro || '';
+  l.pvm = document.getElementById('la-pvm')?.value || l.pvm || null;
+}
+
+function laRender() {
+  const l = laskut[laIdx];
+  if (!l) return;
+  document.getElementById('la-header-info').textContent = `Lasku ${laIdx + 1}/${laskut.length}`;
+  document.getElementById('la-toimittaja').value = l.toimittaja || '';
+  document.getElementById('la-summa').value = l.summa_brutto != null ? String(l.summa_brutto) : '';
+  document.getElementById('la-nro').value = l.nro || '';
+  document.getElementById('la-pvm').value = l.pvm || '';
+  const canvas = document.getElementById('la-canvas');
+  if (l.pdfBase64 && canvas) {
+    renderLaskuSivu(l.pdfBase64, l.pageNumber || 1, canvas);
+  }
+}
+
+function laEdellinen() {
+  if (laIdx <= 0) return;
+  laTallennaNykyinen();
+  laIdx--;
+  laRender();
+}
+
+function laMuuta() {
+  document.getElementById('la-toimittaja')?.focus();
+}
+
+async function laOk() {
+  laTallennaNykyinen();
+  if (laIdx < laskut.length - 1) {
+    laIdx++;
+    laRender();
+    return;
+  }
+  suljeLaskuaineistoTarkistus();
+  await kaynnistaKohdistusVaihe();
+}
+
+async function avaaLaskuaineistoTarkistus() {
+  if (!laskut?.length) {
+    await kaynnistaKohdistusVaihe();
+    return;
+  }
+  laIdx = 0;
+  document.getElementById('laskuaineisto-modal').style.display = 'block';
+  laRender();
+}
+
 async function valmisteleServeriKohdistus() {
   if (!USE_SERVER_MATCHING) return null;
   if (!curYritys || impTapahtumat.length === 0) return null;
@@ -4493,9 +4593,9 @@ async function valmisteleServeriKohdistus() {
   }
 }
 
-async function siirryVaihe3() {
+async function kaynnistaKohdistusVaihe() {
   const phaseStart = performance.now();
-  console.log('siirryVaihe3 kutsuttu', 'impTiliote:', impTiliote?.tapahtumat?.length, 'impTapahtumat:', impTapahtumat?.length, 'laskut:', laskut?.length);
+  console.log('kaynnistaKohdistusVaihe', 'impTiliote:', impTiliote?.tapahtumat?.length, 'impTapahtumat:', impTapahtumat?.length, 'laskut:', laskut?.length);
   const hyvaksyBtn = document.getElementById('tark-hyvaksy-btn');
   if (hyvaksyBtn) {
     hyvaksyBtn.disabled = true;
@@ -4551,6 +4651,13 @@ async function siirryVaihe3() {
   }
 
   aloitaMatchGame();
+}
+
+async function siirryVaihe3() {
+  console.log('siirryVaihe3: vaihe 1 valmis, avataan laskuaineiston tarkistus');
+  suljeTarkistus();
+  await new Promise(r => setTimeout(r, 0));
+  await avaaLaskuaineistoTarkistus();
 }
 
 // ── MATCHING GAME ────────────────────────────────────────────
