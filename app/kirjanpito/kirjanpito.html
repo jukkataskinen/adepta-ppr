@@ -7543,7 +7543,26 @@ function lataaEtusivu() {
   const kassa = tiliSaldo(['1910','1920']);
   const myyntisaam = tiliSaldo(['1701','1711']);
   const ostovelat = -(rows.filter(r=>r.k==='2871').reduce((s,r)=>s+r.netto,0) - rows.filter(r=>r.d==='2871').reduce((s,r)=>s+r.netto,0));
-  const alvVelka = -tiliSaldo(['292040','292041','292042','292043','292045','292046','292048']);
+  const alvKertymatilit = ['292041','292042','292043','292045','292046','292048','292051'];
+  const avoinKausiKertyvaAlv = -tiliSaldo(alvKertymatilit);
+  const alvIlmoitusMap = {};
+  rows.forEach(r => {
+    const on292040 = r.d === '292040' || r.k === '292040';
+    if (!on292040) return;
+    const sel = String(r.sel || '');
+    if (!/ALV velaksi/i.test(sel)) return;
+    const keyMatch = sel.match(/(\d{4}-\d{2})/);
+    const kk = keyMatch ? keyMatch[1] : String(r.pv || '').slice(0, 7);
+    if (!kk) return;
+    const signed = r.d ? Number(r.netto || 0) : -Number(r.netto || 0);
+    alvIlmoitusMap[kk] = (alvIlmoitusMap[kk] || 0) + signed;
+  });
+  const alvIlmoitukset = Object.entries(alvIlmoitusMap)
+    .map(([kk, signed]) => ({ kk, velka: -Number(signed || 0) }))
+    .sort((a, b) => String(b.kk).localeCompare(String(a.kk)));
+  const ilmoitus1 = alvIlmoitukset[0]?.velka || 0;
+  const ilmoitus2 = alvIlmoitukset[1]?.velka || 0;
+  const alvVelka = ilmoitus1 + ilmoitus2 + avoinKausiKertyvaAlv;
   const omaPaaoma = -(rows.filter(r=>{const n=parseInt(r.k||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0) - rows.filter(r=>{const n=parseInt(r.d||'0');return n>=2000&&n<2500;}).reduce((s,r)=>s+r.netto,0));
 
   const kpiData = [
@@ -7552,7 +7571,16 @@ function lataaEtusivu() {
     {lbl:'Kassavarat', val:kassa, pos:kassa>0},
     {lbl:'Myyntisaamiset', val:myyntisaam, pos:true},
     {lbl:'Ostovelat', val:ostovelat, pos:false},
-    {lbl:'ALV-velka', val:alvVelka, pos:false},
+    {
+      lbl:'ALV-velka',
+      val:alvVelka,
+      pos:false,
+      details: [
+        alvIlmoitukset[0] ? `Ilmoitus ${alvIlmoitukset[0].kk}: ${fmt(ilmoitus1)} €` : null,
+        alvIlmoitukset[1] ? `Ilmoitus ${alvIlmoitukset[1].kk}: ${fmt(ilmoitus2)} €` : null,
+        `Avoin kausi: ${fmt(avoinKausiKertyvaAlv)} €`,
+      ].filter(Boolean)
+    },
     {lbl:'Kulut YTD', val:kulutYtd, pos:false},
     {lbl:'Oma pääoma', val:omaPaaoma, pos:omaPaaoma>0},
   ];
@@ -7562,8 +7590,11 @@ function lataaEtusivu() {
     const valStr = (neg ? '-' : '') + fmt(k.val) + ' €';
     const cls = k.pos && k.val > 0 ? 'pos' : (k.val < 0 ? 'neg' : '');
     const arrow = k.val > 0.01 ? '↑' : (k.val < -0.01 ? '↓' : '');
+    const detailsHtml = k.details?.length
+      ? '<div style="margin-top:6px;font-size:10px;color:var(--inu);line-height:1.45">' + k.details.map(d => '<div>' + d + '</div>').join('') + '</div>'
+      : '';
     return '<div class="kpi-card"><div class="kpi-val">' + valStr + '</div><div class="kpi-lbl">' + k.lbl + '</div>' +
-      (arrow ? '<div class="kpi-chg ' + cls + '">' + arrow + '</div>' : '') + '</div>';
+      (arrow ? '<div class="kpi-chg ' + cls + '">' + arrow + '</div>' : '') + detailsHtml + '</div>';
   }).join('');
 
   // Tunnusluvut — tiliSaldot aggregaatio
