@@ -2953,6 +2953,12 @@ function tosFiltteri(laji) {
 function renderTositteet() {
   const q = (document.getElementById('tos-search')?.value || '').trim().toLowerCase();
   const fmt = v => Math.abs(v).toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const nroParts = (nro) => {
+    const m = String(nro || '').trim().toUpperCase().match(/^([A-Z]+)(\d+)$/);
+    if (!m) return { laji: '', num: -1 };
+    return { laji: m[1], num: Number(m[2]) || -1 };
+  };
+  const nroCollator = new Intl.Collator('fi', { numeric: true, sensitivity: 'base' });
 
   // Ryhmittele tosite_nro:n mukaan
   const tositeMap = {};
@@ -2966,7 +2972,15 @@ function renderTositteet() {
     if (r.pv < tositeMap[nro].pv) tositeMap[nro].pv = r.pv;
   });
 
-  let tositteet = Object.values(tositeMap).sort((a, b) => (b.pv || '').localeCompare(a.pv || '') || (b.nro || '').localeCompare(a.nro || ''));
+  let tositteet = Object.values(tositeMap).sort((a, b) => {
+    const ap = nroParts(a.nro);
+    const bp = nroParts(b.nro);
+    // Ensisijaisesti tositenumeron mukaan alenevasti (BA120 > BA99 > BA9).
+    if (ap.laji && bp.laji && ap.laji === bp.laji && ap.num !== bp.num) return bp.num - ap.num;
+    const nroCmp = nroCollator.compare(String(b.nro || ''), String(a.nro || ''));
+    if (nroCmp !== 0) return nroCmp;
+    return (b.pv || '').localeCompare(a.pv || '');
+  });
   if (tosFilt) tositteet = tositteet.filter(t => t.nro.startsWith(tosFilt));
   if (q) tositteet = tositteet.filter(t => t.nro.toLowerCase().includes(q) || t.selitteet.some(s => s.toLowerCase().includes(q)));
 
