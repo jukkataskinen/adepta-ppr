@@ -4743,7 +4743,7 @@ let mgFlushAfterQueue = false;
 async function mgUploadMatchedInvoicePdf(lasku, ti) {
   if (!lasku?.pdfBase64 || !window._PPR?.orgId) return null;
   try {
-    const sivuBytes = await erotaSivu(lasku.pdfBase64, lasku.pageNumber || 1);
+    const sivuBytes = Uint8Array.from(atob(lasku.pdfBase64), c => c.charCodeAt(0));
     const polku = `${window._PPR.orgId}/laskut/match-${Date.now()}-${ti}.pdf`;
     return await lataaStorageen(window._PPR.orgId, polku, sivuBytes);
   } catch (e) {
@@ -5575,7 +5575,8 @@ async function lataaTiliotePdf(base64, kausi) {
 async function lataaLaskuPdf(base64, sivuNro, tositeNro) {
   if (!base64 || !window._PPR?.orgId) return null;
   try {
-    const sivuBytes = await erotaSivu(base64, sivuNro);
+    // Tallenna koko lasku-PDF liitteeksi (ei vain valittua sivua).
+    const sivuBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
     const polku = window._PPR.orgId + '/laskut/lasku_' + tositeNro + '.pdf';
     return await lataaStorageen(window._PPR.orgId, polku, sivuBytes);
   } catch(e) { console.warn('lataaLaskuPdf virhe:', e); return null; }
