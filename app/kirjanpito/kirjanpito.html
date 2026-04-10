@@ -3803,7 +3803,14 @@ function parseCSVText(text) {
     const kirjpvRaw = cols[0].trim();
     const arvopvRaw = cols[1].trim() || kirjpvRaw;   // arvopäivä, fallback kirjauspäivään
     const summaStr  = cols[2];
-    const summa     = parseFloat(summaStr.replace(/\s/g,'').replace(',','.'));
+    // Tue sekä etumerkki että loppumerkki (esim. "123,45-" / "123,45+")
+    let summaClean = String(summaStr || '').replace(/\s/g, '').replace(',', '.');
+    const loppuMiinus = /-$/.test(summaClean);
+    const loppuPlus = /\+$/.test(summaClean);
+    if (loppuMiinus || loppuPlus) summaClean = summaClean.slice(0, -1);
+    let summa = parseFloat(summaClean);
+    if (!isNaN(summa) && loppuMiinus) summa = -Math.abs(summa);
+    if (!isNaN(summa) && loppuPlus) summa = Math.abs(summa);
     if (isNaN(summa)) return;
     const nimi   = cols[4] || '';
     const viite  = cols[5] || '';
@@ -5630,13 +5637,14 @@ async function parseNordeaOCR(base64) {
       // Selite: ota vain ensimmäinen osa ennen ylimääräisiä välilyöntejä
       const selite = seliteRaaka.split(/\s{2,}/)[0].trim();
 
+      const signedSumma = miinus ? -Math.abs(parseFloat(summaStr)) : Math.abs(parseFloat(summaStr));
       tapahtumat.push({
         kirjpv: vuosi + '-' + kk + '-' + pv,
         arvopv: vuosi + '-' + kk + '-' + pv,
         tapnro: tapNro,
         sel: selite,
         maksu: selite,
-        summa: parseFloat(summaStr),
+        summa: signedSumma,
         suunta: miinus ? 'kredit' : 'debet',
         viite: null,
       });
