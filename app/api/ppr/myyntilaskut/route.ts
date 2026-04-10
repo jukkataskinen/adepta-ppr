@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
 
+function alvMyyntiVelkaTili(alvPct: number): string {
+  if (Math.abs(alvPct - 25.5) < 0.01) return '292041'
+  if (Math.abs(alvPct - 14) < 0.01) return '292042'
+  if (Math.abs(alvPct - 10) < 0.01) return '292043'
+  return '292040'
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth0.getSession(request)
@@ -54,12 +61,28 @@ export async function POST(request: NextRequest) {
     // Luo ML-tosite kirjanpitoon
     const brutto = rivit?.reduce((s: number, r: any) => s + (Number(r.summa_yhteensa) || 0), 0) || 0
     const netto = rivit?.reduce((s: number, r: any) => s + (Number(r.summa_netto) || 0), 0) || 0
-    const alv = brutto - netto
+    const alvRyhmat: Record<string, number> = {}
+    ;(rivit || []).forEach((r: any) => {
+      const alvP = Number(r.alv_prosentti) || 0
+      const rNetto = Number(r.summa_netto) || 0
+      const rYht = Number(r.summa_yhteensa) || 0
+      const rAlv = rYht - rNetto
+      if (Math.abs(rAlv) < 0.005) return
+      const key = String(alvP)
+      alvRyhmat[key] = (alvRyhmat[key] || 0) + rAlv
+    })
     const tositeRivit = [
       { tili: '1701', selite: 'Myyntilasku ' + lasku.lasku_nro + ' ' + (lasku.asiakas_nimi || ''), saldo: brutto },
       { tili: '3000', selite: 'Myynti ML' + lasku.lasku_nro, saldo: -netto },
     ]
-    if (alv > 0.01) tositeRivit.push({ tili: '29390', selite: 'Myynti-ALV ML' + lasku.lasku_nro, saldo: -alv })
+    Object.entries(alvRyhmat).forEach(([alvP, alvSumma]) => {
+      if (Math.abs(alvSumma) < 0.005) return
+      tositeRivit.push({
+        tili: alvMyyntiVelkaTili(Number(alvP)),
+        selite: 'Myynti-ALV ' + alvP + '% ML' + lasku.lasku_nro,
+        saldo: -alvSumma
+      })
+    })
 
     const tositeNro = 'ML' + lasku.lasku_nro
     const { error: pvkErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(tositeRivit.map(r => ({
@@ -85,8 +108,6 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (vastaanottaja) {
-        const alvTilit: Record<number, string> = { 25.5: '1763', 14: '1764', 10: '1765' }
-
         const alvRyhmat: Record<number, { netto: number, alv: number }> = {}
         let kokonaisNetto = 0
         ;(rivit || []).forEach((r: any) => {
