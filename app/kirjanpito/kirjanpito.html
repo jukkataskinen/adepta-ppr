@@ -2852,6 +2852,9 @@ async function tosNaytaPalkkalaskelmaBtn(tositeNro) {
 
 let tosLiitteet = [];
 let tosValittuLiite = null;
+let tosPdfDoc = null;
+let tosPdfPage = 1;
+let tosPdfTotal = 1;
 
 async function tosLataaLiitteet(tositeNro) {
   tosLiitteet = [];
@@ -2916,24 +2919,34 @@ async function tosNaytaLiite(liite) {
   tosValittuLiite = liite;
   tosRenderLiiteLista();
   const preview = document.getElementById('tos-liite-preview');
+  tosPdfDoc = null;
+  tosPdfPage = 1;
+  tosPdfTotal = 1;
   try {
     const { data } = _sb.storage.from('tositteet').getPublicUrl(liite.storage_path);
     const url = data?.publicUrl;
     if (!url) { preview.innerHTML = '<div style="padding:24px;color:var(--red);font-size:11px">URL puuttuu</div>'; return; }
     if ((liite.tiedostonimi||'').toLowerCase().endsWith('.pdf')) {
-      preview.innerHTML = '<canvas id="tos-liite-canvas" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:0 auto"></canvas>';
+      preview.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--inu)">PDF-esikatselu</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onclick="tosPdfPrev()" style="padding:4px 8px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">←</button>
+            <span id="tos-liite-page" style="font-size:11px;color:var(--inu);min-width:54px;text-align:center">1/1</span>
+            <button onclick="tosPdfNext()" style="padding:4px 8px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">→</button>
+          </div>
+        </div>
+        <canvas id="tos-liite-canvas" style="max-width:100%;height:auto;border-radius:4px;display:block;margin:0 auto"></canvas>
+      `;
       const resp = await fetch(url);
       const buf = await resp.arrayBuffer();
-      // Vältä call stack -ylivuoto isoilla PDF-tiedostoilla: renderöi suoraan ArrayBufferista.
       const canvas = document.getElementById('tos-liite-canvas');
       if (typeof pdfjsLib !== 'undefined' && canvas) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-        const page = await pdf.getPage(1);
-        const vp = page.getViewport({ scale: 1.4 });
-        canvas.width = vp.width;
-        canvas.height = vp.height;
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        tosPdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+        tosPdfTotal = tosPdfDoc.numPages || 1;
+        tosPdfPage = 1;
+        await tosRenderPdfPage();
       } else {
         // Fallback: chunkattu base64-muunnos ilman apply-pino-ylivuotoa.
         const bytes = new Uint8Array(buf);
@@ -2949,6 +2962,31 @@ async function tosNaytaLiite(liite) {
       preview.innerHTML = '<img src="' + url + '" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px">';
     }
   } catch(e) { preview.innerHTML = '<div style="padding:24px;color:var(--red);font-size:11px">Virhe: ' + e.message + '</div>'; }
+}
+
+async function tosRenderPdfPage() {
+  if (!tosPdfDoc) return;
+  const pageEl = document.getElementById('tos-liite-page');
+  const canvas = document.getElementById('tos-liite-canvas');
+  if (!canvas) return;
+  const page = await tosPdfDoc.getPage(tosPdfPage);
+  const vp = page.getViewport({ scale: 1.4 });
+  canvas.width = vp.width;
+  canvas.height = vp.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+  if (pageEl) pageEl.textContent = `${tosPdfPage}/${tosPdfTotal}`;
+}
+
+function tosPdfPrev() {
+  if (!tosPdfDoc || tosPdfPage <= 1) return;
+  tosPdfPage--;
+  tosRenderPdfPage();
+}
+
+function tosPdfNext() {
+  if (!tosPdfDoc || tosPdfPage >= tosPdfTotal) return;
+  tosPdfPage++;
+  tosRenderPdfPage();
 }
 
 async function tosLisaaLiite(event) {
