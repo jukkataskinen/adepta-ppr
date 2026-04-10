@@ -6069,8 +6069,21 @@ async function paloitteleAineisto(pdfBytesUint8) {
   );
 
   // 2. Tunnista VÄLILEHTI-sivut (0-indeksoitu)
+  // OCR voi palauttaa "VALILEHTI" (ilman ääkkösiä), joten normalisoidaan.
+  const normValilehti = (s) =>
+    (s || '')
+      .toUpperCase()
+      .replace(/Ä/g, 'A')
+      .replace(/Ö/g, 'O')
+      .replace(/\s+/g, '')
+      .replace(/[^A-Z]/g, '');
   const valilehtiSivut = new Set(
-    tekstit.map((t, i) => t.replace(/\s+/g, '').toUpperCase().includes('VÄLILEHTI') ? i : -1).filter(i => i >= 0)
+    tekstit
+      .map((t, i) => {
+        const n = normValilehti(t);
+        return n.includes('VALILEHTI') ? i : -1;
+      })
+      .filter(i => i >= 0)
   );
   console.log('VÄLILEHTI-sivut (0-ind):', [...valilehtiSivut], '/', sivuMaara, 'sivua');
   if (valilehtiSivut.size === 0) return null;
