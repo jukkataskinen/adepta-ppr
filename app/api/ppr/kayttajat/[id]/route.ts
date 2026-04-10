@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
       if (allowedErr) return NextResponse.json({ error: allowedErr.message }, { status: 500 })
       const allowed = (allowedRows || []).map((r: any) => String(r.id))
-      update.sallitut_kirjanpitoasiakas_ids = ids.filter(id => allowed.includes(id))
+      update.sallitut_kirjanpitoasiakas_ids = ids.filter((id: string) => allowed.includes(id))
     } else {
       update.sallitut_kirjanpitoasiakas_ids = []
     }
