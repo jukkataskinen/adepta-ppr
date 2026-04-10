@@ -1260,9 +1260,11 @@ input[type=number] { -moz-appearance: textfield; }
           <option value="yhteys">Yhteystiedot</option>
         </select>
       </div>
-      <div id="ml-asiakkaat-lista"></div>
-      <div id="ml-asiakas-detail" style="margin-top:14px;border:1px solid var(--bd);border-radius:8px;background:var(--pp);padding:14px;color:var(--inu);font-size:12px">
-        Valitse asiakas listalta nähdäksesi tiedot ja laskut.
+      <div style="display:grid;grid-template-columns:minmax(420px,1fr) minmax(420px,1fr);gap:12px;align-items:start">
+        <div id="ml-asiakkaat-lista"></div>
+        <div id="ml-asiakas-detail" style="border:1px solid var(--bd);border-radius:8px;background:var(--pp);padding:14px;color:var(--inu);font-size:12px;min-height:220px">
+          Valitse asiakas listalta nähdäksesi tiedot ja laskut.
+        </div>
       </div>
     </div>
 
@@ -7110,6 +7112,7 @@ function mlValitseAsiakasRek(asiakas) {
   mlRekValittuAsiakas = asiakas || null;
   mlRekValittuAsiakasId = asiakas?.id ? String(asiakas.id) : null;
   mlRenderAsiakasDetail();
+  document.getElementById('ml-asiakas-detail')?.scrollIntoView({ block: 'nearest' });
   const el = document.getElementById('ml-asiakkaat-lista');
   if (!el) return;
   el.querySelectorAll('tr[data-asiakas-id]').forEach(row => {
@@ -7141,6 +7144,7 @@ function mlRenderAsiakasDetail() {
     .reduce((s, l) => s + Number(l.summa_brutto || 0), 0);
 
   detailEl.innerHTML = `
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--inu);margin-bottom:8px">Asiakkaan tiedot</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--ink)">${a.nimi || ''}</div>
