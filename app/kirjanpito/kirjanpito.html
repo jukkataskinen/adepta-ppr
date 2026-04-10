@@ -7087,7 +7087,7 @@ function mlRenderAsiakkaat() {
       </thead>
       <tbody>
         ${osumat.map(a => `
-          <tr onclick="mlValitseAsiakasRek('${a.id}')" style="border-bottom:1px solid var(--bd);cursor:pointer;background:${mlRekValittuAsiakasId===a.id?'var(--fmist)':'transparent'}">
+          <tr data-asiakas-id="${a.id}" style="border-bottom:1px solid var(--bd);cursor:pointer;background:${mlRekValittuAsiakasId===a.id?'var(--fmist)':'transparent'}">
             <td style="padding:8px;font-weight:600">${a.nimi || ''}</td>
             <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ytunnus || '—'}</td>
             <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ovt_tunnus || '—'}</td>
@@ -7098,12 +7098,20 @@ function mlRenderAsiakkaat() {
       </tbody>
     </table>
   `;
+  el.querySelectorAll('tr[data-asiakas-id]').forEach(row => {
+    row.addEventListener('click', () => mlValitseAsiakasRek(row.getAttribute('data-asiakas-id')));
+  });
   mlRenderAsiakasDetail();
 }
 
 function mlValitseAsiakasRek(id) {
   mlRekValittuAsiakasId = id;
-  mlRenderAsiakkaat();
+  mlRenderAsiakasDetail();
+  const el = document.getElementById('ml-asiakkaat-lista');
+  if (!el) return;
+  el.querySelectorAll('tr[data-asiakas-id]').forEach(row => {
+    row.style.background = row.getAttribute('data-asiakas-id') === id ? 'var(--fmist)' : 'transparent';
+  });
 }
 
 function mlAvaaLaskuAsiakasrekista(id) {
