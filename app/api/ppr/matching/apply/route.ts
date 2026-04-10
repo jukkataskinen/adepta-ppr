@@ -6,7 +6,7 @@ type ApplyBody = {
   asiakas_id: string
   tapahtuma: any
   suggestion?: any
-  tosite_nro?: number
+  tosite_nro?: string | number
 }
 
 export async function POST(request: NextRequest) {
@@ -37,12 +37,15 @@ export async function POST(request: NextRequest) {
     const alv = brutto - netto
     const selite = (t.maksu && t.maksu !== t.sel) ? `${t.sel} — ${t.maksu}` : (t.sel || 'Pankkitapahtuma')
 
-    let tositeNro = body.tosite_nro
+    let tositeNro = body.tosite_nro != null ? String(body.tosite_nro).trim() : ''
     if (!tositeNro) {
       const { data: next, error: nextErr } = await supabaseAdmin!
         .rpc('seuraava_tosite_nro', { p_asiakas_id: body.asiakas_id, p_laji: 'MU' })
       if (nextErr) return NextResponse.json({ error: nextErr.message }, { status: 500 })
-      tositeNro = Number(next)
+      tositeNro = String(next || '').trim()
+    }
+    if (!tositeNro) {
+      return NextResponse.json({ error: 'tosite_nro puuttuu (RPC palautti tyhjän)' }, { status: 500 })
     }
 
     const rivit: any[] = []
