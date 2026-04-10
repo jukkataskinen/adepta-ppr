@@ -26,15 +26,50 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         .maybeSingle()
 
       if (vastaanottaja) {
-        const olNro = 'OL' + data.lasku_nro
-        const olPolku = vastaanottaja.id + '/tositteet/' + olNro + '/lasku.pdf'
+        // Saapuva ostolasku löytyy toimittajan_lasku_nro-kentästä (ML tosite), ei lasku_nro:sta.
+        const mahdollisetTositeet = Array.from(new Set([
+          data.tosite_nro,
+          data.lasku_nro ? `ML${data.lasku_nro}` : null,
+        ].filter(Boolean)))
+
+        let ostolasku: any = null
+        for (const tosite of mahdollisetTositeet) {
+          const { data: osumat, error: olHakuErr } = await supabaseAdmin!
+            .from('ppr_ostolaskut')
+            .select('id, lasku_nro, toimittajan_lasku_nro')
+            .eq('kirjanpitoasiakas_id', vastaanottaja.id)
+            .eq('toimittajan_lasku_nro', tosite)
+            .limit(1)
+
+          if (olHakuErr) {
+            console.error('Ostolaskun haku epäonnistui:', olHakuErr.message)
+            continue
+          }
+          if (osumat && osumat.length > 0) {
+            ostolasku = osumat[0]
+            break
+          }
+        }
+
+        if (!ostolasku) {
+          console.warn('Sisäisen ostolaskun linkitys epäonnistui', {
+            vastaanottaja_id: vastaanottaja.id,
+            myyntilasku_id: data.id,
+            tosite_nro: data.tosite_nro,
+            lasku_nro: data.lasku_nro,
+          })
+          return NextResponse.json(data)
+        }
+
+        const liiteTositeNro = ostolasku.lasku_nro || ostolasku.toimittajan_lasku_nro || `OL-${ostolasku.id}`
+        const olPolku = `${vastaanottaja.id}/tositteet/ostolasku-${ostolasku.id}/lasku.pdf`
         const { data: fileData } = await supabaseAdmin!.storage.from('tositteet').download(body.tosite_pdf_path)
         if (fileData) {
           await supabaseAdmin!.storage.from('tositteet').upload(olPolku, fileData, { contentType: 'application/pdf', upsert: true })
           await supabaseAdmin!.from('ppr_tosite_liitteet').insert({
             asiakas_id: vastaanottaja.id,
-            tosite_nro: olNro,
-            tiedostonimi: olNro + '.pdf',
+            tosite_nro: liiteTositeNro,
+            tiedostonimi: liiteTositeNro + '.pdf',
             storage_path: olPolku,
             koko_bytes: 0,
           })
@@ -44,8 +79,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           await supabaseAdmin!
             .from('ppr_ostolaskut')
             .update({ tosite_pdf_path: olPolku })
-            .eq('lasku_nro', olNro)
-            .eq('kirjanpitoasiakas_id', vastaanottaja.id)
+            .eq('id', ostolasku.id)
         }
       }
     }
