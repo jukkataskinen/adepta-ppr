@@ -6230,7 +6230,13 @@ async function analyseTilioteErillinen(opts = {}) {
         console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
         return true;
       }
-    } catch(e) { console.warn('Nordea regex:', e); }
+      statusEl.innerHTML = `<span style="color:var(--red)">✗ Nordea OCR ei löytänyt tapahtumia</span>`;
+      return false;
+    } catch(e) {
+      console.warn('Nordea regex:', e);
+      statusEl.innerHTML = `<span style="color:var(--red)">✗ Nordea OCR virhe: ${e?.message || e}</span>`;
+      return false;
+    }
   }
 
   // AI-parsinta
