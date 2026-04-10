@@ -539,6 +539,11 @@ input[type=number] { -moz-appearance: textfield; }
     <div id="panel-pankki" class="panel">
       <h2>Pankkituonti &amp; laskuaineisto</h2>
       <div class="panel-sub">Lataa tiliote CSV:nä ja laskut erikseen PDF:nä — tai käytä yhdistettyä PDF-latausta.</div>
+      <div style="margin-bottom:14px">
+        <button onclick="avaaPankkituontiOhjattu()" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">
+          Avaa ohjattu pankkituonti →
+        </button>
+      </div>
 
       <!-- ── TYÖVIRTAOHJE ── -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
@@ -1485,6 +1490,56 @@ input[type=number] { -moz-appearance: textfield; }
   </div>
 </div>
 
+<!-- ── OHJATTU PANKKITUONTI MODAL ── -->
+<div id="pankkituonti-wizard-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1001;background:var(--fd)">
+  <div style="display:flex;flex-direction:column;height:100%">
+    <div style="flex-shrink:0;padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:15px;font-weight:600;color:#fff">Ohjattu pankkituonti</div>
+      <div id="pw-header-info" style="font-size:12px;color:rgba(255,255,255,.45)">Vaihe 1 / 4</div>
+      <div style="margin-left:auto"><button onclick="suljePankkituontiOhjattu()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1">✕</button></div>
+    </div>
+
+    <div style="flex:1;overflow:auto;padding:18px 20px">
+      <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5">
+          1) Lue tiliote (vain yhdistetty PDF) → 2) Lue laskuaineisto → 3) Tiliotteen tarkastus → 4) Laskujen kohdistus
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:8px">1. Tiliote-PDF</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--inu)">Pankki:</span>
+            <select id="pw-pankki-select" style="padding:5px 8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink)">
+              <option value="" selected>— Valitse —</option>
+              <option value="op">OP</option>
+              <option value="nordea">Nordea</option>
+              <option value="muu">Muu</option>
+            </select>
+            <input type="file" id="pw-tiliote-file" accept=".pdf" style="font-size:11px;flex:1;min-width:260px">
+            <button onclick="pwLueTiliote()" style="padding:6px 12px;font-size:11px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer">Lue tiliote</button>
+          </div>
+          <div id="pw-tiliote-status" style="font-size:11px;color:var(--inu)">Ei luettu</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:8px">2. Laskuaineisto-PDF</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <input type="file" id="pw-laskut-file" accept=".pdf" style="font-size:11px;flex:1;min-width:260px">
+            <button onclick="pwLueLaskut()" style="padding:6px 12px;font-size:11px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer">Lue laskuaineisto</button>
+          </div>
+          <div id="pw-laskut-status" style="font-size:11px;color:var(--inu)">Ei luettu</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px">
+      <button onclick="suljePankkituontiOhjattu()" style="padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Sulje</button>
+      <div style="flex:1"></div>
+      <button id="pw-jatka-tarkistus" onclick="pwSiirryTarkistukseen()" disabled style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.35);cursor:not-allowed">3. Siirry tiliotteen tarkastukseen →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── VAIHE 2: TARKISTUSMODAL ── -->
 <div id="tarkistus-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1000;background:var(--fd)">
   <div style="display:flex;flex-direction:column;height:100%">
@@ -2070,6 +2125,7 @@ function showPanel(name) {
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
+  if (name === 'pankki') avaaPankkituontiOhjattu();
   if (name === 'toimittajat') lataaToimittajat();
   if (name === 'ostolaskut') lataaOlData();
   if (name === 'yritystiedot') ytLataa();
@@ -6144,18 +6200,18 @@ async function parseNordeaOCR(base64) {
 }
 
 // ── ERILLINEN TILIOTE-ANALYYSI ──────────────────────────────
-async function analyseTilioteErillinen() {
-  const fileEl = document.getElementById('tiliote-file');
-  const file = fileEl?.files?.[0];
+async function analyseTilioteErillinen(opts = {}) {
+  const fileEl = opts.fileEl || document.getElementById('tiliote-file');
+  const file = opts.file || fileEl?.files?.[0];
   if (!file) { alert('Valitse tiliote-PDF'); return; }
-  const pankki = document.getElementById('pankki-select')?.value;
+  const pankki = opts.pankki || document.getElementById('pankki-select')?.value;
   if (!pankki) { alert('Valitse pankki ennen tiliotteen lataamista'); return; }
 
   apiKey = document.getElementById('api-key-input')?.value?.trim() || sessionStorage.getItem('adepta_api_key') || '';
   if (!apiKey || !apiKey.startsWith('sk-ant-')) { alert('API-avain puuttuu'); return; }
   if (file.size > 5*1024*1024) { alert('PDF liian suuri (max 5 MB)'); return; }
 
-  const statusEl = document.getElementById('tiliote-upload-status');
+  const statusEl = opts.statusEl || document.getElementById('tiliote-upload-status');
   statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan tiliotetta...</span>';
 
   const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
@@ -6172,7 +6228,7 @@ async function analyseTilioteErillinen() {
         console.log('impTiliote tapahtumat:', impTiliote?.tapahtumat?.map(t => t.kirjpv+' '+t.sel+' '+t.summa));
         console.log('laskut määrä:', laskut?.length);
         console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
-        return;
+        return true;
       }
     } catch(e) { console.warn('Nordea regex:', e); }
   }
@@ -6227,7 +6283,7 @@ summa AINA positiivinen numero. suunta: "kredit"=tililtä, "debet"=tilille. Jät
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content}]})
     });
-    if (!resp.ok) { statusEl.innerHTML = `<span style="color:var(--red)">✗ API virhe ${resp.status}</span>`; return; }
+    if (!resp.ok) { statusEl.innerHTML = `<span style="color:var(--red)">✗ API virhe ${resp.status}</span>`; return false; }
     const data = await resp.json();
     const txt = (data.content||[]).map(c=>c.text||'').join('');
     console.log('Tiliote AI RAW:', txt.substring(0,500));
@@ -6267,9 +6323,11 @@ summa AINA positiivinen numero. suunta: "kredit"=tililtä, "debet"=tilille. Jät
     console.log('impTiliote tapahtumat:', impTiliote?.tapahtumat?.map(t => t.kirjpv+' '+t.sel+' '+t.summa));
     console.log('laskut määrä:', laskut?.length);
     console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
+    return true;
   } catch(e) {
     console.error('Tiliote-analyysi:', e);
     statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
+    return false;
   }
 }
 
@@ -6341,16 +6399,16 @@ async function paloitteleAineisto(pdfBytesUint8) {
   return tulokset; // Uint8Array[]
 }
 
-async function analyseLaskutErillinen() {
-  const fileEl = document.getElementById('laskut-file-erillinen');
-  const file = fileEl?.files?.[0];
+async function analyseLaskutErillinen(opts = {}) {
+  const fileEl = opts.fileEl || document.getElementById('laskut-file-erillinen');
+  const file = opts.file || fileEl?.files?.[0];
   if (!file) { alert('Valitse laskut-PDF'); return; }
 
   apiKey = document.getElementById('api-key-input')?.value?.trim() || sessionStorage.getItem('adepta_api_key') || '';
   if (!apiKey || !apiKey.startsWith('sk-ant-')) { alert('API-avain puuttuu'); return; }
   if (file.size > 5*1024*1024) { alert('PDF liian suuri (max 5 MB)'); return; }
 
-  const statusEl = document.getElementById('laskut-upload-status');
+  const statusEl = opts.statusEl || document.getElementById('laskut-upload-status');
   statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan laskuja...</span>';
 
   const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
@@ -6446,9 +6504,11 @@ TÄRKEÄT TULKINTASÄÄNNÖT:
     statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${laskut.length} laskua${palat ? ' (' + palat.length + ' PDF-osaa)' : ''}</span>`;
     paivitaJatkaBtn();
     esirenderöiLaskut();
+    return true;
   } catch(e) {
     console.error('Lasku-analyysi:', e);
     statusEl.innerHTML = `<span style="color:var(--red)">✗ Virhe: ${e.message}</span>`;
+    return false;
   }
 }
 
@@ -6473,6 +6533,72 @@ function paivitaJatkaBtn() {
     btn.style.cursor = 'not-allowed';
     btn.textContent = 'Tarkista tiliote →';
   }
+  pwPaivitaJatkaBtn();
+}
+
+function pwPaivitaJatkaBtn() {
+  const tilioteOk = impTiliote?.tapahtumat?.length > 0;
+  const laskutOk = laskut?.length > 0;
+  const btn = document.getElementById('pw-jatka-tarkistus');
+  const info = document.getElementById('pw-header-info');
+  if (info) info.textContent = tilioteOk && laskutOk ? 'Vaihe 3 / 4 valmis siirtymään' : 'Vaihe 1 / 4';
+  if (!btn) return;
+  if (tilioteOk && laskutOk) {
+    btn.disabled = false;
+    btn.style.background = 'var(--fg)';
+    btn.style.color = '#fff';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.disabled = true;
+    btn.style.background = 'rgba(255,255,255,.1)';
+    btn.style.color = 'rgba(255,255,255,.35)';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+function avaaPankkituontiOhjattu() {
+  document.getElementById('pankkituonti-wizard-modal').style.display = 'block';
+  pwPaivitaJatkaBtn();
+}
+
+function suljePankkituontiOhjattu() {
+  document.getElementById('pankkituonti-wizard-modal').style.display = 'none';
+}
+
+async function pwLueTiliote() {
+  const fileEl = document.getElementById('pw-tiliote-file');
+  const file = fileEl?.files?.[0];
+  const pankki = document.getElementById('pw-pankki-select')?.value;
+  const statusEl = document.getElementById('pw-tiliote-status');
+  if (!file || !pankki || !statusEl) {
+    toast('Valitse pankki ja tiliote-PDF');
+    return;
+  }
+  const ok = await analyseTilioteErillinen({ file, pankki, statusEl });
+  if (ok) statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Tiliote luettu (${impTiliote?.tapahtumat?.length || 0} tapahtumaa)</span>`;
+  pwPaivitaJatkaBtn();
+}
+
+async function pwLueLaskut() {
+  const fileEl = document.getElementById('pw-laskut-file');
+  const file = fileEl?.files?.[0];
+  const statusEl = document.getElementById('pw-laskut-status');
+  if (!file || !statusEl) {
+    toast('Valitse laskuaineisto-PDF');
+    return;
+  }
+  const ok = await analyseLaskutErillinen({ file, statusEl });
+  if (ok) statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Laskuaineisto luettu (${laskut?.length || 0} laskua)</span>`;
+  pwPaivitaJatkaBtn();
+}
+
+function pwSiirryTarkistukseen() {
+  if (!(impTiliote?.tapahtumat?.length > 0) || !(laskut?.length > 0)) {
+    toast('Lue ensin tiliote ja laskuaineisto');
+    return;
+  }
+  suljePankkituontiOhjattu();
+  avaaTarkistusModal();
 }
 
 async function analysePDF(file) {
