@@ -3905,6 +3905,33 @@ function alvFmt(v) {
   return Number(v || 0).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function alvStatusLabel(status) {
+  const s = String(status || '');
+  if (s === 'prepared') return 'Valmisteltu';
+  if (s === 'approved') return 'Hyväksytty';
+  if (s === 'submitted') return 'Lähetetty';
+  if (s === 'accepted') return 'Hyväksytty verossa';
+  if (s === 'rejected') return 'Hylätty verossa';
+  if (s === 'failed') return 'Virhe';
+  return s || '—';
+}
+
+async function alvHyvaksyLahetys(id) {
+  const res = await fetch('/api/ppr/alv/submissions/' + encodeURIComponent(id) + '/approve', { method: 'POST' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) { toast('ALV-hyväksyntä epäonnistui: ' + (json.error || res.status)); return; }
+  toast('ALV-lähetys hyväksytty');
+  await alvLataaLahetykset();
+}
+
+async function alvLahetaVeroon(id) {
+  const res = await fetch('/api/ppr/alv/submissions/' + encodeURIComponent(id) + '/submit', { method: 'POST' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) { toast('ALV-lähetys epäonnistui: ' + (json.error || res.status)); return; }
+  toast('ALV-lähetys lähetetty (mock/sandbox)');
+  await alvLataaLahetykset();
+}
+
 async function alvValmisteleIlmoitus() {
   if (!curYritys) { toast('Valitse ensin yritys'); return; }
   const kk = document.getElementById('alv-kuukausi')?.value || '';
@@ -3957,14 +3984,22 @@ async function alvLataaLahetykset() {
           <th style="padding:7px 8px;text-align:left">Tila</th>
           <th style="padding:7px 8px;text-align:right">Netto 292040</th>
           <th style="padding:7px 8px;text-align:left">Luotu</th>
+          <th style="padding:7px 8px;text-align:left">Toiminnot</th>
         </tr></thead>
         <tbody>
           ${rows.map((r) => `
             <tr style="border-bottom:1px solid var(--bd)">
               <td style="padding:7px 8px;font-family:var(--ffm)">${r.period_yyyy_mm || ''}</td>
-              <td style="padding:7px 8px">${r.status || ''}</td>
+              <td style="padding:7px 8px">${alvStatusLabel(r.status)}</td>
               <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${alvFmt(r?.totals?.net_transfer_292040 || 0)}</td>
               <td style="padding:7px 8px;color:var(--inu)">${fmtPv((r.created_at || '').slice(0, 10))}</td>
+              <td style="padding:7px 8px">
+                ${r.status === 'prepared'
+                  ? `<button onclick="alvHyvaksyLahetys('${r.id}')" style="padding:4px 8px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:#fff;cursor:pointer">Hyväksy</button>`
+                  : r.status === 'approved'
+                    ? `<button onclick="alvLahetaVeroon('${r.id}')" style="padding:4px 8px;font-size:11px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Lähetä</button>`
+                    : '<span style="color:var(--inu)">—</span>'}
+              </td>
             </tr>
           `).join('')}
         </tbody>
