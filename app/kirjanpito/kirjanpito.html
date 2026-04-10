@@ -1261,6 +1261,9 @@ input[type=number] { -moz-appearance: textfield; }
         </select>
       </div>
       <div id="ml-asiakkaat-lista"></div>
+      <div id="ml-asiakas-detail" style="margin-top:14px;border:1px solid var(--bd);border-radius:8px;background:var(--pp);padding:14px;color:var(--inu);font-size:12px">
+        Valitse asiakas listalta nähdäksesi tiedot ja laskut.
+      </div>
     </div>
 
     <div id="panel-myynti-tuotteet" class="panel" style="overflow-y:auto;padding:20px 24px;display:none">
@@ -7026,6 +7029,7 @@ function mlNayta(id) {
 let mlAsiakkaatLista = [];
 let mlValittuAsiakasId = null;
 let mlValittuAsiakas = null;
+let mlRekValittuAsiakasId = null;
 
 async function lataaMlAsiakkaat() {
   if (!curYritys) return;
@@ -7065,6 +7069,7 @@ function mlRenderAsiakkaat() {
 
   if (!osumat.length) {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--inu);font-size:12px;border:1px solid var(--bd);border-radius:8px;background:var(--pp)">Ei hakutuloksia.</div>';
+    mlRenderAsiakasDetail();
     return;
   }
 
@@ -7082,7 +7087,7 @@ function mlRenderAsiakkaat() {
       </thead>
       <tbody>
         ${osumat.map(a => `
-          <tr style="border-bottom:1px solid var(--bd)">
+          <tr onclick="mlValitseAsiakasRek('${a.id}')" style="border-bottom:1px solid var(--bd);cursor:pointer;background:${mlRekValittuAsiakasId===a.id?'var(--fmist)':'transparent'}">
             <td style="padding:8px;font-weight:600">${a.nimi || ''}</td>
             <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ytunnus || '—'}</td>
             <td style="padding:8px;font-family:var(--ffm);color:var(--inu)">${a.ovt_tunnus || '—'}</td>
@@ -7090,6 +7095,67 @@ function mlRenderAsiakkaat() {
             <td style="padding:8px;color:var(--inu)">${a.maksuehto || 14} pv</td>
           </tr>
         `).join('')}
+      </tbody>
+    </table>
+  `;
+  mlRenderAsiakasDetail();
+}
+
+function mlValitseAsiakasRek(id) {
+  mlRekValittuAsiakasId = id;
+  mlRenderAsiakkaat();
+}
+
+function mlRenderAsiakasDetail() {
+  const detailEl = document.getElementById('ml-asiakas-detail');
+  if (!detailEl) return;
+  const a = mlAsiakkaatLista.find(x => x.id === mlRekValittuAsiakasId);
+  if (!a) {
+    detailEl.innerHTML = 'Valitse asiakas listalta nähdäksesi tiedot ja laskut.';
+    return;
+  }
+
+  const laskut = (mlLaskut || [])
+    .filter(l => (l.asiakas_id && l.asiakas_id === a.id) || (!l.asiakas_id && (l.asiakas_nimi || '') === (a.nimi || '')))
+    .sort((x, y) => String(y.pvm || '').localeCompare(String(x.pvm || '')));
+
+  const fmt = v => Math.abs(Number(v || 0)).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const avoinYht = laskut
+    .filter(l => l.tila !== 'maksettu')
+    .reduce((s, l) => s + Number(l.summa_brutto || 0), 0);
+
+  detailEl.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--ink)">${a.nimi || ''}</div>
+        <div style="font-size:12px;color:var(--inu)">${[a.katuosoite, a.postinro, a.kaupunki].filter(Boolean).join(', ') || '—'}</div>
+        <div style="font-size:12px;color:var(--inu);margin-top:4px">${[a.email, a.puhelin].filter(Boolean).join(' · ') || 'Ei yhteystietoja'}</div>
+      </div>
+      <div style="font-size:12px;color:var(--inu);text-align:right">
+        <div>Laskuja: <strong style="color:var(--ink)">${laskut.length}</strong></div>
+        <div>Avoinna: <strong style="color:var(--amber)">${fmt(avoinYht)} €</strong></div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+          <th style="padding:8px;text-align:left">Lasku</th>
+          <th style="padding:8px;text-align:left">Päivä</th>
+          <th style="padding:8px;text-align:right">Summa</th>
+          <th style="padding:8px;text-align:left">Viite</th>
+          <th style="padding:8px;text-align:center">Tila</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${laskut.map(l => `
+          <tr style="border-bottom:1px solid var(--bd)">
+            <td style="padding:7px 8px;font-family:var(--ffm);font-weight:600;color:var(--fl)">ML${l.lasku_nro || ''}</td>
+            <td style="padding:7px 8px;color:var(--inu)">${fmtPv(l.pvm)}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(l.summa_brutto)} €</td>
+            <td style="padding:7px 8px;color:var(--inu)">${l.viite || '—'}</td>
+            <td style="padding:7px 8px;text-align:center;color:${l.tila==='maksettu'?'var(--fg3)':l.tila==='lahetetty'?'var(--fl)':'var(--amber)'}">${l.tila || 'luonnos'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--inu)">Ei laskuja asiakkaalle</td></tr>'}
       </tbody>
     </table>
   `;
