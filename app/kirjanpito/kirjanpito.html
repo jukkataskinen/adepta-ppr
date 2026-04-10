@@ -344,6 +344,7 @@ input[type=number] { -moz-appearance: textfield; }
         <div class="nav-item nav-sub" id="nav-tosite" onclick="showPanel('tosite')">Tositteen syöttö</div>
         <div class="nav-item nav-sub" id="nav-pk" onclick="showPanel('paivak')">Päiväkirja</div>
         <div class="nav-item nav-sub" id="nav-pk2" onclick="showPanel('paakirja')">Pääkirja</div>
+        <div class="nav-item nav-sub" id="nav-alvlaskelma" onclick="showPanel('alvlaskelma')">ALV-laskelma</div>
         <div class="nav-item nav-sub" id="nav-tositteet" onclick="showPanel('tositteet')">Tositteet</div>
         <div class="nav-item nav-sub" id="nav-tk" onclick="showPanel('tilikartta')">Tilikartta</div>
         <div class="nav-item nav-sub" id="nav-tyokalut" onclick="showPanel('tyokalut')">Tuo aineisto</div>
@@ -1102,6 +1103,28 @@ input[type=number] { -moz-appearance: textfield; }
       <div id="rpt-content"></div>
       <div id="rpt-tilinpaatos" style="display:none"></div>
       <div id="rpt-taseerittely" style="display:none"></div>
+    </div>
+
+    <!-- ─── ALV-LASKELMA PANEL ─── -->
+    <div id="panel-alvlaskelma" class="panel">
+      <h2>ALV-laskelma</h2>
+      <div class="panel-sub">Kirjanpito-teeman ALV-laskenta ja ALV-siirtokirjaus. Oletuskausi: kuukausi.</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Kausi</label>
+          <select id="alv-kausi-tyyppi" onchange="renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);font-size:12px">
+            <option value="1kk" selected>Kuukausi (1 kk)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:600;color:var(--inu);text-transform:uppercase;display:block;margin-bottom:4px">Kuukausi</label>
+          <input type="month" id="alv-kuukausi" onchange="renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;font-size:12px">
+        </div>
+        <button onclick="renderAlvLaskelmaPanel()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä</button>
+        <button onclick="alvKirjaaSiirto()" style="padding:8px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Kirjaa ALV-siirto → 292040</button>
+      </div>
+      <div id="alv-jakso-teksti" style="font-size:12px;color:var(--inu);margin-bottom:10px"></div>
+      <div id="alv-laskelma-content" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:12px"></div>
     </div>
 
     <!-- ─── TILIKARTTA PANEL ─── -->
@@ -2127,11 +2150,12 @@ function showPanel(name) {
   const el = document.getElementById('panel-'+name);
   if (el) el.style.display = name === 'paivak' ? 'flex' : 'block';
 
-  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'asiakasrek','myynti-asiakas-detail':'asiakasrek','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
+  const navMap = {etusivu:'etusivu',paivak:'pk',paakirja:'pk2',alvlaskelma:'alvlaskelma',pankki:'pankki',reskontra:'reskontra',asiakasrek:'asiakasrek',myyntilaskut:'myyntilaskut','myynti-asiakkaat':'asiakasrek','myynti-asiakas-detail':'asiakasrek','myynti-tuotteet':'myynti-tuotteet',palkat:'palkat',tositteet:'tositteet',raportit:'rpt',tilikartta:'tk',tyokalut:'tyokalut',tosite:'tosite',toimittajat:'toimittajat',ostolaskut:'ostolaskut'};
   const nav = document.getElementById('nav-'+navMap[name]);
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
+  if (name === 'alvlaskelma') { alvAsetaOletusKk(); renderAlvLaskelmaPanel(); }
   if (name === 'pankki') avaaPankkituontiOhjattu();
   if (name === 'toimittajat') lataaToimittajat();
   if (name === 'ostolaskut') lataaOlData();
@@ -3780,6 +3804,125 @@ function rptAlv() {
     Eräpäivä: <strong>12. päivä 2 kuukauden kuluttua ilmoitusjakson päättymisestä.</strong><br>
     <span style="color:var(--fl);font-weight:500">ALV-tilit: 292041/292042/292043/292040 Myynnin ALV-velat · 292051 Vähennettävä ALV</span>
   </div>`;
+}
+
+const ALV_MYYNTI_ILMOITTAMATON_TILIT = ['292041','292042','292043','292045','292046','292048'];
+const ALV_MYYNTI_YLEIS_TILI = '292040';
+const ALV_OSTO_ILMOITTAMATON_TILI = '292051';
+
+function alvAsetaOletusKk() {
+  const inp = document.getElementById('alv-kuukausi');
+  if (inp && !inp.value) inp.value = new Date().toISOString().slice(0, 7);
+}
+
+function alvKuukaudenVali(yyyyMm) {
+  const y = Number(String(yyyyMm || '').slice(0, 4));
+  const m = Number(String(yyyyMm || '').slice(5, 7));
+  if (!y || !m) return null;
+  const alku = `${y}-${String(m).padStart(2, '0')}-01`;
+  const loppuDate = new Date(y, m, 0);
+  const loppu = `${y}-${String(m).padStart(2, '0')}-${String(loppuDate.getDate()).padStart(2, '0')}`;
+  return { alku, loppu };
+}
+
+function alvTiliJaksoSaldo(tili, alku, loppu) {
+  let saldo = 0;
+  rows.forEach(r => {
+    if (!r || !r.pv || r.pv < alku || r.pv > loppu) return;
+    if (r.d === tili) saldo += Number(r.netto || 0);
+    if (r.k === tili) saldo -= Number(r.netto || 0);
+  });
+  return saldo;
+}
+
+function renderAlvLaskelmaPanel() {
+  const kk = document.getElementById('alv-kuukausi')?.value || '';
+  const content = document.getElementById('alv-laskelma-content');
+  const jaksoTxt = document.getElementById('alv-jakso-teksti');
+  if (!content || !jaksoTxt) return;
+  const vali = alvKuukaudenVali(kk);
+  if (!vali) {
+    content.innerHTML = '<div style="font-size:12px;color:var(--inu)">Valitse kuukausi.</div>';
+    return;
+  }
+  const { alku, loppu } = vali;
+  jaksoTxt.textContent = `Jakso: ${fmtPv(alku)} – ${fmtPv(loppu)}`;
+
+  const myyntiRivit = ALV_MYYNTI_ILMOITTAMATON_TILIT.map(tili => ({
+    tili,
+    saldo: alvTiliJaksoSaldo(tili, alku, loppu),
+  }));
+  const ostoSaldo = alvTiliJaksoSaldo(ALV_OSTO_ILMOITTAMATON_TILI, alku, loppu);
+  const netto292040 = [...myyntiRivit.map(r => r.saldo), ostoSaldo].reduce((s, v) => s + v, 0);
+
+  const fmt = v => Number(v || 0).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  content.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+        <th style="padding:8px;text-align:left">Tili</th>
+        <th style="padding:8px;text-align:left">Nimi</th>
+        <th style="padding:8px;text-align:right">Jakson saldo</th>
+      </tr></thead>
+      <tbody>
+        ${myyntiRivit.map(r => `<tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px;font-family:var(--ffm)">${r.tili}</td><td style="padding:8px">${TILIT.find(t => t.nro === r.tili)?.lbl || ''}</td><td style="padding:8px;text-align:right;font-family:var(--ffm)">${fmt(r.saldo)}</td></tr>`).join('')}
+        <tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px;font-family:var(--ffm)">${ALV_OSTO_ILMOITTAMATON_TILI}</td><td style="padding:8px">${TILIT.find(t => t.nro === ALV_OSTO_ILMOITTAMATON_TILI)?.lbl || ''}</td><td style="padding:8px;text-align:right;font-family:var(--ffm)">${fmt(ostoSaldo)}</td></tr>
+      </tbody>
+      <tfoot><tr style="background:var(--fmist)"><td colspan="2" style="padding:8px;font-weight:600">Siirto tilille ${ALV_MYYNTI_YLEIS_TILI}</td><td style="padding:8px;text-align:right;font-family:var(--ffm);font-weight:700">${fmt(netto292040)}</td></tr></tfoot>
+    </table>
+  `;
+}
+
+async function alvKirjaaSiirto() {
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  const kk = document.getElementById('alv-kuukausi')?.value || '';
+  const vali = alvKuukaudenVali(kk);
+  if (!vali) { toast('Valitse kuukausi'); return; }
+  const { alku, loppu } = vali;
+
+  const siirtoRivit = [];
+  [...ALV_MYYNTI_ILMOITTAMATON_TILIT, ALV_OSTO_ILMOITTAMATON_TILI].forEach(tili => {
+    const saldo = alvTiliJaksoSaldo(tili, alku, loppu);
+    if (Math.abs(saldo) < 0.005) return;
+    siirtoRivit.push({
+      tili,
+      selite: `ALV-siirto ${kk}`,
+      saldo: -saldo,
+      alv_prosentti: null
+    });
+  });
+
+  if (!siirtoRivit.length) { toast('Ei ALV-siirtorivejä valitulla kuukaudella'); return; }
+  const summa = siirtoRivit.reduce((s, r) => s + Number(r.saldo || 0), 0);
+  siirtoRivit.push({
+    tili: ALV_MYYNTI_YLEIS_TILI,
+    selite: `ALV velaksi ${kk}`,
+    saldo: -summa,
+    alv_prosentti: null
+  });
+
+  const erotus = siirtoRivit.reduce((s, r) => s + Number(r.saldo || 0), 0);
+  if (Math.abs(erotus) > 0.01) { toast('ALV-siirtotosite ei täsmää'); return; }
+
+  const tosite_nro = await seuraavaTositeNroLaji('MU');
+  const paivamaara = loppu;
+  const res = await fetch('/api/ppr/paivakirja', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      asiakas_id: curYritys.id,
+      tosite_nro,
+      paivamaara,
+      rivit: siirtoRivit
+    })
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    toast('ALV-siirron tallennus epäonnistui: ' + (json.error || res.status));
+    return;
+  }
+  toast('ALV-siirto kirjattu tositteelle ' + tosite_nro);
+  await lataaRivit(curYritys.id);
+  renderAlvLaskelmaPanel();
 }
 
 function renderPaakirja() {
