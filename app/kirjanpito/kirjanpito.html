@@ -7106,6 +7106,11 @@ function mlValitseAsiakasRek(id) {
   mlRenderAsiakkaat();
 }
 
+function mlAvaaLaskuAsiakasrekista(id) {
+  showPanel('myyntilaskut');
+  mlNayta(id);
+}
+
 function mlRenderAsiakasDetail() {
   const detailEl = document.getElementById('ml-asiakas-detail');
   if (!detailEl) return;
@@ -7144,6 +7149,7 @@ function mlRenderAsiakasDetail() {
           <th style="padding:8px;text-align:right">Summa</th>
           <th style="padding:8px;text-align:left">Viite</th>
           <th style="padding:8px;text-align:center">Tila</th>
+          <th style="padding:8px;text-align:right">Toiminnot</th>
         </tr>
       </thead>
       <tbody>
@@ -7154,8 +7160,11 @@ function mlRenderAsiakasDetail() {
             <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${fmt(l.summa_brutto)} €</td>
             <td style="padding:7px 8px;color:var(--inu)">${l.viite || '—'}</td>
             <td style="padding:7px 8px;text-align:center;color:${l.tila==='maksettu'?'var(--fg3)':l.tila==='lahetetty'?'var(--fl)':'var(--amber)'}">${l.tila || 'luonnos'}</td>
+            <td style="padding:7px 8px;text-align:right">
+              <button onclick="mlAvaaLaskuAsiakasrekista('${l.id}')" style="padding:4px 10px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);cursor:pointer">Avaa</button>
+            </td>
           </tr>
-        `).join('') || '<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--inu)">Ei laskuja asiakkaalle</td></tr>'}
+        `).join('') || '<tr><td colspan="6" style="padding:14px;text-align:center;color:var(--inu)">Ei laskuja asiakkaalle</td></tr>'}
       </tbody>
     </table>
   `;
