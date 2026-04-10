@@ -1121,10 +1121,18 @@ input[type=number] { -moz-appearance: textfield; }
           <input type="month" id="alv-kuukausi" onchange="renderAlvLaskelmaPanel()" style="padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;font-size:12px">
         </div>
         <button onclick="renderAlvLaskelmaPanel()" style="padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä</button>
+        <button onclick="alvValmisteleIlmoitus()" style="padding:8px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:#1f7a6b;color:#fff;cursor:pointer">Valmistele ALV-ilmoitus</button>
         <button onclick="alvKirjaaSiirto()" style="padding:8px 16px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Kirjaa ALV-siirto → 292040</button>
       </div>
       <div id="alv-jakso-teksti" style="font-size:12px;color:var(--inu);margin-bottom:10px"></div>
       <div id="alv-laskelma-content" style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:12px"></div>
+      <div style="margin-top:14px;background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inu)">ALV-lähetyshistoria (valmistelut)</div>
+          <button onclick="alvLataaLahetykset()" style="padding:5px 10px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);cursor:pointer">Päivitä historia</button>
+        </div>
+        <div id="alv-submissions" style="font-size:12px;color:var(--inu)">Ei lähetyksiä.</div>
+      </div>
     </div>
 
     <!-- ─── TILIKARTTA PANEL ─── -->
@@ -2155,7 +2163,7 @@ function showPanel(name) {
   if (nav) nav.classList.add('act');
 
   if (name === 'tositteet') { renderTositteet(); lataaMlData(); }
-  if (name === 'alvlaskelma') { alvAsetaOletusKk(); renderAlvLaskelmaPanel(); }
+  if (name === 'alvlaskelma') { alvAsetaOletusKk(); renderAlvLaskelmaPanel(); alvLataaLahetykset(); }
   if (name === 'pankki') avaaPankkituontiOhjattu();
   if (name === 'toimittajat') lataaToimittajat();
   if (name === 'ostolaskut') lataaOlData();
@@ -3890,6 +3898,80 @@ function renderAlvLaskelmaPanel() {
     const content = document.getElementById('alv-laskelma-content');
     if (content) content.innerHTML = `<div style="font-size:12px;color:var(--red)">ALV-laskelman renderöinti epäonnistui: ${e?.message || e}</div>`;
     console.warn('renderAlvLaskelmaPanel virhe:', e);
+  }
+}
+
+function alvFmt(v) {
+  return Number(v || 0).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function alvValmisteleIlmoitus() {
+  if (!curYritys) { toast('Valitse ensin yritys'); return; }
+  const kk = document.getElementById('alv-kuukausi')?.value || '';
+  const vali = alvKuukaudenVali(kk);
+  if (!vali) { toast('Valitse kuukausi'); return; }
+
+  const res = await fetch('/api/ppr/alv/prepare', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      asiakas_id: curYritys.id,
+      period_yyyy_mm: kk
+    })
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    toast('ALV-ilmoituksen valmistelu epäonnistui: ' + (json.error || res.status));
+    return;
+  }
+
+  const netto = Number(json?.submission?.totals?.net_transfer_292040 || 0);
+  toast('ALV-ilmoitus valmisteltu (' + kk + '), netto ' + alvFmt(netto) + ' €');
+  await alvLataaLahetykset();
+}
+
+async function alvLataaLahetykset() {
+  const el = document.getElementById('alv-submissions');
+  if (!el) return;
+  if (!curYritys) {
+    el.innerHTML = '<div style="color:var(--inu)">Valitse ensin ympäristö.</div>';
+    return;
+  }
+  el.innerHTML = '<div style="color:var(--inu)">Ladataan...</div>';
+  try {
+    const res = await fetch('/api/ppr/alv/submissions?asiakas_id=' + encodeURIComponent(curYritys.id) + '&limit=20');
+    const data = await res.json().catch(() => []);
+    if (!res.ok) {
+      el.innerHTML = '<div style="color:var(--red)">Virhe: ' + (data?.error || res.status) + '</div>';
+      return;
+    }
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) {
+      el.innerHTML = '<div style="color:var(--inu)">Ei valmisteltuja ALV-lähetyksiä.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--ppw);border-bottom:1px solid var(--bd2)">
+          <th style="padding:7px 8px;text-align:left">Kausi</th>
+          <th style="padding:7px 8px;text-align:left">Tila</th>
+          <th style="padding:7px 8px;text-align:right">Netto 292040</th>
+          <th style="padding:7px 8px;text-align:left">Luotu</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r) => `
+            <tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:7px 8px;font-family:var(--ffm)">${r.period_yyyy_mm || ''}</td>
+              <td style="padding:7px 8px">${r.status || ''}</td>
+              <td style="padding:7px 8px;text-align:right;font-family:var(--ffm)">${alvFmt(r?.totals?.net_transfer_292040 || 0)}</td>
+              <td style="padding:7px 8px;color:var(--inu)">${fmtPv((r.created_at || '').slice(0, 10))}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--red)">Lähetyshistorian lataus epäonnistui: ' + (e?.message || e) + '</div>';
   }
 }
 
