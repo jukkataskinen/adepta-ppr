@@ -3905,6 +3905,10 @@ function alvFmt(v) {
   return Number(v || 0).toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function alvEsc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
 function alvStatusLabel(status) {
   const s = String(status || '');
   if (s === 'prepared') return 'Valmisteltu';
@@ -3928,7 +3932,7 @@ async function alvLahetaVeroon(id) {
   const res = await fetch('/api/ppr/alv/submissions/' + encodeURIComponent(id) + '/submit', { method: 'POST' });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) { toast('ALV-lähetys epäonnistui: ' + (json.error || res.status)); return; }
-  toast('ALV-lähetys lähetetty (mock/sandbox)');
+  toast(json.mock ? 'ALV-lähetys tallennettu (mock)' : 'ALV-lähetys lähetetty Verohallinnon rajapintaan');
   await alvLataaLahetykset();
 }
 
@@ -3996,8 +4000,11 @@ async function alvLataaLahetykset() {
               <td style="padding:7px 8px">
                 ${r.status === 'prepared'
                   ? `<button onclick="alvHyvaksyLahetys('${r.id}')" style="padding:4px 8px;font-size:11px;border:1px solid var(--bd);border-radius:5px;background:#fff;cursor:pointer">Hyväksy</button>`
-                  : r.status === 'approved'
-                    ? `<button onclick="alvLahetaVeroon('${r.id}')" style="padding:4px 8px;font-size:11px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Lähetä</button>`
+                  : r.status === 'approved' || r.status === 'failed'
+                    ? `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+                        <button onclick="alvLahetaVeroon('${r.id}')" style="padding:4px 8px;font-size:11px;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">${r.status === 'failed' ? 'Lähetä uudelleen' : 'Lähetä'}</button>
+                        ${r.status === 'failed' && r.error_message ? `<span style="font-size:10px;color:var(--red);max-width:180px" title="${alvEsc(r.error_message)}">${alvEsc(String(r.error_message).slice(0, 60))}${String(r.error_message).length > 60 ? '…' : ''}</span>` : ''}
+                       </div>`
                     : '<span style="color:var(--inu)">—</span>'}
               </td>
             </tr>

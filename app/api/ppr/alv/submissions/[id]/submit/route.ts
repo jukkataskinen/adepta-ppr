@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (sub.organisaatio_id !== kayttaja.organisaatio_id) {
       return NextResponse.json({ error: 'Ei oikeutta lähetykseen' }, { status: 403 })
     }
-    if (sub.status !== 'approved') {
+    if (sub.status !== 'approved' && sub.status !== 'failed') {
       return NextResponse.json({ error: `Lähetystä ei voi lähettää tilassa ${sub.status}` }, { status: 409 })
     }
 
