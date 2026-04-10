@@ -3744,7 +3744,7 @@ const OP_DEMO_TAPAHTUMAT = [
 
 // Tiliotedata
 let impTapahtumat = [];   // kaikki parsitut tapahtumat
-let impTositeNroLaskuri = null; // seuraava vapaa tositenumero tuonnin aikana
+let impTositeNroLaskuri = null; // varattu yhteensopivuutta varten (ei aktiivisessa käytössä)
 let impTuomatta = [];     // vielä tuomatta (indeksit impTapahtumat)
 let impTiliote = null;    // Vaihe 1 tulos: { pankki, iban, alkusaldo, loppusaldo, tapahtumat }
 let impVaihe = 1;         // Pipeline: 1=sisäänluku, 2=tarkistus, 3=matching
@@ -4015,12 +4015,8 @@ async function ladattuTiliote(tapahtumat, iban, period, tasmays) {
     `<span style="color:#7ec488">${auto} tunnistettu automaattisesti</span>
      &nbsp;·&nbsp; <span style="color:#e8a86a">${impTapahtumat.length - auto} vaatii vastatilin</span>`;
 
-  // Hae seuraava tositenumero tuonnin ajaksi
-  if (curYritys) {
-    const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id);
-    const nroData = await nroRes.json();
-    impTositeNroLaskuri = nroData.seuraava || 1;
-  }
+  // Tositteen numerointi haetaan kirjauksen yhteydessä lajilla BA.
+  impTositeNroLaskuri = null;
 
   // Täsmäytys tiliotteen yhteissummiin
   const tiTasmays = document.getElementById('ti-tasmays');
@@ -4241,13 +4237,14 @@ async function impTuoRivi(i) {
   const alv = brutto - netto;
   const selite = (t.maksu && t.maksu !== t.sel) ? t.sel + ' — ' + t.maksu : t.sel;
 
-  // Käytä paikallista laskuria — haettu ladattuTiliote:ssa
-  if (impTositeNroLaskuri === null) {
-    const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id);
-    const nroData = await nroRes.json();
-    impTositeNroLaskuri = nroData.seuraava || 1;
+  // Hae seuraava pankkikirjauksen tositenumero aina lajilla BA.
+  const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id + '&laji=BA');
+  const nroData = await nroRes.json();
+  const tosite_nro = nroData?.tosite_nro;
+  if (!tosite_nro) {
+    toast('Tositenumeron haku epäonnistui');
+    return;
   }
-  const tosite_nro = impTositeNroLaskuri++;
   console.log('tosite_nro saatu:', tosite_nro);
 
   // Rakenna rivit uudella saldo-mallilla

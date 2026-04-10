@@ -39,8 +39,15 @@ export async function POST(request: NextRequest) {
 
     let tositeNro = body.tosite_nro != null ? String(body.tosite_nro).trim() : ''
     if (!tositeNro) {
-      const { data: next, error: nextErr } = await supabaseAdmin!
-        .rpc('seuraava_tosite_nro', { p_asiakas_id: body.asiakas_id, p_laji: 'MU' })
+      let { data: next, error: nextErr } = await supabaseAdmin!
+        .rpc('seuraava_tosite_nro', { p_asiakas_id: body.asiakas_id, p_laji: 'BA' })
+      if (nextErr) {
+        // Fallback vanhaan lajiin, jos BA ei vielä ole DB-funktiossa.
+        const retry = await supabaseAdmin!
+          .rpc('seuraava_tosite_nro', { p_asiakas_id: body.asiakas_id, p_laji: 'MU' })
+        next = retry.data
+        nextErr = retry.error
+      }
       if (nextErr) return NextResponse.json({ error: nextErr.message }, { status: 500 })
       tositeNro = String(next || '').trim()
     }

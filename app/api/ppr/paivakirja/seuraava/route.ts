@@ -13,12 +13,20 @@ export async function GET(request: NextRequest) {
 
     if (!asiakas_id) return NextResponse.json({ error: 'asiakas_id vaaditaan' }, { status: 400 })
 
-    const { data, error } = await supabaseAdmin!
+    let { data, error } = await supabaseAdmin!
       .rpc('seuraava_tosite_nro', { p_asiakas_id: asiakas_id, p_laji: laji })
+
+    // Fallback: jos uusi laji ei ole vielä DB-funktiossa, käytä MU:ta.
+    if (error && laji === 'BA') {
+      const retry = await supabaseAdmin!
+        .rpc('seuraava_tosite_nro', { p_asiakas_id: asiakas_id, p_laji: 'MU' })
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    return NextResponse.json({ tosite_nro: data })
+    return NextResponse.json({ tosite_nro: data, laji_kaytossa: laji })
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
