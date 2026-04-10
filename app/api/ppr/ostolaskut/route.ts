@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { bumpToimittajaYhteinenTili, dominanttiOstolaskuRivi } from '@/lib/toimittaja-yhteiset'
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,6 +98,30 @@ export async function PATCH(request: NextRequest) {
           return { ...rivi, lasku_id: id }
         })
       )
+    }
+
+    if (paivitys.tila === 'kirjattu') {
+      const { data: olFull } = await supabaseAdmin!
+        .from('ppr_ostolaskut')
+        .select('id, toimittaja_id, rivit:ppr_ostolasku_rivit(tili, alv_prosentti, brutto)')
+        .eq('id', id)
+        .maybeSingle()
+      if (olFull?.toimittaja_id) {
+        const { data: tRow } = await supabaseAdmin!
+          .from('ppr_toimittajat')
+          .select('ytunnus, ovt_tunnus')
+          .eq('id', olFull.toimittaja_id)
+          .maybeSingle()
+        const dom = dominanttiOstolaskuRivi(olFull.rivit as any[])
+        if (dom && tRow) {
+          await bumpToimittajaYhteinenTili(supabaseAdmin!, {
+            ytunnus: tRow.ytunnus,
+            ovt: tRow.ovt_tunnus,
+            tili: dom.tili,
+            alv_prosentti: dom.alv_prosentti,
+          })
+        }
+      }
     }
 
     return NextResponse.json(data)

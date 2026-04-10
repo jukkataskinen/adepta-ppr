@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
+import { bumpToimittajaYhteinenTili, enrichToimittajatYhteisillaEhdotuksilla } from '@/lib/toimittaja-yhteiset'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,10 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    if (data?.length) {
+      await enrichToimittajatYhteisillaEhdotuksilla(supabaseAdmin!, data as Record<string, unknown>[])
+    }
 
     // Jos kirjanpitoasiakas_id annettu, suodata oletukset tälle asiakkaalle
     if (kirjanpitoasiakas_id && data) {
@@ -98,6 +103,18 @@ export async function POST(request: NextRequest) {
           alv_prosentti: alv_prosentti ?? 25.5,
           kayttokerrat: 1,
         }, { onConflict: 'toimittaja_id,tili' })
+
+      const { data: tRow } = await supabaseAdmin!
+        .from('ppr_toimittajat')
+        .select('ytunnus, ovt_tunnus')
+        .eq('id', toimittajaId)
+        .maybeSingle()
+      await bumpToimittajaYhteinenTili(supabaseAdmin!, {
+        ytunnus: tRow?.ytunnus,
+        ovt: tRow?.ovt_tunnus,
+        tili,
+        alv_prosentti: alv_prosentti ?? 25.5,
+      })
     }
 
     return NextResponse.json({ ok: true, toimittaja_id: toimittajaId }, { status: 201 })

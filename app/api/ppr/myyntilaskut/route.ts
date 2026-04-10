@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth0 } from '@/lib/auth0'
 import { supabaseAdmin } from '@/lib/supabase'
 import { tarkistaPaivamaaratEivatOleLukittuja } from '@/lib/kuukausilukko'
+import { haeYhteinenParasTili } from '@/lib/toimittaja-yhteiset'
 
 function alvMyyntiVelkaTili(alvPct: number): string {
   if (Math.abs(alvPct - 25.5) < 0.01) return '292041'
@@ -132,6 +133,8 @@ export async function POST(request: NextRequest) {
 
         // Hae toimittajan oletus kirjaustili
         let ostoTili = '4000'
+        let tiliOletuksista = false
+        let olToimittajaId: string | null = null
         // Hae lähettäjä toimittajarekisteristä OVT-tunnuksella (yksilöivin tunniste)
         // Lähettäjän OVT on tallennettu kirjanpitoasiakas.ovt_tunnus
         const { data: lahettajanTiedot } = await supabaseAdmin!
@@ -147,15 +150,18 @@ export async function POST(request: NextRequest) {
           .maybeSingle()
 
         if (toimittaja) {
+          olToimittajaId = toimittaja.id
           const asiakasOletus = (toimittaja.ppr_toimittaja_oletukset as any[])
             ?.find((o: any) => o.kirjanpitoasiakas_id === vastaanottaja.id)
           const globaaliOletus = (toimittaja.ppr_toimittaja_oletukset as any[])
             ?.sort((a: any, b: any) => b.kayttokerrat - a.kayttokerrat)[0]
-          ostoTili = asiakasOletus?.tili || globaaliOletus?.tili || '4000'
-
-          // Päivitä käyttökerrat
-          await supabaseAdmin!.from('ppr_toimittaja_tilastot')
-            .upsert({ toimittaja_id: toimittaja.id, tili: ostoTili, kayttokerrat: 1 }, { onConflict: 'toimittaja_id,tili' })
+          if (asiakasOletus?.tili) {
+            ostoTili = asiakasOletus.tili
+            tiliOletuksista = true
+          } else if (globaaliOletus?.tili) {
+            ostoTili = globaaliOletus.tili
+            tiliOletuksista = true
+          }
         } else if (lasku.kirjanpitoasiakas_ytunnus) {
           // Tarkista vielä kerran ettei OVT:llä löydy (race condition)
           const { data: tarkistus } = await supabaseAdmin!
@@ -164,7 +170,7 @@ export async function POST(request: NextRequest) {
             .eq('ovt_tunnus', lasku.asiakas_ovt_tunnus || '__EI__')
             .maybeSingle()
           if (tarkistus) {
-            // Toimittaja löytyi jo — käytetään sitä
+            olToimittajaId = tarkistus.id
           } else {
             // Luo toimittaja automaattisesti
             const { data: uusiToimittaja } = await supabaseAdmin!
@@ -176,11 +182,24 @@ export async function POST(request: NextRequest) {
               })
               .select('id')
               .single()
-            if (uusiToimittaja) {
-              await supabaseAdmin!.from('ppr_toimittaja_tilastot')
-                .insert({ toimittaja_id: uusiToimittaja.id, tili: '4000', kayttokerrat: 1 })
-            }
+            if (uusiToimittaja) olToimittajaId = uusiToimittaja.id
           }
+        }
+
+        if (!tiliOletuksista) {
+          const yhteinen = await haeYhteinenParasTili(
+            supabaseAdmin!,
+            lahettajanTiedot?.y_tunnus,
+            lahettajanTiedot?.ovt_tunnus
+          )
+          if (yhteinen?.tili) ostoTili = yhteinen.tili
+        }
+
+        if (olToimittajaId && ostoTili) {
+          await supabaseAdmin!.from('ppr_toimittaja_tilastot').upsert(
+            { toimittaja_id: olToimittajaId, tili: ostoTili, kayttokerrat: 1 },
+            { onConflict: 'toimittaja_id,tili' }
+          )
         }
 
         // Luo ostolasku hyväksyntäkiertoon suoran kirjauksen sijaan
@@ -189,7 +208,7 @@ export async function POST(request: NextRequest) {
           .insert({
             kirjanpitoasiakas_id: vastaanottaja.id,
             toimittaja_nimi: (lahettajanTiedot as any)?.nimi || lasku.asiakas_nimi || 'Tuntematon',
-            toimittaja_id: toimittaja?.id || null,
+            toimittaja_id: olToimittajaId,
             lasku_nro: null,
             toimittajan_lasku_nro: tositeNro,
             pvm: lasku.pvm,

@@ -990,6 +990,7 @@ input[type=number] { -moz-appearance: textfield; }
               </div>
               <button onclick="tmvTallenna()" style="padding:7px 18px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Tallenna asetukset</button>
             </div>
+            <div id="tmv-yhteinen-pilvi" style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:16px;font-size:12px;color:var(--inm)"></div>
             <div style="background:var(--ppw);border:1px solid var(--bd);border-radius:8px;padding:16px">
               <div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Globaali tilasto — kaikki PPR-asiakkaat</div>
               <div id="tmv-globaali" style="font-size:12px;color:var(--inm)"></div>
@@ -10767,10 +10768,11 @@ function tmvRenderLista(lista) {
   if (!el) return;
   el.innerHTML = data.map(t => {
     const akt = tmvValittu?.id === t.id;
-    const oletus = t.oletus?.tili || '4000';
+    const oletus = t.oletus?.tili || t.yhteinen_ehdotus?.tili || '4000';
+    const oletusVihje = t.oletus?.tili ? '' : (t.yhteinen_ehdotus?.tili ? ' · pilvi' : '');
     return `<div onclick="tmvNayta('${t.id}')" style="padding:10px 12px;border-radius:6px;cursor:pointer;border:1px solid ${akt?'rgba(29,158,117,.2)':'transparent'};background:${akt?'var(--fmist)':''};margin-bottom:2px">
       <div style="font-family:var(--ffm);font-weight:600;color:var(--fl);font-size:13px">${t.nimi||''}</div>
-      <div style="font-size:10px;color:var(--inu);margin-top:2px">${t.ytunnus||''} · Tili: ${oletus}</div>
+      <div style="font-size:10px;color:var(--inu);margin-top:2px">${t.ytunnus||''} · Tili: ${oletus}${oletusVihje}</div>
     </div>`;
   }).join('') || '<div style="padding:24px;text-align:center;color:var(--inu);font-size:12px">Ei toimittajia</div>';
 }
@@ -10783,12 +10785,27 @@ function tmvNayta(id) {
   document.getElementById('tmv-tiedot').style.display = 'block';
   document.getElementById('tmv-nimi').textContent = tmvValittu.nimi || '';
   document.getElementById('tmv-ytunnus').textContent = (tmvValittu.ytunnus ? 'Y-tunnus: ' + tmvValittu.ytunnus : '') + (tmvValittu.ovt_tunnus ? ' · OVT: ' + tmvValittu.ovt_tunnus : '');
-  document.getElementById('tmv-tili').value = tmvValittu.oletus?.tili || '4000';
-  document.getElementById('tmv-alv').value = tmvValittu.oletus?.alv_prosentti || '25.5';
+  const ehdotusTili = tmvValittu.oletus?.tili || tmvValittu.yhteinen_ehdotus?.tili || '4000';
+  const ehdotusAlv = tmvValittu.oletus?.alv_prosentti ?? tmvValittu.yhteinen_ehdotus?.alv_prosentti ?? 25.5;
+  document.getElementById('tmv-tili').value = ehdotusTili;
+  document.getElementById('tmv-alv').value = String(ehdotusAlv);
 
   // Päivitä tilin nimi
-  const tiliInfo = TILIT.find(t => t.nro === (tmvValittu.oletus?.tili || '4000'));
+  const tiliInfo = TILIT.find(t => t.nro === ehdotusTili);
   document.getElementById('tmv-tili-nimi').textContent = tiliInfo?.lbl || '';
+
+  const pilviEl = document.getElementById('tmv-yhteinen-pilvi');
+  if (pilviEl) {
+    const y = tmvValittu.yhteinen_ehdotus;
+    if (y && y.tili) {
+      pilviEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Yhteinen ehdotus (koko palvelu)</div>' +
+        '<div>Eniten käytetty tili tälle toimittajalle (Y-tunnus / OVT) kaikissa organisaatioissa: <strong style="font-family:var(--ffm);color:var(--fl)">' + y.tili + '</strong> · ALV ' + y.alv_prosentti + '% · <span style="color:var(--inu)">n. ' + y.kayttokerrat + ' vahvistettua kirjaa</span></div>' +
+        '<div style="font-size:11px;color:var(--inu);margin-top:8px">Jos tällä asiakkaalla ei ole omaa oletusta, lomake täyttää tämän automaattisesti.</div>';
+    } else {
+      pilviEl.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Yhteinen ehdotus (koko palvelu)</div>' +
+        '<div style="color:var(--inu)">Ei vielä dataa. Kertyy kun ostolaskuja merkitään kirjatuiksi tai tallennat toimittajan oletuksen.</div>';
+    }
+  }
 
   // Globaali tilasto
   const tilastot = tmvValittu.ppr_toimittaja_tilastot || [];
@@ -11656,6 +11673,9 @@ async function lataaOlData() {
   try {
     const res = await fetch('/api/ppr/ostolaskut?kirjanpitoasiakas_id=' + curYritys.id);
     if (res.ok) olLaskut = await res.json();
+    const resT = await fetch('/api/ppr/toimittajat?kirjanpitoasiakas_id=' + encodeURIComponent(curYritys.id));
+    if (resT.ok) window._olToimittajat = await resT.json();
+    else window._olToimittajat = [];
   } catch(e) { console.warn('lataaOlData:', e); }
   olRenderLista();
 }
@@ -11701,7 +11721,7 @@ function olNayta(id) {
   const tilaNimi = t => t==='kirjattu'?'Kirjattu':t==='hyvaksytty'?'Hyväksytty':t==='tarkistuksessa'?'Tarkistuksessa':t==='maksettu'?'Maksettu':'Saapunut';
 
   const toimittaja = window._olToimittajat?.find(t => t.id === l.toimittaja_id);
-  const oletus_tili = toimittaja?.oletus?.tili || '4000';
+  const oletus_tili = toimittaja?.oletus?.tili || toimittaja?.yhteinen_ehdotus?.tili || '4000';
 
   document.getElementById('ol-ei-valittu').style.display = 'none';
   const lom = document.getElementById('ol-lomake');
