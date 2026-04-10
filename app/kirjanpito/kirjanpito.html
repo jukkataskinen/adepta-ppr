@@ -4463,6 +4463,14 @@ function suljeTarkistus() {
 
 async function siirryVaihe3() {
   console.log('siirryVaihe3 kutsuttu', 'impTiliote:', impTiliote?.tapahtumat?.length, 'impTapahtumat:', impTapahtumat?.length, 'laskut:', laskut?.length);
+  const hyvaksyBtn = document.getElementById('tark-hyvaksy-btn');
+  if (hyvaksyBtn) {
+    hyvaksyBtn.disabled = true;
+    hyvaksyBtn.textContent = 'Kohdistus käynnistyy...';
+    hyvaksyBtn.style.background = 'rgba(255,255,255,.15)';
+    hyvaksyBtn.style.color = '#fff';
+    hyvaksyBtn.style.cursor = 'wait';
+  }
   suljeTarkistus();
   impVaihe = 3;
   // Anna selaimelle mahdollisuus piirtää modalin sulku ennen raskaita laskentoja.
@@ -4537,6 +4545,10 @@ async function esirenderöiLaskut() {
 }
 
 function aloitaMatchGame() {
+  const statsEl = document.getElementById('mg-stats');
+  if (statsEl) statsEl.textContent = 'Valmistellaan kohdistusta...';
+  const headerEl = document.getElementById('mg-header-info');
+  if (headerEl) headerEl.textContent = 'Ladataan tapahtumia...';
   mgQueue = impTapahtumat
     .map((t, i) => i)
     .filter(i => impTapahtumat[i].tila !== 'tuotu' && impTapahtumat[i].tila !== 'ohitettu');
