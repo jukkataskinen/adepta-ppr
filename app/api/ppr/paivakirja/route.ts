@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabaseAdmin!
       .from('ppr_paivakirja')
-      .select('id, tosite_nro, paivamaara, tili, selite, saldo, alv_prosentti, tosite_pdf_path')
+      .select('id, tosite_nro, paivamaara, tili, selite, saldo, alv_prosentti, tosite_pdf_path, tosite_tiliote_pdf_path')
       .eq('asiakas_id', asiakas_id)
       .order('paivamaara')
       .order('tosite_nro')
@@ -44,8 +44,15 @@ export async function POST(request: NextRequest) {
       .single()
 
     const body = await request.json()
-    const { asiakas_id, tosite_nro, paivamaara, rivit, tosite_pdf_path } = body
-    console.log('paivakirja POST params:', { asiakas_id, tosite_nro, paivamaara, rivitCount: rivit?.length, tosite_pdf_path: !!tosite_pdf_path })
+    const { asiakas_id, tosite_nro, paivamaara, rivit, tosite_pdf_path, tosite_tiliote_pdf_path } = body
+    console.log('paivakirja POST params:', {
+      asiakas_id,
+      tosite_nro,
+      paivamaara,
+      rivitCount: rivit?.length,
+      tosite_pdf_path: !!tosite_pdf_path,
+      tosite_tiliote_pdf_path: !!tosite_tiliote_pdf_path,
+    })
 
     if (!asiakas_id || !tosite_nro || !paivamaara || !rivit?.length) {
       return NextResponse.json({ error: 'asiakas_id, tosite_nro, paivamaara ja rivit vaaditaan' }, { status: 400 })
@@ -84,6 +91,7 @@ export async function POST(request: NextRequest) {
       alv_prosentti: r.alv_prosentti ?? null,
       luonut_kayttaja_id: kayttaja?.id ?? null,
       tosite_pdf_path: idx === 0 && tosite_pdf_path ? tosite_pdf_path : null,
+      tosite_tiliote_pdf_path: idx === 0 && tosite_tiliote_pdf_path ? tosite_tiliote_pdf_path : null,
     }))
     console.log('paivakirja POST insert:', JSON.stringify(insert[0]))
 

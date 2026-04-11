@@ -10,6 +10,8 @@ type ApplyBody = {
   suggestion?: { invoiceIdx?: number; toimittaja?: string | null } | null
   tosite_nro?: string | number
   tosite_pdf_path?: string | null
+  /** Sama storage-polku kaikille saman tuonnin BA-tositeille (tiliote kerran bucketissa). */
+  tosite_tiliote_pdf_path?: string | null
 }
 
 function alvMyyntiVelkaTili(alvPct: number): string {
@@ -105,9 +107,13 @@ export async function POST(request: NextRequest) {
       alv_prosentti: r.alv_prosentti,
       luonut_kayttaja_id: kayttaja?.id ?? null,
       tosite_pdf_path: null as string | null,
+      tosite_tiliote_pdf_path: null as string | null,
     }))
     if (insert.length > 0 && body.tosite_pdf_path) {
       insert[0].tosite_pdf_path = body.tosite_pdf_path
+    }
+    if (insert.length > 0 && body.tosite_tiliote_pdf_path) {
+      insert[0].tosite_tiliote_pdf_path = body.tosite_tiliote_pdf_path
     }
     const { error: insErr } = await supabaseAdmin!.from('ppr_paivakirja').insert(insert)
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })

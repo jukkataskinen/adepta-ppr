@@ -2750,6 +2750,7 @@ async function lataaRivit(asiakas_id) {
       netto: Math.abs(Number(d.saldo)),
       alvp: Number(d.alv_prosentti) || 0,
       tosite_pdf_path: d.tosite_pdf_path || null,
+      tosite_tiliote_pdf_path: d.tosite_tiliote_pdf_path || null,
     }));
   } else {
     rows = [];
@@ -2891,6 +2892,7 @@ function tosNaytaTiedot(t) {
     // Varmistus: jos tosite_pdf_path tuli paivakirjariveillä, näytä se aina liitteenä
     // vaikka ppr_tosite_liitteet-taulussa ei olisi erillistä riviä.
     const rowPdfPath = (t.rivit || []).map(r => r.tosite_pdf_path).find(Boolean);
+    const rowTiliotePath = (t.rivit || []).map(r => r.tosite_tiliote_pdf_path).find(Boolean);
     if (rowPdfPath && !tosLiitteet.some(l => l.storage_path === rowPdfPath)) {
       tosLiitteet.unshift({
         id: 'rowpdf-' + t.nro,
@@ -2902,6 +2904,26 @@ function tosNaytaTiedot(t) {
       tosValittuLiite = tosLiitteet[0];
       tosRenderLiiteLista();
       tosNaytaLiite(tosLiitteet[0]);
+    }
+    if (rowTiliotePath && rowTiliotePath !== rowPdfPath && !tosLiitteet.some(l => l.storage_path === rowTiliotePath)) {
+      const li = {
+        id: 'rowtiliote-' + t.nro,
+        tosite_nro: t.nro,
+        tiedostonimi: 'Tiliote.pdf',
+        storage_path: rowTiliotePath,
+        koko_bytes: 0,
+      };
+      let insertAt = tosLiitteet.length;
+      if (rowPdfPath) {
+        const ix = tosLiitteet.findIndex(l => l.storage_path === rowPdfPath);
+        insertAt = ix >= 0 ? ix + 1 : tosLiitteet.length;
+      } else {
+        const ix = tosLiitteet.findIndex(l => (l.storage_path || '').includes('/laskut/'));
+        insertAt = ix >= 0 ? ix + 1 : tosLiitteet.length;
+      }
+      tosLiitteet.splice(insertAt, 0, li);
+      tosRenderLiiteLista();
+      if (!tosValittuLiite && tosLiitteet.length) tosNaytaLiite(tosLiitteet[0]);
     }
   });
 
@@ -2957,17 +2979,16 @@ async function tosLataaLiitteet(tositeNro) {
       .order('created_at');
     if (!error && data) tosLiitteet = data;
 
-    // Fallback: jos liite on tallennettu suoraan paivakirjan tosite_pdf_path-kenttään
-    // (esim. BA-kohdistus), näytä se myös liitelistassa.
+    // Fallback: paivakirjan liitteet (lasku-PDF + yhteinen tiliote-PDF pankkituonnista)
     const { data: paivakirjaRows, error: pkErr } = await _sb
       .from('ppr_paivakirja')
-      .select('tosite_pdf_path')
+      .select('tosite_pdf_path, tosite_tiliote_pdf_path')
       .eq('asiakas_id', curYritys?.id || '')
       .eq('tosite_nro', tositeNro)
-      .not('tosite_pdf_path', 'is', null)
-      .limit(1);
-    if (!pkErr) {
-      const pdfPath = paivakirjaRows?.[0]?.tosite_pdf_path;
+      .limit(100);
+    if (!pkErr && paivakirjaRows?.length) {
+      const pdfPath = paivakirjaRows.map(r => r.tosite_pdf_path).find(Boolean);
+      const tiliotePath = paivakirjaRows.map(r => r.tosite_tiliote_pdf_path).find(Boolean);
       if (pdfPath && !tosLiitteet.some(l => l.storage_path === pdfPath)) {
         tosLiitteet.unshift({
           id: 'pkpdf-' + tositeNro,
@@ -2976,6 +2997,20 @@ async function tosLataaLiitteet(tositeNro) {
           storage_path: pdfPath,
           koko_bytes: 0,
         });
+      }
+      if (tiliotePath && tiliotePath !== pdfPath && !tosLiitteet.some(l => l.storage_path === tiliotePath)) {
+        const li = {
+          id: 'pktiliote-' + tositeNro,
+          tosite_nro: tositeNro,
+          tiedostonimi: 'Tiliote.pdf',
+          storage_path: tiliotePath,
+          koko_bytes: 0,
+        };
+        if (pdfPath && tosLiitteet.length && tosLiitteet[0].storage_path === pdfPath) {
+          tosLiitteet.splice(1, 0, li);
+        } else {
+          tosLiitteet.unshift(li);
+        }
       }
     }
   } catch(e) { console.warn('tosLataaLiitteet:', e); }
@@ -4504,6 +4539,8 @@ let impTuomatta = [];     // vielä tuomatta (indeksit impTapahtumat)
 let impTiliote = null;    // Vaihe 1 tulos: { pankki, iban, alkusaldo, loppusaldo, tapahtumat }
 let impVaihe = 1;         // Pipeline: 1=sisäänluku, 2=tarkistus, 3=matching
 let impPdfBase64 = null;  // Alkuperäinen PDF base64
+let impTiliotePdfStoragePath = null; // Tiliote Storage-polku (yksi upload / tuonti, jaettu BA-tositeille)
+let impTiliotePdfUploadPromise = null;
 let vtIdx = null;         // modal: käsiteltävä tapahtuma-indeksi
 let vtSelvitys = [];      // väliaikaiset ratkaisut käy-läpi-moodissa
 let vtSelNro = null;      // valittu vastatili-nro modalissa
@@ -5036,6 +5073,7 @@ async function impTuoRivi(i, opts = {}) {
       const lasku = laskut[t.laskuIdx];
       tosite_pdf_path = await lataaLaskuPdf(lasku.pdfBase64, lasku.pageNumber || 1, tosite_nro);
     }
+    const tosite_tiliote_pdf_path = await ensureImpTiliotePdfStoragePath();
 
     const res = await fetch('/api/ppr/paivakirja', {
       method: 'POST',
@@ -5046,6 +5084,7 @@ async function impTuoRivi(i, opts = {}) {
         paivamaara: t.arvopv,
         rivit,
         tosite_pdf_path,
+        tosite_tiliote_pdf_path,
       })
     });
     const json = await res.json();
@@ -5512,6 +5551,7 @@ async function mgProcessApplyQueue() {
       if (!t) continue;
       try {
         const tositePdfPath = await mgUploadMatchedInvoicePdf(task.lasku, task.ti);
+        const tositeTiliotePath = await ensureImpTiliotePdfStoragePath();
         const resp = await fetch('/api/ppr/matching/apply', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -5525,6 +5565,7 @@ async function mgProcessApplyQueue() {
                 }
               : null,
             tosite_pdf_path: tositePdfPath,
+            tosite_tiliote_pdf_path: tositeTiliotePath,
           })
         });
         const data = await resp.json();
@@ -6346,6 +6387,30 @@ async function lataaLaskuPdf(base64, sivuNro, tositeNro) {
   } catch(e) { console.warn('lataaLaskuPdf virhe:', e); return null; }
 }
 
+async function ensureImpTiliotePdfStoragePath() {
+  if (impTiliotePdfStoragePath) return impTiliotePdfStoragePath;
+  if (impTiliotePdfUploadPromise) return impTiliotePdfUploadPromise;
+  if (!impPdfBase64 || !window._PPR?.orgId) return null;
+  impTiliotePdfUploadPromise = (async () => {
+    try {
+      const bytes = Uint8Array.from(atob(impPdfBase64), c => c.charCodeAt(0));
+      const kk = String(impTiliote?.kausi || '')
+        .replace(/[^0-9-]/g, '')
+        .slice(0, 7) || new Date().toISOString().slice(0, 7);
+      const polku = window._PPR.orgId + '/tiliotteet/ba-tiliote_' + kk + '_' + Date.now() + '.pdf';
+      const path = await lataaStorageen(window._PPR.orgId, polku, bytes);
+      if (path) impTiliotePdfStoragePath = path;
+      return impTiliotePdfStoragePath;
+    } catch (e) {
+      console.warn('Tiliotteen upload (BA-liite) epäonnistui:', e);
+      return null;
+    } finally {
+      impTiliotePdfUploadPromise = null;
+    }
+  })();
+  return impTiliotePdfUploadPromise;
+}
+
 // ── TAB 2: LASKUT PDF ─��──────────────────────────────────────
 async function handleLaskutFile(e) {
   const f = e.target.files[0];
@@ -6847,6 +6912,8 @@ async function analyseTilioteErillinen(opts = {}) {
 
   const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
   impPdfBase64 = base64;
+  impTiliotePdfStoragePath = null;
+  impTiliotePdfUploadPromise = null;
 
   // Nordea: käytä OCR-parseria (ei AI:ta)
   if (pankki === 'nordea') {
@@ -7337,6 +7404,8 @@ async function analysePDF(file) {
       if (nordeaResult && nordeaResult.tapahtumat.length > 0) {
         setStatus('Valmis!', `${nordeaResult.tapahtumat.length} tapahtumaa parsittu (OCR)`, 100);
         impPdfBase64 = base64;
+        impTiliotePdfStoragePath = null;
+        impTiliotePdfUploadPromise = null;
         const parsed = { ...nordeaResult, tiliote: nordeaResult, laskut: [], tasmaytyket: [] };
         await prosessoiAITulos(parsed, file.name, base64);
         return;
@@ -7525,6 +7594,8 @@ async function prosessoiAITulos(parsed, filename, base64) {
   const sl = document.getElementById('scan-loader');
   if (sl) sl.style.display = 'none';
   impPdfBase64 = base64;
+  impTiliotePdfStoragePath = null;
+  impTiliotePdfUploadPromise = null;
 
   // 1. Validoi ja muunna tiliotetapahtumat
   const tiliote = parsed.tiliote || parsed;
