@@ -1824,6 +1824,17 @@ input[type=number] { -moz-appearance: textfield; }
   </div>
 </div>
 
+<div id="pankki-post-mg-modal" style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(26,28,24,.55);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--pp);border:1px solid var(--bd);border-radius:12px;max-width:420px;width:100%;padding:22px 24px;box-shadow:0 16px 48px rgba(0,0,0,.18);color:var(--ink)">
+    <div style="font-size:15px;font-weight:600;margin-bottom:10px">Pankkituonti</div>
+    <p style="margin:0 0 18px;font-size:13px;line-height:1.45;color:var(--inm)">Tiedot tallennettu. Haluatko tarkastella tositteita?</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" class="pankki-btn-ghost" onclick="pankkiPostMatchEi()">Ei</button>
+      <button type="button" class="pankki-btn-primary" onclick="pankkiPostMatchKyllä()">Kyllä</button>
+    </div>
+  </div>
+</div>
+
 <!-- Tuote-modal -->
 <div id="tuote-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:12px;width:420px;padding:24px">
@@ -5392,6 +5403,28 @@ let mgNeedsLedgerReload = false;
 let mgApplyQueue = [];
 let mgApplyInFlight = false;
 let mgFlushAfterQueue = false;
+let mgPendingPostMatchDialog = false;
+
+function naytaPankkiPostMatchKysely() {
+  const el = document.getElementById('pankki-post-mg-modal');
+  if (el) el.style.display = 'flex';
+}
+
+function suljePankkiPostMatchKysely() {
+  const el = document.getElementById('pankki-post-mg-modal');
+  if (el) el.style.display = 'none';
+}
+
+function pankkiPostMatchKyllä() {
+  suljePankkiPostMatchKysely();
+  showPanel('tositteet');
+}
+
+function pankkiPostMatchEi() {
+  suljePankkiPostMatchKysely();
+  if (curYritys) lataaEtusivu();
+  showPanel('etusivu');
+}
 
 function mgDefaultsKey() {
   return curYritys?.id ? ('ppr_ba_defaults_' + curYritys.id) : '';
@@ -5508,11 +5541,17 @@ async function mgProcessApplyQueue() {
     if (mgFlushAfterQueue) {
       mgFlushAfterQueue = false;
       renderImpTable();
+      const pendingAsk = mgPendingPostMatchDialog;
+      mgPendingPostMatchDialog = false;
+      let chain = Promise.resolve();
       if (mgNeedsLedgerReload && curYritys?.id) {
         const asiakasId = curYritys.id;
         mgNeedsLedgerReload = false;
-        lataaRivit(asiakasId).catch(e => console.warn('lataaRivit (match game) epäonnistui:', e));
+        chain = lataaRivit(asiakasId).catch(e => console.warn('lataaRivit (match game) epäonnistui:', e));
       }
+      chain.then(() => {
+        if (pendingAsk && mgKirjattu > 0) naytaPankkiPostMatchKysely();
+      });
     }
   }
 }
@@ -5567,19 +5606,32 @@ function aloitaMatchGame() {
 
 function lopetaMatchGame() {
   document.getElementById('match-game').style.display = 'none';
-  if (mgKirjattu > 0 || mgOhitettu2 > 0) {
-    toast(`Täsmäytys valmis: ${mgKirjattu} kirjattu, ${mgOhitettu2} ohitettu`);
+  const kirjattu = mgKirjattu;
+  const ohitettu = mgOhitettu2;
+  if (kirjattu > 0 || ohitettu > 0) {
+    toast(`Täsmäytys valmis: ${kirjattu} kirjattu, ${ohitettu} ohitettu`);
   }
   if (mgApplyInFlight || mgApplyQueue.length > 0) {
     mgFlushAfterQueue = true;
+    mgPendingPostMatchDialog = kirjattu > 0;
     toast('Kirjauksia viimeistellään taustalla...');
     return;
   }
   renderImpTable();
+  const naytaSeuraava = () => {
+    if (kirjattu > 0) naytaPankkiPostMatchKysely();
+  };
   if (mgNeedsLedgerReload && curYritys?.id) {
     const asiakasId = curYritys.id;
     mgNeedsLedgerReload = false;
-    lataaRivit(asiakasId).catch(e => console.warn('lataaRivit (match game) epäonnistui:', e));
+    lataaRivit(asiakasId)
+      .then(() => naytaSeuraava())
+      .catch(e => {
+        console.warn('lataaRivit (match game) epäonnistui:', e);
+        naytaSeuraava();
+      });
+  } else {
+    naytaSeuraava();
   }
 }
 
