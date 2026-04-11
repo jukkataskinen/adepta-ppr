@@ -7,7 +7,12 @@ import { kirjaTapahtumaloki } from '@/lib/tapahtumaloki'
 type ApplyBody = {
   asiakas_id: string
   tapahtuma: any
-  suggestion?: { invoiceIdx?: number; toimittaja?: string | null } | null
+  suggestion?: {
+    invoiceIdx?: number
+    toimittaja?: string | null
+    score?: number | null
+    reasons?: unknown
+  } | null
   tosite_nro?: string | number
   tosite_pdf_path?: string | null
   /** Sama storage-polku kaikille saman tuonnin BA-tositeille (tiliote kerran bucketissa). */
