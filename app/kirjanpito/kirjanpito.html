@@ -4991,7 +4991,10 @@ async function impTuoRivi(i, opts = {}) {
   const brutto = Math.abs(summa);
   const netto = alvp > 0 ? brutto / (1 + alvp/100) : brutto;
   const alv = brutto - netto;
-  const selite = (t.maksu && t.maksu !== t.sel) ? t.sel + ' — ' + t.maksu : t.sel;
+  const laskuLink = t.laskuIdx != null && Array.isArray(laskut) ? laskut[t.laskuIdx] : null;
+  const vahvToim = (laskuLink?.toimittaja || '').trim();
+  const pankkiSelite = (t.maksu && t.maksu !== t.sel) ? t.sel + ' — ' + t.maksu : (t.sel || 'Pankkitapahtuma');
+  const selite = vahvToim || pankkiSelite;
 
   // Hae seuraava pankkikirjauksen tositenumero aina lajilla BA.
   const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + curYritys.id + '&laji=BA');
@@ -5515,7 +5518,12 @@ async function mgProcessApplyQueue() {
           body: JSON.stringify({
             asiakas_id: curYritys.id,
             tapahtuma: t,
-            suggestion: task.lasku ? { invoiceIdx: task.lasku.idx } : null,
+            suggestion: task.lasku
+              ? {
+                  invoiceIdx: task.lasku.idx,
+                  toimittaja: (task.lasku.toimittaja || '').trim() || undefined,
+                }
+              : null,
             tosite_pdf_path: tositePdfPath,
           })
         });

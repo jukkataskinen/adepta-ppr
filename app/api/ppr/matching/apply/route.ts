@@ -7,7 +7,7 @@ import { kirjaTapahtumaloki } from '@/lib/tapahtumaloki'
 type ApplyBody = {
   asiakas_id: string
   tapahtuma: any
-  suggestion?: any
+  suggestion?: { invoiceIdx?: number; toimittaja?: string | null } | null
   tosite_nro?: string | number
   tosite_pdf_path?: string | null
 }
@@ -45,7 +45,11 @@ export async function POST(request: NextRequest) {
     const brutto = Math.abs(summa)
     const netto = alvp > 0 ? brutto / (1 + alvp / 100) : brutto
     const alv = brutto - netto
-    const selite = (t.maksu && t.maksu !== t.sel) ? `${t.sel} — ${t.maksu}` : (t.sel || 'Pankkitapahtuma')
+    const vahvToim =
+      typeof body.suggestion?.toimittaja === 'string' ? body.suggestion.toimittaja.trim() : ''
+    const pankkiSelite =
+      t.maksu && t.maksu !== t.sel ? `${t.sel} — ${t.maksu}` : (t.sel || 'Pankkitapahtuma')
+    const selite = vahvToim || pankkiSelite
 
     let tositeNro = body.tosite_nro != null ? String(body.tosite_nro).trim() : ''
     if (!tositeNro) {
