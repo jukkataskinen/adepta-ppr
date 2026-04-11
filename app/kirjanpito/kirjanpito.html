@@ -1759,13 +1759,9 @@ input[type=number] { -moz-appearance: textfield; }
         <div id="mg-kirjaus" class="pankki-mg-card">
           <div class="pankki-tark-cap" style="margin-bottom:8px">Ehdotettu kirjaus</div>
           <div style="display:flex;flex-direction:column;gap:6px;font-size:11px">
-            <input id="mg-tili-filter" class="pankki-inp" type="text" placeholder="Hae tiliä numerolla tai nimellä…"
-              oninput="mgFilterTilit(this.value)" style="width:100%;padding:6px 8px;font-size:11px">
             <div style="display:flex;align-items:center;gap:4px">
               <span style="color:var(--inu);width:14px;font-size:10px;font-weight:600">D</span>
-              <select id="mg-tili-select" class="pankki-inp" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px">
-                <option value="">? Valitse tili</option>
-              </select>
+              <div id="mg-tili-ac" style="flex:1;min-width:0"></div>
               <span id="mg-debet-summa" style="font-family:var(--ffm);color:var(--ink);white-space:nowrap;min-width:55px;text-align:right">—</span>
             </div>
             <div style="display:flex;align-items:center;gap:4px">
@@ -5603,32 +5599,10 @@ function mgDropLasku(e) {
   if (!isNaN(laskuIdx)) mgVaihdaLasku(laskuIdx);
 }
 
-function mgPopulateTiliSelect(filterText = '') {
-  const sel = document.getElementById('mg-tili-select');
-  if (!sel) return;
-  const current = sel.value;
-  const q = (filterText || '').toLowerCase().trim();
-  sel.innerHTML = '<option value="">? Valitse tili</option>';
-  const filtered = q
-    ? TILIT.filter(t =>
-        String(t.nro || '').toLowerCase().includes(q) ||
-        String(t.lbl || '').toLowerCase().includes(q)
-      )
-    : TILIT;
-  filtered.forEach(t => {
-    sel.innerHTML += `<option value="${t.nro}">${t.nro} ${t.lbl}</option>`;
-  });
-  if (current && !filtered.some(t => t.nro === current)) {
-    const selected = TILIT.find(t => t.nro === current);
-    if (selected) {
-      sel.innerHTML += `<option value="${selected.nro}">${selected.nro} ${selected.lbl}</option>`;
-    }
-  }
-  if (current) sel.value = current;
-}
-
-function mgFilterTilit(query) {
-  mgPopulateTiliSelect(query || '');
+function mgNykyinenMgTili() {
+  const raw = document.getElementById('mg-tili-ac-input')?.value?.trim() || '';
+  if (!raw) return '';
+  return TILIT.some(t => t.nro === raw) ? raw : '';
 }
 
 function mgRenderKirjaus(t, lasku) {
@@ -5636,11 +5610,6 @@ function mgRenderKirjaus(t, lasku) {
   const brutto = Math.abs(t.summa);
   const fmt = v => v.toLocaleString('fi-FI',{minimumFractionDigits:2});
 
-  const filterEl = document.getElementById('mg-tili-filter');
-  if (filterEl) filterEl.value = '';
-  mgPopulateTiliSelect('');
-
-  const sel = document.getElementById('mg-tili-select');
   const alvSel = document.getElementById('mg-alv-select');
   let autoTili = '';
   let autoAlv = 25.5;
@@ -5674,22 +5643,28 @@ function mgRenderKirjaus(t, lasku) {
     }
   }
 
-  sel.value = autoTili || '';
+  luoTiliInput('mg-tili-ac', autoTili || '', () => mgTiliChanged());
+  const mgTiliInp = document.getElementById('mg-tili-ac-input');
+  if (mgTiliInp) {
+    mgTiliInp.style.fontSize = '11px';
+    mgTiliInp.addEventListener('input', mgTiliChanged);
+  }
   alvSel.value = String(autoAlv);
   mgSetSaveDefault(!!t._saveDefault);
 
   // D/K labelit ja summat suunnan mukaan
-  const dLabel = sel.parentElement.querySelector('span:first-child');
-  const kLabel = document.getElementById('mg-kredit-tili').parentElement.querySelector('span:first-child');
+  const tiliWrap = document.getElementById('mg-tili-ac');
+  const dLabel = tiliWrap?.parentElement?.querySelector('span:first-child');
+  const kLabel = document.getElementById('mg-kredit-tili')?.parentElement?.querySelector('span:first-child');
   if (pos) {
     // Tulo tilille: D 1910 Pankkitili, K vastatili
-    dLabel.textContent = 'K';
-    kLabel.textContent = 'D';
+    if (dLabel) dLabel.textContent = 'K';
+    if (kLabel) kLabel.textContent = 'D';
     document.getElementById('mg-kredit-tili').innerHTML = '<span style="color:var(--fl)">1910</span> Pankkitili';
   } else {
     // Meno tililtä: D vastatili, K 1910 Pankkitili
-    dLabel.textContent = 'D';
-    kLabel.textContent = 'K';
+    if (dLabel) dLabel.textContent = 'D';
+    if (kLabel) kLabel.textContent = 'K';
     document.getElementById('mg-kredit-tili').innerHTML = '<span style="color:var(--fl)">1910</span> Pankkitili';
   }
 
@@ -5701,16 +5676,17 @@ function mgRenderKirjaus(t, lasku) {
 }
 
 function mgTiliChanged() {
-  const sel = document.getElementById('mg-tili-select');
+  const inp = document.getElementById('mg-tili-ac-input');
+  const tili = mgNykyinenMgTili();
   const btn = document.getElementById('mg-hyvaksy');
   const status = document.getElementById('mg-tili-status');
-  if (sel.value) {
+  if (tili) {
     btn.disabled = false;
     btn.className = 'pankki-btn-primary';
     btn.style.cursor = 'pointer';
     btn.style.opacity = '';
     btn.title = '';
-    sel.style.borderColor = 'var(--fg)';
+    if (inp) inp.style.borderColor = 'var(--fg)';
     status.textContent = '✓ Vahvistettu';
     status.style.color = 'var(--fg3)';
     status.style.display = 'inline';
@@ -5720,7 +5696,7 @@ function mgTiliChanged() {
     btn.style.cursor = 'not-allowed';
     btn.style.opacity = '';
     btn.title = 'Valitse ensin kirjaustili';
-    sel.style.borderColor = 'var(--bd)';
+    if (inp) inp.style.borderColor = 'var(--bd)';
     status.textContent = '';
     status.style.display = 'none';
   }
@@ -5939,10 +5915,11 @@ async function mgHyvaksy() {
   const lasku = t._mgLasku;
 
   // Lue tili ja ALV selecteistä
-  const valittuTili = document.getElementById('mg-tili-select').value;
+  const valittuTili = mgNykyinenMgTili();
   const valittuAlv = parseFloat(document.getElementById('mg-alv-select').value) || 0;
   if (!valittuTili) {
-    document.getElementById('mg-tili-select').style.borderColor = 'var(--red)';
+    const tiInp = document.getElementById('mg-tili-ac-input');
+    if (tiInp) tiInp.style.borderColor = 'var(--red)';
     toast('Valitse ensin kirjaustili');
     return;
   }
@@ -5994,7 +5971,7 @@ async function mgKirjaaIlman() {
   const ti = mgQueue[mgIdx];
   const t = impTapahtumat[ti];
   // Käytä samaa valittua tiliä kuin "Hyväksy ja siirry" -polussa.
-  const valittuTili = document.getElementById('mg-tili-select')?.value || '';
+  const valittuTili = mgNykyinenMgTili();
   const valittuAlv = parseFloat(document.getElementById('mg-alv-select')?.value) || 0;
   if (valittuTili) {
     const tiliInfo = TILIT.find(tl => tl.nro === valittuTili);
