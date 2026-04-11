@@ -6378,7 +6378,9 @@ async function lataaStorageen(orgId, polku, uint8array) {
   const { data, error } = await _sb.storage
     .from('tositteet')
     .upload(polku, uint8array, { contentType: 'application/pdf', upsert: true });
-  if (error) console.warn('Storage upload virhe:', error);
+  if (error) {
+    console.warn('Storage upload virhe:', error.message || error, 'polku:', polku);
+  }
   return data?.path || null;
 }
 
@@ -6410,7 +6412,8 @@ async function ensureImpTiliotePdfStoragePath() {
       const kk = String(impTiliote?.kausi || '')
         .replace(/[^0-9-]/g, '')
         .slice(0, 7) || new Date().toISOString().slice(0, 7);
-      const polku = window._PPR.orgId + '/tiliotteet/ba-tiliote_' + kk + '_' + Date.now() + '.pdf';
+      // Sama bucket/polun malli kuin lasku-PDF:llä (laskut/...) — monet storage-RLS:t sallivat vain tämän etuliitteen.
+      const polku = window._PPR.orgId + '/laskut/ba-tiliote_' + kk + '_' + Date.now() + '.pdf';
       const path = await lataaStorageen(window._PPR.orgId, polku, bytes);
       if (path) impTiliotePdfStoragePath = path;
       return impTiliotePdfStoragePath;
