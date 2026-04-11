@@ -2979,16 +2979,29 @@ async function tosLataaLiitteet(tositeNro) {
       .order('created_at');
     if (!error && data) tosLiitteet = data;
 
-    // Fallback: paivakirjan liitteet (lasku-PDF + yhteinen tiliote-PDF pankkituonnista)
-    const { data: paivakirjaRows, error: pkErr } = await _sb
-      .from('ppr_paivakirja')
-      .select('tosite_pdf_path, tosite_tiliote_pdf_path')
-      .eq('asiakas_id', curYritys?.id || '')
-      .eq('tosite_nro', tositeNro)
-      .limit(100);
-    if (!pkErr && paivakirjaRows?.length) {
-      const pdfPath = paivakirjaRows.map(r => r.tosite_pdf_path).find(Boolean);
-      const tiliotePath = paivakirjaRows.map(r => r.tosite_tiliote_pdf_path).find(Boolean);
+    // Paivakirjan liitteet: ensin muistissa olevat rivit (lataaRivit), sitten API (admin, ei RLS-eroja)
+    let pdfPath = (rows || []).filter(r => String(r.ts) === String(tositeNro)).map(r => r.tosite_pdf_path).find(Boolean);
+    let tiliotePath = (rows || []).filter(r => String(r.ts) === String(tositeNro)).map(r => r.tosite_tiliote_pdf_path).find(Boolean);
+    if ((!pdfPath || !tiliotePath) && curYritys?.id) {
+      try {
+        const pkRes = await fetch(
+          '/api/ppr/paivakirja?asiakas_id=' +
+            encodeURIComponent(curYritys.id) +
+            '&tosite_nro=' +
+            encodeURIComponent(String(tositeNro))
+        );
+        if (pkRes.ok) {
+          const paivakirjaRows = await pkRes.json();
+          if (Array.isArray(paivakirjaRows) && paivakirjaRows.length) {
+            pdfPath = pdfPath || paivakirjaRows.map(r => r.tosite_pdf_path).find(Boolean);
+            tiliotePath = tiliotePath || paivakirjaRows.map(r => r.tosite_tiliote_pdf_path).find(Boolean);
+          }
+        }
+      } catch (e) {
+        console.warn('tosLataaLiitteet paivakirja GET:', e);
+      }
+    }
+    if (pdfPath || tiliotePath) {
       if (pdfPath && !tosLiitteet.some(l => l.storage_path === pdfPath)) {
         tosLiitteet.unshift({
           id: 'pkpdf-' + tositeNro,
@@ -6926,6 +6939,12 @@ async function analyseTilioteErillinen(opts = {}) {
         console.log('impTiliote tapahtumat:', impTiliote?.tapahtumat?.map(t => t.kirjpv+' '+t.sel+' '+t.summa));
         console.log('laskut määrä:', laskut?.length);
         console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
+        try {
+          const p = await ensureImpTiliotePdfStoragePath();
+          if (!p) console.warn('Tiliote-PDF ei tallentunut Storageen (tarkista _PPR.orgId / bucket-oikeudet)');
+        } catch (e) {
+          console.warn('Tiliote-PDF upload:', e);
+        }
         return true;
       }
       statusEl.innerHTML = `<span style="color:var(--red)">✗ Nordea OCR ei löytänyt tapahtumia</span>`;
@@ -7027,6 +7046,12 @@ summa AINA positiivinen numero. suunta: "kredit"=tililtä, "debet"=tilille. Jät
     console.log('impTiliote tapahtumat:', impTiliote?.tapahtumat?.map(t => t.kirjpv+' '+t.sel+' '+t.summa));
     console.log('laskut määrä:', laskut?.length);
     console.log('jatka-btn disabled:', document.getElementById('aloita-tarkistus-btn')?.disabled);
+    try {
+      const p = await ensureImpTiliotePdfStoragePath();
+      if (!p) console.warn('Tiliote-PDF ei tallentunut Storageen (tarkista _PPR.orgId / bucket-oikeudet)');
+    } catch (e) {
+      console.warn('Tiliote-PDF upload:', e);
+    }
     return true;
   } catch(e) {
     console.error('Tiliote-analyysi:', e);
@@ -7784,6 +7809,15 @@ async function prosessoiAITulos(parsed, filename, base64) {
   document.getElementById('ai-results').style.display = 'block';
   document.getElementById('import-preview').style.display = impTapahtumat.length ? 'block' : 'none';
   toast(`✓ ${impTapahtumat.length} tapahtumaa · ${laskut.length} laskua · ${matchedCount} täsmäytystä`);
+
+  if (impTiliote?.tapahtumat?.length && impPdfBase64) {
+    try {
+      const p = await ensureImpTiliotePdfStoragePath();
+      if (!p) console.warn('Tiliote-PDF ei tallentunut Storageen (tarkista _PPR.orgId / bucket)');
+    } catch (e) {
+      console.warn('Tiliote-PDF upload (prosessoiAITulos):', e);
+    }
+  }
 
   // Avaa Vaihe 2 tarkistusmodal automaattisesti PDF-tuonnin jälkeen
   if (impTiliote && impTiliote.tapahtumat.length > 0) {

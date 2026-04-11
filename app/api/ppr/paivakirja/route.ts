@@ -11,16 +11,19 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const asiakas_id = searchParams.get('asiakas_id')
-    console.log('paivakirja GET params:', { asiakas_id })
+    const tosite_nro = searchParams.get('tosite_nro')
+    console.log('paivakirja GET params:', { asiakas_id, tosite_nro })
 
     if (!asiakas_id) return NextResponse.json({ error: 'asiakas_id puuttuu' }, { status: 400 })
 
-    const { data, error } = await supabaseAdmin!
+    let q = supabaseAdmin!
       .from('ppr_paivakirja')
       .select('id, tosite_nro, paivamaara, tili, selite, saldo, alv_prosentti, tosite_pdf_path, tosite_tiliote_pdf_path')
       .eq('asiakas_id', asiakas_id)
-      .order('paivamaara')
-      .order('tosite_nro')
+    if (tosite_nro && String(tosite_nro).trim()) {
+      q = q.eq('tosite_nro', String(tosite_nro).trim())
+    }
+    const { data, error } = await q.order('paivamaara').order('tosite_nro')
     if (error) {
       console.error('paivakirja GET supabase error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
