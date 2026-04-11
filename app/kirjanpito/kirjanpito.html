@@ -246,6 +246,32 @@ tr.add-row td{height:34px;border-bottom:1px solid var(--bd)}
 .md-btn.ok{background:var(--fl);color:#fff;border-color:var(--fl)}
 .md-btn.ok:hover{opacity:.88}
 
+/* Pankkituonti: täysnäyttö — vaalea runko, tumma otsikko (tekstit luettavissa) */
+.pankki-fm{position:fixed;inset:0;display:none;flex-direction:column;z-index:1000;background:var(--ppw);color:var(--ink)}
+.pankki-fm--top{z-index:1001}
+.pankki-fm-in{display:flex;flex-direction:column;height:100%;min-height:0}
+.pankki-fm-hd{flex-shrink:0;padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--bd);background:var(--fd);color:#fff}
+.pankki-fm-hd-sub{font-size:12px;color:rgba(255,255,255,.65)}
+.pankki-fm-bd{flex:1;overflow:auto;padding:18px 20px;background:var(--ppw);color:var(--ink)}
+.pankki-fm-ft{flex-shrink:0;padding:12px 20px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:10px;background:var(--pp);flex-wrap:wrap}
+.pankki-card{background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:14px}
+.pankki-card-t{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px}
+.pankki-intro{font-size:12px;color:var(--inu);line-height:1.55}
+.pankki-fm-hd .pankki-x{background:none;border:none;color:rgba(255,255,255,.55);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
+.pankki-fm-hd .pankki-x:hover{color:#fff}
+.pankki-btn-ghost{padding:7px 14px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--pp);color:var(--inm);cursor:pointer;font-family:var(--ffb)}
+.pankki-btn-ghost:hover{background:var(--ppw);border-color:var(--bd2)}
+.pankki-btn-primary{padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:var(--fd);cursor:pointer;font-family:var(--ffb)}
+.pankki-btn-primary:disabled{background:var(--bd);color:var(--inf);cursor:not-allowed;opacity:1}
+.pankki-tark-grid{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;overflow:hidden;background:var(--ppw)}
+.pankki-tark-col{overflow-y:auto;padding:14px;border-right:1px solid var(--bd);background:var(--ppw);color:var(--ink)}
+.pankki-tark-col:last-child{border-right:none}
+.pankki-tark-cap{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:8px}
+.pankki-tark-pdf{flex:1;overflow-y:auto;background:var(--pp);border:1px solid var(--bd);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.pankki-inp{padding:5px 8px;font-size:12px;font-family:var(--ffm);background:var(--pp);color:var(--ink);border:1px solid var(--bd);border-radius:4px;outline:none}
+.pankki-mg-card{background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:12px}
+.pankki-mg-card-hi{background:var(--fmist);border:1px solid rgba(29,158,117,.22);border-radius:8px;padding:12px}
+
 /* Toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--fd);color:var(--fg);padding:8px 20px;border-radius:24px;font-size:12px;font-weight:500;border:1px solid rgba(93,202,165,.2);opacity:0;transition:all .2s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.sh{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -708,8 +734,7 @@ input[type=number] { -moz-appearance: textfield; }
 
         <!-- Jatka-nappi -->
         <div style="text-align:center;margin-bottom:14px">
-          <button id="aloita-tarkistus-btn" onclick="avaaTarkistusModal()" disabled
-            style="padding:9px 24px;font-size:13px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:not-allowed">
+          <button type="button" id="aloita-tarkistus-btn" class="pankki-btn-primary" onclick="avaaTarkistusModal()" disabled style="padding:9px 24px;font-size:13px">
             Tarkista tiliote →
           </button>
         </div>
@@ -1560,24 +1585,24 @@ input[type=number] { -moz-appearance: textfield; }
 </div>
 
 <!-- ── OHJATTU PANKKITUONTI MODAL ── -->
-<div id="pankkituonti-wizard-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1001;background:var(--fd)">
-  <div style="display:flex;flex-direction:column;height:100%">
-    <div style="flex-shrink:0;padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:15px;font-weight:600;color:#fff">Ohjattu pankkituonti</div>
-      <div id="pw-header-info" style="font-size:12px;color:rgba(255,255,255,.45)">Vaihe 1 / 4</div>
-      <div style="margin-left:auto"><button onclick="suljePankkituontiOhjattu()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1">✕</button></div>
+<div id="pankkituonti-wizard-modal" class="pankki-fm pankki-fm--top">
+  <div class="pankki-fm-in">
+    <div class="pankki-fm-hd">
+      <div style="font-size:15px;font-weight:600">Ohjattu pankkituonti</div>
+      <div id="pw-header-info" class="pankki-fm-hd-sub">Vaihe 1 / 4</div>
+      <div style="margin-left:auto"><button type="button" class="pankki-x" onclick="suljePankkituontiOhjattu()" aria-label="Sulje">✕</button></div>
     </div>
 
-    <div style="flex:1;overflow:auto;padding:18px 20px">
+    <div class="pankki-fm-bd">
       <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px">
-        <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5">
+        <div class="pankki-intro">
           1) Lue tiliote (vain yhdistetty PDF) → 2) Lue laskuaineisto → 3) Tiliotteen tarkastus → 4) Laskujen kohdistus
         </div>
 
-        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px">
-          <div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:8px">1. Tiliote-PDF</div>
+        <div class="pankki-card">
+          <div class="pankki-card-t">1. Tiliote-PDF</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-            <span style="font-size:12px;color:var(--inu)">Pankki:</span>
+            <span style="font-size:12px;color:var(--inm)">Pankki:</span>
             <select id="pw-pankki-select" style="padding:5px 8px;font-size:12px;border:1px solid var(--bd);border-radius:5px;background:var(--pp);color:var(--ink)">
               <option value="" selected>— Valitse —</option>
               <option value="op">OP</option>
@@ -1585,230 +1610,220 @@ input[type=number] { -moz-appearance: textfield; }
               <option value="muu">Muu</option>
             </select>
             <input type="file" id="pw-tiliote-file" accept=".pdf" style="font-size:11px;flex:1;min-width:260px">
-            <button onclick="pwLueTiliote()" style="padding:6px 12px;font-size:11px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer">Lue tiliote</button>
+            <button type="button" onclick="pwLueTiliote()" style="padding:6px 12px;font-size:11px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer;font-family:var(--ffb)">Lue tiliote</button>
           </div>
           <div id="pw-tiliote-status" style="font-size:11px;color:var(--inu)">Ei luettu</div>
         </div>
 
-        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px">
-          <div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:8px">2. Laskuaineisto-PDF</div>
+        <div class="pankki-card">
+          <div class="pankki-card-t">2. Laskuaineisto-PDF</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
             <input type="file" id="pw-laskut-file" accept=".pdf" style="font-size:11px;flex:1;min-width:260px">
-            <button onclick="pwLueLaskut()" style="padding:6px 12px;font-size:11px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer">Lue laskuaineisto</button>
+            <button type="button" onclick="pwLueLaskut()" style="padding:6px 12px;font-size:11px;border:none;border-radius:5px;background:var(--fl);color:#fff;cursor:pointer;font-family:var(--ffb)">Lue laskuaineisto</button>
           </div>
           <div id="pw-laskut-status" style="font-size:11px;color:var(--inu)">Ei luettu</div>
         </div>
       </div>
     </div>
 
-    <div style="flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px">
-      <button onclick="suljePankkituontiOhjattu()" style="padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Sulje</button>
-      <button id="pw-jatka-kohdistus" onclick="pwJatkaKohdistusta()" style="display:none;padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.85);cursor:pointer">Jatka keskeytettyä kohdistusta</button>
+    <div class="pankki-fm-ft">
+      <button type="button" class="pankki-btn-ghost" onclick="suljePankkituontiOhjattu()">Sulje</button>
+      <button type="button" id="pw-jatka-kohdistus" class="pankki-btn-ghost" onclick="pwJatkaKohdistusta()" style="display:none">Jatka keskeytettyä kohdistusta</button>
       <div style="flex:1"></div>
-      <button id="pw-jatka-tarkistus" onclick="pwSiirryTarkistukseen()" disabled style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.35);cursor:not-allowed">3. Siirry tiliotteen tarkastukseen →</button>
+      <button type="button" id="pw-jatka-tarkistus" class="pankki-btn-primary" onclick="pwSiirryTarkistukseen()" disabled>3. Siirry tiliotteen tarkastukseen →</button>
     </div>
   </div>
 </div>
 
 <!-- ── VAIHE 2: TARKISTUSMODAL ── -->
-<div id="tarkistus-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1000;background:var(--fd)">
-  <div style="display:flex;flex-direction:column;height:100%">
-    <!-- 1. Otsikkopalkki -->
-    <div style="flex-shrink:0;padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:15px;font-weight:600;color:#fff">Tiliotteen tarkistus</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.45)" id="tark-header-info">—</div>
-      <div style="margin-left:auto"><button onclick="suljeTarkistus()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1">✕</button></div>
+<div id="tarkistus-modal" class="pankki-fm">
+  <div class="pankki-fm-in">
+    <div class="pankki-fm-hd">
+      <div style="font-size:15px;font-weight:600">Tiliotteen tarkistus</div>
+      <div id="tark-header-info" class="pankki-fm-hd-sub">—</div>
+      <div style="margin-left:auto"><button type="button" class="pankki-x" onclick="suljeTarkistus()" aria-label="Sulje">✕</button></div>
     </div>
 
-    <!-- 2. Runko (3-column grid) -->
-    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;overflow:hidden">
+    <div class="pankki-tark-grid">
 
       <!-- VASEN: Tapahtumat -->
-      <div style="overflow-y:auto;padding:14px;border-right:1px solid rgba(255,255,255,.06)">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Tapahtumat (<span id="tark-tap-lkm">0</span> kpl)</div>
-        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;font-size:12px">
-          <span style="color:rgba(255,255,255,.4)">Alkusaldo</span>
-          <span id="tark-alkusaldo-val" style="font-family:var(--ffm);color:#fff;font-weight:600">—</span>
+      <div class="pankki-tark-col">
+        <div class="pankki-tark-cap">Tapahtumat (<span id="tark-tap-lkm">0</span> kpl)</div>
+        <div class="pankki-card" style="padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;font-size:12px;align-items:center">
+          <span style="color:var(--inu)">Alkusaldo</span>
+          <span id="tark-alkusaldo-val" style="font-family:var(--ffm);color:var(--ink);font-weight:600">—</span>
         </div>
         <div id="tark-tapahtumat" style="display:flex;flex-direction:column;gap:1px"></div>
         <div id="tark-loppusaldo" style="border-radius:6px;padding:8px 12px;margin-top:6px;display:flex;justify-content:space-between;font-size:12px;font-weight:600"></div>
       </div>
 
       <!-- KESKI: Vertailu ja korjaus -->
-      <div style="overflow-y:auto;padding:14px;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:12px">
-        <div id="tark-verdict" style="border-radius:8px;padding:16px;text-align:center;font-size:15px;font-weight:600"></div>
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:4px">Muokattavat arvot</div>
+      <div class="pankki-tark-col" style="display:flex;flex-direction:column;gap:12px">
+        <div id="tark-verdict" style="border-radius:8px;padding:16px;text-align:center;font-size:15px;font-weight:600;border:1px solid var(--bd)"></div>
+        <div class="pankki-tark-cap" style="margin-top:4px">Muokattavat arvot</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-            <span style="color:rgba(255,255,255,.4);min-width:120px">Alkusaldo (luettu)</span>
-            <input id="tark-input-alkusaldo" type="text" oninput="tarkLaskeSaldot()" style="flex:1;padding:5px 8px;font-size:12px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none;text-align:right">
+            <span style="color:var(--inu);min-width:120px">Alkusaldo (luettu)</span>
+            <input id="tark-input-alkusaldo" class="pankki-inp" type="text" oninput="tarkLaskeSaldot()" style="flex:1;text-align:right">
           </div>
           <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-            <span style="color:rgba(255,255,255,.4);min-width:120px">Loppusaldo (luettu)</span>
-            <input id="tark-input-loppusaldo" type="text" oninput="tarkLaskeSaldot()" style="flex:1;padding:5px 8px;font-size:12px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none;text-align:right">
+            <span style="color:var(--inu);min-width:120px">Loppusaldo (luettu)</span>
+            <input id="tark-input-loppusaldo" class="pankki-inp" type="text" oninput="tarkLaskeSaldot()" style="flex:1;text-align:right">
           </div>
         </div>
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:8px">Laskelma</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <div class="pankki-tark-cap" style="margin-top:8px">Laskelma</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--bd);border-radius:6px;overflow:hidden">
           <tbody>
-            <tr style="border-bottom:1px solid rgba(255,255,255,.06)"><td style="padding:6px 8px;color:rgba(255,255,255,.4)">Alkusaldo (luettu)</td><td id="tark-tbl-alkusaldo" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td></tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,.06)"><td style="padding:6px 8px;color:rgba(255,255,255,.4)">Loppusaldo (luettu)</td><td id="tark-tbl-loppusaldo-luettu" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td></tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,.06)"><td style="padding:6px 8px;color:rgba(255,255,255,.4)">Loppusaldo (laskettu)</td><td id="tark-tbl-loppusaldo-laskettu" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td></tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,.06)"><td style="padding:6px 8px;color:rgba(255,255,255,.4)">Erotus</td><td id="tark-tbl-erotus" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td></tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,.06)"><td style="padding:6px 8px;color:rgba(255,255,255,.4)">Tapahtumia</td><td id="tark-tbl-lkm" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td></tr>
-            <tr><td style="padding:6px 8px;color:rgba(255,255,255,.4)">Netto yhteensä</td><td id="tark-tbl-summa" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:#fff">—</td></tr>
+            <tr style="border-bottom:1px solid var(--bd);background:var(--pp)"><td style="padding:6px 8px;color:var(--inu)">Alkusaldo (luettu)</td><td id="tark-tbl-alkusaldo" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:var(--ink)">—</td></tr>
+            <tr style="border-bottom:1px solid var(--bd);background:var(--ppw)"><td style="padding:6px 8px;color:var(--inu)">Loppusaldo (luettu)</td><td id="tark-tbl-loppusaldo-luettu" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:var(--ink)">—</td></tr>
+            <tr style="border-bottom:1px solid var(--bd);background:var(--pp)"><td style="padding:6px 8px;color:var(--inu)">Loppusaldo (laskettu)</td><td id="tark-tbl-loppusaldo-laskettu" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:var(--ink)">—</td></tr>
+            <tr style="border-bottom:1px solid var(--bd);background:var(--ppw)"><td style="padding:6px 8px;color:var(--inu)">Erotus</td><td id="tark-tbl-erotus" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:var(--ink)">—</td></tr>
+            <tr style="border-bottom:1px solid var(--bd);background:var(--pp)"><td style="padding:6px 8px;color:var(--inu)">Tapahtumia</td><td id="tark-tbl-lkm" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:var(--ink)">—</td></tr>
+            <tr style="background:var(--ppw)"><td style="padding:6px 8px;color:var(--inu)">Netto yhteensä</td><td id="tark-tbl-summa" style="padding:6px 8px;text-align:right;font-family:var(--ffm);color:var(--ink)">—</td></tr>
           </tbody>
         </table>
       </div>
 
       <!-- OIKEA: Tiliote PDF -->
-      <div style="overflow-y:auto;padding:14px;display:flex;flex-direction:column">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Tiliote — kaikki sivut</div>
-        <div id="tark-pdf-container" style="flex:1;overflow-y:auto;background:rgba(0,0,0,.15);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px;align-items:center"></div>
+      <div class="pankki-tark-col" style="display:flex;flex-direction:column">
+        <div class="pankki-tark-cap">Tiliote — kaikki sivut</div>
+        <div id="tark-pdf-container" class="pankki-tark-pdf" style="flex:1;min-height:120px"></div>
       </div>
     </div>
 
-    <!-- 3. Alapalkki -->
-    <div style="flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px">
-      <button onclick="suljeTarkistus()" style="padding:7px 14px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer">← Takaisin</button>
+    <div class="pankki-fm-ft">
+      <button type="button" class="pankki-btn-ghost" onclick="suljeTarkistus()">← Takaisin</button>
       <div style="flex:1"></div>
-      <span id="tark-jatka-silti" style="display:none;font-size:11px;color:rgba(255,255,255,.3);cursor:pointer;text-decoration:underline" onclick="siirryVaihe3()">Jatka silti →</span>
-      <button id="tark-hyvaksy-btn" onclick="siirryVaihe3()" style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">Hyväksy ja siirry kohdistukseen →</button>
+      <span id="tark-jatka-silti" style="display:none;font-size:11px;color:var(--inu);cursor:pointer;text-decoration:underline" onclick="siirryVaihe3()">Jatka silti →</span>
+      <button type="button" id="tark-hyvaksy-btn" class="pankki-btn-primary" onclick="siirryVaihe3()">Hyväksy ja siirry kohdistukseen →</button>
     </div>
   </div>
 </div>
 
 <!-- ── VAIHE 2.5: LASKUAINEISTON TARKISTUS ── -->
-<div id="laskuaineisto-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1000;background:var(--fd)">
-  <div style="display:flex;flex-direction:column;height:100%">
-    <div style="flex-shrink:0;padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:15px;font-weight:600;color:#fff">Laskuaineiston tarkistus</div>
-      <div id="la-header-info" style="font-size:12px;color:rgba(255,255,255,.45)">—</div>
-      <div style="margin-left:auto"><button onclick="suljeLaskuaineistoTarkistus()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1">✕</button></div>
+<div id="laskuaineisto-modal" class="pankki-fm">
+  <div class="pankki-fm-in">
+    <div class="pankki-fm-hd">
+      <div style="font-size:15px;font-weight:600">Laskuaineiston tarkistus</div>
+      <div id="la-header-info" class="pankki-fm-hd-sub">—</div>
+      <div style="margin-left:auto"><button type="button" class="pankki-x" onclick="suljeLaskuaineistoTarkistus()" aria-label="Sulje">✕</button></div>
     </div>
-    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden">
-      <div style="padding:14px;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Laskun tiedot</div>
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;background:var(--ppw)">
+      <div class="pankki-tark-col" style="border-right:1px solid var(--bd)">
+        <div class="pankki-tark-cap">Laskun tiedot</div>
         <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;font-size:12px;margin-bottom:10px">
-          <span style="color:rgba(255,255,255,.4)">Toimittaja</span>
-          <input id="la-toimittaja" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
-          <span style="color:rgba(255,255,255,.4)">Summa brutto</span>
-          <input id="la-summa" type="number" step="0.01" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none;text-align:right">
-          <span style="color:rgba(255,255,255,.4)">Laskun nro</span>
-          <input id="la-nro" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
-          <span style="color:rgba(255,255,255,.4)">Päiväys</span>
-          <input id="la-pvm" type="date" style="padding:6px 8px;font-size:12px;background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+          <span style="color:var(--inu)">Toimittaja</span>
+          <input id="la-toimittaja" class="pankki-inp" style="width:100%;padding:6px 8px;font-size:12px;font-family:var(--ffb)">
+          <span style="color:var(--inu)">Summa brutto</span>
+          <input id="la-summa" class="pankki-inp" type="number" step="0.01" style="width:100%;padding:6px 8px;font-size:12px;font-family:var(--ffb);text-align:right">
+          <span style="color:var(--inu)">Laskun nro</span>
+          <input id="la-nro" class="pankki-inp" style="width:100%;padding:6px 8px;font-size:12px;font-family:var(--ffb)">
+          <span style="color:var(--inu)">Päiväys</span>
+          <input id="la-pvm" class="pankki-inp" type="date" style="width:100%;padding:6px 8px;font-size:12px;font-family:var(--ffb)">
         </div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5)">Kysymys: onko tämän laskun tiedot oikein?</div>
+        <div style="font-size:11px;color:var(--inu)">Kysymys: onko tämän laskun tiedot oikein?</div>
       </div>
-      <div style="padding:14px;overflow-y:auto">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Laskun kuva</div>
-        <div style="background:rgba(0,0,0,.15);border-radius:6px;padding:8px;display:flex;justify-content:center;min-height:420px">
+      <div class="pankki-tark-col" style="border-right:none">
+        <div class="pankki-tark-cap">Laskun kuva</div>
+        <div class="pankki-tark-pdf" style="min-height:420px;justify-content:center">
           <canvas id="la-canvas" style="max-width:100%;height:auto;display:block;border-radius:4px"></canvas>
         </div>
       </div>
     </div>
-    <div style="flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px">
-      <button onclick="laEdellinen()" style="padding:7px 12px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.75);cursor:pointer">← Edellinen</button>
-      <button onclick="laMuuta()" style="padding:7px 12px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.75);cursor:pointer">Muuta</button>
+    <div class="pankki-fm-ft">
+      <button type="button" class="pankki-btn-ghost" onclick="laEdellinen()">← Edellinen</button>
+      <button type="button" class="pankki-btn-ghost" onclick="laMuuta()">Muuta</button>
       <div style="flex:1"></div>
-      <button onclick="laOk()" style="padding:8px 18px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--fg);color:#fff;cursor:pointer">OK →</button>
+      <button type="button" class="pankki-btn-primary" onclick="laOk()">OK →</button>
     </div>
   </div>
 </div>
 
 <!-- ── MATCHING GAME MODAL ── -->
 <div id="match-game" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000">
-  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)"></div>
-  <div style="position:relative;max-width:900px;height:90vh;margin:5vh auto;display:flex;flex-direction:column;background:var(--fd);border-radius:12px;overflow:hidden;z-index:1">
-    <!-- Yläpalkki -->
-    <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:14px;font-weight:600;color:#fff">Laskujen kohdistus</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.5)" id="mg-header-info">—</div>
+  <div style="position:absolute;inset:0;background:rgba(26,28,24,.55)"></div>
+  <div style="position:relative;max-width:900px;height:90vh;margin:5vh auto;display:flex;flex-direction:column;background:var(--pp);border:1px solid var(--bd);border-radius:12px;overflow:hidden;z-index:1;box-shadow:0 16px 48px rgba(0,0,0,.18)">
+    <div class="pankki-fm-hd" style="border-bottom:1px solid var(--bd);border-radius:0">
+      <div style="font-size:14px;font-weight:600">Laskujen kohdistus</div>
+      <div id="mg-header-info" class="pankki-fm-hd-sub">—</div>
       <div style="margin-left:auto">
-        <button onclick="lopetaMatchGame()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;line-height:1">✕</button>
+        <button type="button" class="pankki-x" onclick="lopetaMatchGame()" aria-label="Sulje">✕</button>
       </div>
     </div>
-    <div style="height:3px;background:rgba(255,255,255,.06)"><div id="mg-progress-bar" style="height:100%;background:var(--fg);width:0%;transition:width .3s"></div></div>
+    <div style="height:3px;background:var(--bd)"><div id="mg-progress-bar" style="height:100%;background:var(--fg);width:0%;transition:width .3s"></div></div>
 
-    <!-- Runko -->
-    <div style="flex:1;display:grid;grid-template-columns:210px 1fr 155px;gap:0;overflow:hidden">
-      <!-- VASEN -->
-      <div style="display:flex;flex-direction:column;padding:14px;gap:10px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.06)">
-        <div id="mg-tapahtuma" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px"></div>
-        <div id="mg-ehdotus" style="background:rgba(29,158,117,.08);border:1px solid rgba(29,158,117,.15);border-radius:8px;padding:12px"></div>
-        <div id="mg-kirjaus" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px">
-          <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Ehdotettu kirjaus</div>
+    <div style="flex:1;display:grid;grid-template-columns:210px 1fr 155px;gap:0;overflow:hidden;background:var(--ppw)">
+      <div style="display:flex;flex-direction:column;padding:14px;gap:10px;overflow-y:auto;border-right:1px solid var(--bd);background:var(--ppw)">
+        <div id="mg-tapahtuma" class="pankki-mg-card"></div>
+        <div id="mg-ehdotus" class="pankki-mg-card-hi"></div>
+        <div id="mg-kirjaus" class="pankki-mg-card">
+          <div class="pankki-tark-cap" style="margin-bottom:8px">Ehdotettu kirjaus</div>
           <div style="display:flex;flex-direction:column;gap:6px;font-size:11px">
-            <input id="mg-tili-filter" type="text" placeholder="Hae tiliä numerolla tai nimellä..."
-              oninput="mgFilterTilit(this.value)"
-              style="padding:4px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
+            <input id="mg-tili-filter" class="pankki-inp" type="text" placeholder="Hae tiliä numerolla tai nimellä…"
+              oninput="mgFilterTilit(this.value)" style="width:100%;padding:6px 8px;font-size:11px">
             <div style="display:flex;align-items:center;gap:4px">
-              <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">D</span>
-              <select id="mg-tili-select" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
-                <option value="" style="background:#1a2332;color:#e0e0e0">? Valitse tili</option>
+              <span style="color:var(--inu);width:14px;font-size:10px;font-weight:600">D</span>
+              <select id="mg-tili-select" class="pankki-inp" onchange="mgTiliChanged()" style="flex:1;padding:4px 6px;font-size:11px">
+                <option value="">? Valitse tili</option>
               </select>
-              <span id="mg-debet-summa" style="font-family:var(--ffm);color:#fff;white-space:nowrap;min-width:55px;text-align:right">—</span>
+              <span id="mg-debet-summa" style="font-family:var(--ffm);color:var(--ink);white-space:nowrap;min-width:55px;text-align:right">—</span>
             </div>
             <div style="display:flex;align-items:center;gap:4px">
-              <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">K</span>
+              <span style="color:var(--inu);width:14px;font-size:10px;font-weight:600">K</span>
               <span style="flex:1;font-family:var(--ffm);color:var(--fl);font-size:11px;padding:4px 6px" id="mg-kredit-tili">1910 Pankkitili</span>
-              <span id="mg-kredit-summa" style="font-family:var(--ffm);color:#fff;white-space:nowrap;min-width:55px;text-align:right">—</span>
+              <span id="mg-kredit-summa" style="font-family:var(--ffm);color:var(--ink);white-space:nowrap;min-width:55px;text-align:right">—</span>
             </div>
             <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
-              <span style="color:rgba(255,255,255,.35);width:14px;font-size:10px;font-weight:600">ALV</span>
-              <select id="mg-alv-select" onchange="mgAlvChanged()" style="padding:3px 6px;font-size:11px;font-family:var(--ffm);background:#1a2332;color:#e0e0e0;border:1px solid rgba(255,255,255,.15);border-radius:4px;outline:none">
-                <option value="0" style="background:#1a2332;color:#e0e0e0">0 %</option>
-                <option value="10" style="background:#1a2332;color:#e0e0e0">10 %</option>
-                <option value="14" style="background:#1a2332;color:#e0e0e0">14 %</option>
-                <option value="25.5" selected style="background:#1a2332;color:#e0e0e0">25,5 %</option>
+              <span style="color:var(--inu);width:14px;font-size:10px;font-weight:600">ALV</span>
+              <select id="mg-alv-select" class="pankki-inp" onchange="mgAlvChanged()" style="padding:3px 6px;font-size:11px">
+                <option value="0">0 %</option>
+                <option value="10">10 %</option>
+                <option value="14">14 %</option>
+                <option value="25.5" selected>25,5 %</option>
               </select>
               <span id="mg-tili-status" style="font-size:10px;margin-left:auto"></span>
             </div>
           </div>
         </div>
         <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:rgba(255,255,255,.03)">
-            <span style="font-size:10px;color:rgba(255,255,255,.7)">Tallennetaanko oletukseksi?</span>
+          <div class="pankki-card" style="padding:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span style="font-size:10px;color:var(--inm)">Tallennetaanko oletukseksi?</span>
             <div style="display:flex;gap:6px">
-              <button id="mg-save-default-yes" onclick="mgSetSaveDefault(true)" style="padding:4px 8px;font-size:10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:transparent;color:#cfe8de;cursor:pointer">Kyllä</button>
-              <button id="mg-save-default-no" onclick="mgSetSaveDefault(false)" style="padding:4px 8px;font-size:10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer">Ei</button>
+              <button type="button" id="mg-save-default-yes" onclick="mgSetSaveDefault(true)" class="pankki-btn-ghost" style="padding:4px 10px;font-size:10px;border-radius:999px">Kyllä</button>
+              <button type="button" id="mg-save-default-no" onclick="mgSetSaveDefault(false)" class="pankki-btn-ghost" style="padding:4px 10px;font-size:10px;border-radius:999px">Ei</button>
             </div>
           </div>
-          <button id="mg-hyvaksy" onclick="mgHyvaksy()" disabled title="Valitse ensin kirjaustili" style="padding:9px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:not-allowed">✓ Hyväksy ja siirry →</button>
-          <button onclick="mgKirjaaIlman()" style="padding:6px;font-size:11px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer">Kirjaa ilman laskua</button>
-          <button onclick="mgOhita()" style="padding:6px;font-size:11px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:transparent;color:rgba(255,255,255,.35);cursor:pointer">Ohita →</button>
+          <button type="button" id="mg-hyvaksy" class="pankki-btn-primary" onclick="mgHyvaksy()" disabled title="Valitse ensin kirjaustili" style="width:100%;padding:9px">✓ Hyväksy ja siirry →</button>
+          <button type="button" class="pankki-btn-ghost" onclick="mgKirjaaIlman()" style="width:100%;padding:6px;font-size:11px">Kirjaa ilman laskua</button>
+          <button type="button" class="pankki-btn-ghost" onclick="mgOhita()" style="width:100%;padding:6px;font-size:11px;color:var(--inu)">Ohita →</button>
         </div>
       </div>
 
-      <!-- KESKI: PDF -->
-      <div style="display:flex;flex-direction:column;overflow:hidden;background:rgba(0,0,0,.15)">
-        <div id="mg-pdf-header" style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,.5)">
-          <span id="mg-pdf-title" style="flex:1;font-weight:600;color:#fff">Ei laskua valittuna</span>
-          <button onclick="mgPdfPrev()" style="padding:2px 8px;border:1px solid rgba(255,255,255,.1);border-radius:4px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer;font-size:11px">◀</button>
-          <span id="mg-pdf-page" style="font-family:var(--ffm)">-</span>
-          <button onclick="mgPdfNext()" style="padding:2px 8px;border:1px solid rgba(255,255,255,.1);border-radius:4px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer;font-size:11px">▶</button>
+      <div style="display:flex;flex-direction:column;overflow:hidden;background:var(--pp);border-left:1px solid var(--bd);border-right:1px solid var(--bd)">
+        <div id="mg-pdf-header" style="padding:8px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;font-size:11px;color:var(--inu);background:var(--ppw)">
+          <span id="mg-pdf-title" style="flex:1;font-weight:600;color:var(--ink)">Ei laskua valittuna</span>
+          <button type="button" class="pankki-btn-ghost" onclick="mgPdfPrev()" style="padding:2px 8px;font-size:11px">◀</button>
+          <span id="mg-pdf-page" style="font-family:var(--ffm);color:var(--inm)">-</span>
+          <button type="button" class="pankki-btn-ghost" onclick="mgPdfNext()" style="padding:2px 8px;font-size:11px">▶</button>
         </div>
-        <div id="mg-pdf-container" style="flex:1;overflow-y:auto;padding:12px;text-align:center"
+        <div id="mg-pdf-container" style="flex:1;overflow-y:auto;padding:12px;text-align:center;background:var(--pp)"
              ondragover="event.preventDefault();this.style.outline='2px dashed var(--fg)'"
              ondragleave="this.style.outline=''"
              ondrop="this.style.outline='';mgDropLasku(event)">
-          <canvas id="mg-pdf-canvas" style="max-width:100%;height:auto;border-radius:4px"></canvas>
+          <canvas id="mg-pdf-canvas" style="max-width:100%;height:auto;border-radius:4px;border:1px solid var(--bd)"></canvas>
         </div>
       </div>
 
-      <!-- OIKEA -->
-      <div style="display:flex;flex-direction:column;padding:14px 10px;overflow:hidden;border-left:1px solid rgba(255,255,255,.06)">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Kohdistamatta <span id="mg-lasku-cnt" style="color:var(--amber)">0</span></div>
+      <div style="display:flex;flex-direction:column;padding:14px 10px;overflow:hidden;background:var(--ppw);border-left:none">
+        <div class="pankki-tark-cap">Kohdistamatta <span id="mg-lasku-cnt" style="color:var(--amber)">0</span></div>
         <div id="mg-laskut-lista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
-        <div style="font-size:10px;color:rgba(255,255,255,.2);text-align:center;margin-top:8px;padding:4px">↕ Raahaa lasku keskelle</div>
+        <div style="font-size:10px;color:var(--inf);text-align:center;margin-top:8px;padding:4px">↕ Raahaa lasku keskelle</div>
       </div>
     </div>
 
-    <!-- Alapalkki -->
-    <div style="padding:10px 18px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:16px;font-size:11px;color:rgba(255,255,255,.4)">
+    <div class="pankki-fm-ft" style="border-top:1px solid var(--bd);font-size:11px;color:var(--inu)">
       <span id="mg-stats">—</span>
-      <span style="margin-left:auto" id="mg-pct">0%</span>
+      <span style="margin-left:auto;font-family:var(--ffm);color:var(--inm)" id="mg-pct">0%</span>
     </div>
   </div>
 </div>
@@ -5086,7 +5101,7 @@ function avaaTarkistusModal() {
   // PDF: renderöi kaikki sivut
   tarkRenderPdf();
 
-  document.getElementById('tarkistus-modal').style.display = 'block';
+  document.getElementById('tarkistus-modal').style.display = 'flex';
 }
 
 function tarkParseFi(s) {
@@ -5116,13 +5131,13 @@ function tarkLaskeSaldot() {
     t._juokseva = juokseva;
     const pos = t.summa > 0;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;gap:6px';
+    row.style.cssText = 'display:flex;align-items:center;padding:4px 8px;border-bottom:1px solid var(--bd);font-size:11px;gap:6px;background:var(--pp)';
     row.innerHTML = `
-      <span style="color:rgba(255,255,255,.3);width:55px;font-family:var(--ffm);font-size:10px;flex-shrink:0">${t.arvopv||t.kirjpv||''}</span>
-      <span style="color:rgba(255,255,255,.25);width:22px;font-family:var(--ffm);font-size:9px;flex-shrink:0">${t.tapnro||''}</span>
-      <span style="flex:1;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px">${t.sel||''}${t.maksu&&t.maksu!==t.sel?' — '+t.maksu:''}</span>
+      <span style="color:var(--inf);width:55px;font-family:var(--ffm);font-size:10px;flex-shrink:0">${t.arvopv||t.kirjpv||''}</span>
+      <span style="color:var(--inf);width:22px;font-family:var(--ffm);font-size:9px;flex-shrink:0">${t.tapnro||''}</span>
+      <span style="flex:1;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px">${t.sel||''}${t.maksu&&t.maksu!==t.sel?' — '+t.maksu:''}</span>
       <span style="font-family:var(--ffm);font-weight:600;color:${pos?'var(--fg3)':'var(--red)'};min-width:65px;text-align:right;font-size:11px">${pos?'+':''}${fmt(t.summa)}</span>
-      <span style="font-family:var(--ffm);color:rgba(255,255,255,.35);min-width:65px;text-align:right;font-size:10px">${fmt(juokseva)}</span>
+      <span style="font-family:var(--ffm);color:var(--inu);min-width:65px;text-align:right;font-size:10px">${fmt(juokseva)}</span>
     `;
     lista.appendChild(row);
   });
@@ -5141,10 +5156,14 @@ function tarkLaskeSaldot() {
   // Verdict
   const verdict = document.getElementById('tark-verdict');
   if (tasmaa) {
-    verdict.style.background = 'rgba(29,158,117,.12)'; verdict.style.color = 'var(--fg3)';
+    verdict.style.background = 'var(--fmist)';
+    verdict.style.color = 'var(--fg3)';
+    verdict.style.border = '1px solid rgba(29,158,117,.28)';
     verdict.innerHTML = '✓ Saldot täsmäävät';
   } else {
-    verdict.style.background = 'rgba(220,60,60,.12)'; verdict.style.color = 'var(--red)';
+    verdict.style.background = 'var(--redl)';
+    verdict.style.color = 'var(--red)';
+    verdict.style.border = '1px solid #f0c4c4';
     verdict.innerHTML = '✗ Saldoero: ' + fmt(ero) + ' €';
   }
 
@@ -5161,11 +5180,15 @@ function tarkLaskeSaldot() {
   const btn = document.getElementById('tark-hyvaksy-btn');
   const jatkaSilti = document.getElementById('tark-jatka-silti');
   if (tasmaa) {
-    btn.disabled = false; btn.style.background = 'var(--fg)'; btn.style.color = '#fff'; btn.style.cursor = 'pointer';
+    btn.disabled = false;
+    btn.className = 'pankki-btn-primary';
+    btn.style.cursor = 'pointer';
     btn.textContent = 'Hyväksy ja siirry kohdistukseen →';
     jatkaSilti.style.display = 'none';
   } else {
-    btn.disabled = true; btn.style.background = 'rgba(255,255,255,.1)'; btn.style.color = 'rgba(255,255,255,.3)'; btn.style.cursor = 'not-allowed';
+    btn.disabled = true;
+    btn.className = 'pankki-btn-primary';
+    btn.style.cursor = 'not-allowed';
     btn.textContent = 'Tarkista tiliote ennen jatkamista';
     jatkaSilti.style.display = 'inline';
   }
@@ -5175,7 +5198,7 @@ async function tarkRenderPdf() {
   const container = document.getElementById('tark-pdf-container');
   container.innerHTML = '';
   if (!impPdfBase64 || typeof pdfjsLib === 'undefined') {
-    container.innerHTML = '<div style="padding:24px;color:rgba(255,255,255,.3);font-size:12px">Ei PDF-dataa</div>';
+    container.innerHTML = '<div style="padding:24px;color:var(--inu);font-size:12px">Ei PDF-dataa</div>';
     return;
   }
   try {
@@ -5255,7 +5278,7 @@ async function avaaLaskuaineistoTarkistus() {
     return;
   }
   laIdx = 0;
-  document.getElementById('laskuaineisto-modal').style.display = 'block';
+  document.getElementById('laskuaineisto-modal').style.display = 'flex';
   laRender();
 }
 
@@ -5299,9 +5322,9 @@ async function kaynnistaKohdistusVaihe() {
   if (hyvaksyBtn) {
     hyvaksyBtn.disabled = true;
     hyvaksyBtn.textContent = 'Kohdistus käynnistyy...';
-    hyvaksyBtn.style.background = 'rgba(255,255,255,.15)';
-    hyvaksyBtn.style.color = '#fff';
+    hyvaksyBtn.className = 'pankki-btn-primary';
     hyvaksyBtn.style.cursor = 'wait';
+    hyvaksyBtn.style.opacity = '0.8';
   }
   suljeTarkistus();
   impVaihe = 3;
@@ -5409,14 +5432,14 @@ function mgSetSaveDefault(yes) {
   const yesBtn = document.getElementById('mg-save-default-yes');
   const noBtn = document.getElementById('mg-save-default-no');
   if (yesBtn) {
-    yesBtn.style.background = yes ? 'rgba(29,158,117,.2)' : 'transparent';
-    yesBtn.style.color = yes ? '#fff' : '#cfe8de';
-    yesBtn.style.borderColor = yes ? 'rgba(29,158,117,.45)' : 'rgba(255,255,255,.14)';
+    yesBtn.style.background = yes ? 'var(--fmist)' : 'var(--pp)';
+    yesBtn.style.color = yes ? 'var(--fg3)' : 'var(--inu)';
+    yesBtn.style.borderColor = yes ? 'var(--fg2)' : 'var(--bd)';
   }
   if (noBtn) {
-    noBtn.style.background = yes ? 'transparent' : 'rgba(255,255,255,.09)';
-    noBtn.style.color = yes ? 'rgba(255,255,255,.6)' : '#fff';
-    noBtn.style.borderColor = yes ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.22)';
+    noBtn.style.background = yes ? 'var(--pp)' : 'var(--fmist)';
+    noBtn.style.color = yes ? 'var(--inu)' : 'var(--ink)';
+    noBtn.style.borderColor = yes ? 'var(--bd)' : 'var(--fg2)';
   }
 }
 
@@ -5585,7 +5608,7 @@ function mgPopulateTiliSelect(filterText = '') {
   if (!sel) return;
   const current = sel.value;
   const q = (filterText || '').toLowerCase().trim();
-  sel.innerHTML = '<option value="" style="background:#1a2332;color:#e0e0e0">? Valitse tili</option>';
+  sel.innerHTML = '<option value="">? Valitse tili</option>';
   const filtered = q
     ? TILIT.filter(t =>
         String(t.nro || '').toLowerCase().includes(q) ||
@@ -5593,12 +5616,12 @@ function mgPopulateTiliSelect(filterText = '') {
       )
     : TILIT;
   filtered.forEach(t => {
-    sel.innerHTML += `<option value="${t.nro}" style="background:#1a2332;color:#e0e0e0">${t.nro} ${t.lbl}</option>`;
+    sel.innerHTML += `<option value="${t.nro}">${t.nro} ${t.lbl}</option>`;
   });
   if (current && !filtered.some(t => t.nro === current)) {
     const selected = TILIT.find(t => t.nro === current);
     if (selected) {
-      sel.innerHTML += `<option value="${selected.nro}" style="background:#1a2332;color:#e0e0e0">${selected.nro} ${selected.lbl}</option>`;
+      sel.innerHTML += `<option value="${selected.nro}">${selected.nro} ${selected.lbl}</option>`;
     }
   }
   if (current) sel.value = current;
@@ -5683,21 +5706,21 @@ function mgTiliChanged() {
   const status = document.getElementById('mg-tili-status');
   if (sel.value) {
     btn.disabled = false;
-    btn.style.background = 'var(--fg)';
-    btn.style.color = '#fff';
+    btn.className = 'pankki-btn-primary';
     btn.style.cursor = 'pointer';
+    btn.style.opacity = '';
     btn.title = '';
     sel.style.borderColor = 'var(--fg)';
     status.textContent = '✓ Vahvistettu';
-    status.style.color = '#5DCAA5';
+    status.style.color = 'var(--fg3)';
     status.style.display = 'inline';
   } else {
     btn.disabled = true;
-    btn.style.background = 'rgba(255,255,255,.1)';
-    btn.style.color = 'rgba(255,255,255,.3)';
+    btn.className = 'pankki-btn-primary';
     btn.style.cursor = 'not-allowed';
+    btn.style.opacity = '';
     btn.title = 'Valitse ensin kirjaustili';
-    sel.style.borderColor = 'rgba(255,255,255,.1)';
+    sel.style.borderColor = 'var(--bd)';
     status.textContent = '';
     status.style.display = 'none';
   }
@@ -5731,11 +5754,11 @@ function mgRender() {
 
   // Vasen: tapahtuma
   document.getElementById('mg-tapahtuma').innerHTML = `
-    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px">Tiliotetapahtuma</div>
-    <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px">${t.maksu || t.sel}</div>
-    ${t.maksu && t.maksu !== t.sel ? `<div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px">${t.sel}</div>` : ''}
+    <div class="pankki-tark-cap" style="margin-bottom:6px">Tiliotetapahtuma</div>
+    <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px">${t.maksu || t.sel}</div>
+    ${t.maksu && t.maksu !== t.sel ? `<div style="font-size:11px;color:var(--inu);margin-bottom:4px">${t.sel}</div>` : ''}
     <div style="font-size:18px;font-weight:300;font-family:var(--ffd);color:${pos?'var(--fg3)':'var(--red)'};margin-bottom:4px">${pos?'+':''}${t.summa.toLocaleString('fi-FI',{minimumFractionDigits:2})} €</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.4)">${t.arvopv}${t.viite ? ' · Viite: ' + t.viite : ''}</div>
+    <div style="font-size:11px;color:var(--inu)">${t.arvopv}${t.viite ? ' · Viite: ' + t.viite : ''}</div>
     ${t.vak ? `<div style="margin-top:6px;font-size:11px;color:var(--fg3)">⚡ ${t.vak.lbl} (${t.vak.vt})</div>` : ''}
   `;
 
@@ -5778,7 +5801,7 @@ function mgParasLasku(t) {
 function mgRenderEhdotus(lasku, t) {
   const el = document.getElementById('mg-ehdotus');
   if (!lasku) {
-    el.innerHTML = `<div style="font-size:11px;color:rgba(255,255,255,.35);text-align:center;padding:12px">Ei ehdotettua laskua.<br>Raahaa lasku oikeasta palkista.</div>`;
+    el.innerHTML = `<div style="font-size:11px;color:var(--inu);text-align:center;padding:12px">Ei ehdotettua laskua.<br>Raahaa lasku oikeasta palkista.</div>`;
     mgClearPdf();
     return;
   }
@@ -5793,21 +5816,21 @@ function mgRenderEhdotus(lasku, t) {
   const pisteVari = pisteet >= 70 ? 'var(--fg3)' : pisteet >= 40 ? '#e8a86a' : 'var(--red)';
 
   el.innerHTML = `
-    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px;display:flex;justify-content:space-between">
+    <div class="pankki-tark-cap" style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
       <span>Ehdotettu lasku</span>
       <span style="color:${pisteVari};font-weight:700">${pisteet} p</span>
     </div>
-    <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px">${lasku.toimittaja || '—'}</div>
-    <div style="font-size:15px;font-weight:300;font-family:var(--ffd);color:#fff;margin-bottom:4px">${lasku.summa_brutto ? lasku.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €' : '—'}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.4)">${lasku.nro ? 'Nro: ' + lasku.nro : ''}${lasku.pvm ? ' · ' + lasku.pvm : ''}</div>
-    ${lasku.viite ? `<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">Viite: ${lasku.viite}</div>` : ''}
+    <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px">${lasku.toimittaja || '—'}</div>
+    <div style="font-size:15px;font-weight:300;font-family:var(--ffd);color:var(--ink);margin-bottom:4px">${lasku.summa_brutto ? lasku.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €' : '—'}</div>
+    <div style="font-size:11px;color:var(--inu)">${lasku.nro ? 'Nro: ' + lasku.nro : ''}${lasku.pvm ? ' · ' + lasku.pvm : ''}</div>
+    ${lasku.viite ? `<div style="font-size:10px;color:var(--inf);margin-top:2px">Viite: ${lasku.viite}</div>` : ''}
     ${lasku.ehdotettu_tili ? `<div style="font-size:10px;color:var(--fl);margin-top:2px">Tili: ${lasku.ehdotettu_tili}</div>` : ''}
   `;
   if (Array.isArray(t._serverSuggestions) && t._serverSuggestions.length > 1) {
     const alt = t._serverSuggestions.slice(0, 3).map(s => {
       const l = laskut[s.invoiceIdx];
       if (!l) return '';
-      return `<button onclick="mgVaihdaLasku(${l.idx})" style="padding:3px 8px;font-size:10px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:transparent;color:#cfe8de;cursor:pointer">${l.toimittaja || 'Lasku'} (${s.score}p)</button>`;
+      return `<button type="button" onclick="mgVaihdaLasku(${l.idx})" class="pankki-btn-ghost" style="padding:3px 8px;font-size:10px;border-radius:999px">${l.toimittaja || 'Lasku'} (${s.score}p)</button>`;
     }).join('');
     el.innerHTML += `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${alt}</div>`;
   }
@@ -5879,20 +5902,20 @@ function mgRenderLaskuLista(currentTapIdx) {
   const naytettavat = kohdistamattomatLaskut.slice(0, MAKSIMI_KORTIT);
   if (kohdistamattomatLaskut.length > MAKSIMI_KORTIT) {
     const info = document.createElement('div');
-    info.style.cssText = 'font-size:10px;color:rgba(255,255,255,.4);padding:6px 4px 8px';
+    info.style.cssText = 'font-size:10px;color:var(--inu);padding:6px 4px 8px';
     info.textContent = `Näytetään ensimmäiset ${MAKSIMI_KORTIT} / ${kohdistamattomatLaskut.length} laskua`;
     lista.appendChild(info);
   }
   naytettavat.forEach(l => {
     const card = document.createElement('div');
     card.draggable = true;
-    card.style.cssText = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px;cursor:grab;font-size:11px;transition:border-color .15s';
-    card.onmouseover = () => card.style.borderColor = 'var(--fg)';
-    card.onmouseout = () => card.style.borderColor = 'rgba(255,255,255,.08)';
+    card.style.cssText = 'background:var(--pp);border:1px solid var(--bd);border-radius:6px;padding:8px;cursor:grab;font-size:11px;transition:border-color .15s';
+    card.onmouseover = () => card.style.borderColor = 'var(--fg2)';
+    card.onmouseout = () => card.style.borderColor = 'var(--bd)';
     card.innerHTML = `
-      <div style="font-weight:600;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.toimittaja || '—'}</div>
-      <div style="font-family:var(--ffd);color:rgba(255,255,255,.7)">${l.summa_brutto ? l.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €' : '—'}</div>
-      <div style="color:rgba(255,255,255,.3);font-size:10px">${l.pvm || ''}${l.nro ? ' · ' + l.nro : ''}</div>
+      <div style="font-weight:600;color:var(--ink);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.toimittaja || '—'}</div>
+      <div style="font-family:var(--ffd);color:var(--inm)">${l.summa_brutto ? l.summa_brutto.toLocaleString('fi-FI',{minimumFractionDigits:2}) + ' €' : '—'}</div>
+      <div style="color:var(--inf);font-size:10px">${l.pvm || ''}${l.nro ? ' · ' + l.nro : ''}</div>
     `;
     card.ondragstart = (e) => { e.dataTransfer.setData('text/plain', String(l.idx)); card.style.opacity = '0.4'; };
     card.ondragend = () => { card.style.opacity = '1'; };
@@ -7097,16 +7120,12 @@ function paivitaJatkaBtn() {
   // Aktivoi kun tiliote luettu (laskut vapaaehtoinen)
   if (tilioteOk) {
     btn.disabled = false;
-    btn.style.background = 'var(--fg)';
-    btn.style.color = '#fff';
     btn.style.cursor = 'pointer';
     btn.textContent = laskutOk
       ? `Tarkista tiliote → (${impTiliote.tapahtumat.length} tapahtumaa, ${laskut.length} laskua)`
       : `Tarkista tiliote → (${impTiliote.tapahtumat.length} tapahtumaa)`;
   } else {
     btn.disabled = true;
-    btn.style.background = 'rgba(255,255,255,.1)';
-    btn.style.color = 'rgba(255,255,255,.3)';
     btn.style.cursor = 'not-allowed';
     btn.textContent = 'Tarkista tiliote →';
   }
@@ -7126,13 +7145,9 @@ function pwPaivitaJatkaBtn() {
   if (!btn) return;
   if (tilioteOk && laskutOk) {
     btn.disabled = false;
-    btn.style.background = 'var(--fg)';
-    btn.style.color = '#fff';
     btn.style.cursor = 'pointer';
   } else {
     btn.disabled = true;
-    btn.style.background = 'rgba(255,255,255,.1)';
-    btn.style.color = 'rgba(255,255,255,.35)';
     btn.style.cursor = 'not-allowed';
   }
 }
@@ -7155,7 +7170,7 @@ function pwJatkaKohdistusta() {
 }
 
 function avaaPankkituontiOhjattu() {
-  document.getElementById('pankkituonti-wizard-modal').style.display = 'block';
+  document.getElementById('pankkituonti-wizard-modal').style.display = 'flex';
   pwPaivitaJatkaBtn();
 }
 
