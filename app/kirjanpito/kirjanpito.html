@@ -9754,6 +9754,29 @@ function reskParsePvm(ddmmyyyy) {
   return m ? m[3] + '-' + m[2] + '-' + m[1] : ddmmyyyy;
 }
 
+/** PDF.js: tekstit järjestyksessä riviksi (Y↓, X→) — ilman tätä OP-tiliote voi olla yksi pitkä rivi ilman \\n. */
+async function reskPdfTekstiRiveittain(pdf) {
+  const out = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const yMap = {};
+    (tc.items || []).forEach(item => {
+      const s = (item.str || '').trim();
+      if (!s) return;
+      const y = Math.round(item.transform[5] / 3) * 3;
+      if (!yMap[y]) yMap[y] = [];
+      yMap[y].push({ x: item.transform[4], str: item.str });
+    });
+    const lines = Object.keys(yMap)
+      .sort((a, b) => Number(b) - Number(a))
+      .map(y => yMap[y].sort((a, b) => a.x - b.x).map(t => t.str).join(' ').trim())
+      .filter(Boolean);
+    if (lines.length) out.push(lines.join('\n'));
+  }
+  return out.join('\n\n');
+}
+
 /** Päivämäärä muodossa 7.5.2025 → ISO (tiliote / Fennoa). */
 function reskParsePvmFiLoose(s) {
   const m = String(s || '').trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
@@ -9771,24 +9794,41 @@ function reskViiteAvain(v) {
 }
 
 /**
- * Parsii OP/Fennoa -tyyppisestä tiliotetekstistä viitesiirrot: KIRJAUSPÄIVÄ → Maksaja → tap.nro + summa + → VIITE.
+ * Parsii OP/Fennoa -tyyppisestä tiliotetekstistä viitesiirrot.
+ * Ankkuri 710 VIITESIIRTO; Maksaja + tap.nro + summa + — välissä voi olla vain välilyöntejä (ei pakollista rivinvaihtoa).
+ * Kirjauspäivä: viimeinen KIRJAUSPÄIVÄ dd.mm.yyyy ennen kutakin osumaa.
  */
 function reskParsOpFennoViitesiirrot(kokoTeksti) {
-  const re = /KIRJAUSPÄIVÄ\s+(\d{1,2}\.\d{1,2}\.\d{4})[\s\S]{0,6000}?Maksaja:\s*[^\n\r]+[\r\n]+\s*(\d+)\s+([\d\s,]+)\s*\+[\s\S]{0,1200}?VIITE:\s*([0-9\s]+)/gi;
+  const teksti = String(kokoTeksti || '');
+  const kirjp = [];
+  const reK = /KIRJAUSPÄIVÄ\s+(\d{1,2}\.\d{1,2}\.\d{4})/gi;
+  let km;
+  while ((km = reK.exec(teksti)) !== null) {
+    kirjp.push({ idx: km.index, pvm: reskParsePvmFiLoose(km[1]) });
+  }
+  function pvmEnnen(pos) {
+    let best = '';
+    for (let i = 0; i < kirjp.length; i++) {
+      if (kirjp[i].idx < pos && kirjp[i].pvm) best = kirjp[i].pvm;
+    }
+    return best || new Date().toISOString().slice(0, 10);
+  }
+
   const byKey = new Map();
+  const re = /710\s+VIITESIIRTO[\s\S]{0,4200}?Maksaja:\s*.+?\s+(\d{1,4})\s+([\d\s,]+)\s*\+[\s\S]{0,1800}?(?:VIITE|Viite)\s*:\s*([0-9\s]+)/gi;
   let m;
-  while ((m = re.exec(kokoTeksti)) !== null) {
-    const pvm = reskParsePvmFiLoose(m[1]);
-    const summa = Math.round((parseFloat(String(m[3]).replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
-    const viite = String(m[4]).replace(/\D/g, '');
+  while ((m = re.exec(teksti)) !== null) {
+    const pvm = pvmEnnen(m.index);
+    const summa = Math.round((parseFloat(String(m[2]).replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
+    const viite = String(m[3]).replace(/\D/g, '');
     if (summa > 0.009 && viite.length >= 4) {
       const avain = reskViiteAvain(viite) + '|' + summa.toFixed(2);
       if (!byKey.has(avain)) {
         byKey.set(avain, {
-          pvm: pvm || new Date().toISOString().slice(0, 10),
+          pvm,
           summa,
           viite,
-          tapnro: m[2],
+          tapnro: m[1],
         });
       }
     }
@@ -9824,15 +9864,24 @@ async function reskKuittaaTiliotteesta() {
     await lataaReskontra();
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
-    let kokoTeksti = '';
-    for (let p = 1; p <= pdf.numPages; p++) {
-      const page = await pdf.getPage(p);
-      const tc = await page.getTextContent();
-      kokoTeksti += '\n' + tc.items.map(it => it.str).join(' ');
+    let kokoTeksti = await reskPdfTekstiRiveittain(pdf);
+    if (!kokoTeksti || kokoTeksti.length < 80) {
+      statusEl.innerHTML = '<span style="color:var(--red)">PDF:stä ei saatu tekstiä (skannattu kuva-PDF ei toimi). Käytä Fennoan/OP:n tekstitason tiliotetta.</span>';
+      return;
     }
-    const siirrot = reskParsOpFennoViitesiirrot(kokoTeksti);
+    let siirrot = reskParsOpFennoViitesiirrot(kokoTeksti);
     if (!siirrot.length) {
-      statusEl.innerHTML = '<span style="color:var(--red)">Viitesiirtoja ei löytynyt. Varmista että PDF on tekstitason tiliote (Fennoa / OP).</span>';
+      let flat = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        flat += '\n' + (tc.items || []).map(it => it.str).join(' ');
+      }
+      siirrot = reskParsOpFennoViitesiirrot(flat);
+      if (siirrot.length) kokoTeksti = flat;
+    }
+    if (!siirrot.length) {
+      statusEl.innerHTML = '<span style="color:var(--red)">Viitesiirtoja ei löytynyt (710 VIITESIIRTO + Maksaja + summa + + VIITE). Varmista että PDF on sama Fennoa/OP-tiliote ja tekstitasona.</span>';
       return;
     }
     const vahv = confirm(
