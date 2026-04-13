@@ -1835,6 +1835,18 @@ input[type=number] { -moz-appearance: textfield; }
   </div>
 </div>
 
+<div id="pankki-kdm-laskut-modal" style="display:none;position:fixed;inset:0;z-index:1110;background:rgba(26,28,24,.55);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--pp);border:1px solid var(--bd);border-radius:12px;max-width:460px;width:100%;padding:22px 24px;box-shadow:0 16px 48px rgba(0,0,0,.18);color:var(--ink)">
+    <div style="font-size:15px;font-weight:600;margin-bottom:10px">Kohdistumattomat laskut</div>
+    <p style="margin:0 0 14px;font-size:13px;line-height:1.45;color:var(--inm)">Tiliotteelle ei löytynyt vastinetta <strong id="pankki-kdm-laskut-lkm">0</strong> skannatulle laskulle.</p>
+    <p style="margin:0 0 18px;font-size:13px;line-height:1.45;color:var(--inm)">Kirjataanko nämä kohdistumattomat laskut? Kyllä: avataan tositteen syöttö valmiilla riveillä (voit muokata ennen tallennusta). Ei: laskut säilyvät tallennettuna ja mukana seuraavassa tiliotteessa / kun luot uudet laskut samaan PDF-aineistoon.</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" class="pankki-btn-ghost" onclick="pankkiKdmLaskutEi()">Ei</button>
+      <button type="button" class="pankki-btn-primary" onclick="pankkiKdmLaskutKyllä()">Kyllä, avaa syöttö</button>
+    </div>
+  </div>
+</div>
+
 <!-- Tuote-modal -->
 <div id="tuote-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:12px;width:420px;padding:24px">
@@ -5459,6 +5471,8 @@ let mgApplyQueue = [];
 let mgApplyInFlight = false;
 let mgFlushAfterQueue = false;
 let mgPendingPostMatchDialog = false;
+/** Kun tosite tallennetaan, poistetaan nämä lasku.idx:t jonosta (pankkituonti, kohdistumattomat). */
+let pprKohdistumattomatIdxTalliin = null;
 
 function naytaPankkiPostMatchKysely() {
   const el = document.getElementById('pankki-post-mg-modal');
@@ -5470,15 +5484,120 @@ function suljePankkiPostMatchKysely() {
   if (el) el.style.display = 'none';
 }
 
+function suljePankkiKdmLaskutModal() {
+  const el = document.getElementById('pankki-kdm-laskut-modal');
+  if (el) el.style.display = 'none';
+}
+
+function pankkiKdmLaskutKyllä() {
+  suljePankkiKdmLaskutModal();
+  const lista = (window._pankkiKdmLaskutLista || []).filter(Boolean);
+  window._pankkiKdmLaskutLista = null;
+  avaaTositeKohdistumattomilleLaskuille(lista);
+}
+
+function pankkiKdmLaskutEi() {
+  suljePankkiKdmLaskutModal();
+  window._pankkiKdmLaskutLista = null;
+  try { LS.saveLaskut(laskut); } catch (e) {}
+  toast('Kohdistumattomat laskut säilytetään seuraavaa tiliotetta varten.');
+  if (curYritys) lataaEtusivu();
+  showPanel('etusivu');
+}
+
+function pankkiKyselyKohdistumattomatLaskutJosTarve() {
+  const lista = Array.isArray(laskut) ? laskut.filter(l => l && (l.tapIdx === null || l.tapIdx === undefined)) : [];
+  try { LS.saveLaskut(laskut); } catch (e) {}
+  if (!lista.length) return false;
+  window._pankkiKdmLaskutLista = lista;
+  const lkm = document.getElementById('pankki-kdm-laskut-lkm');
+  if (lkm) lkm.textContent = String(lista.length);
+  const el = document.getElementById('pankki-kdm-laskut-modal');
+  if (el) el.style.display = 'flex';
+  return true;
+}
+
+function pankkiOstovelkaTiliOletus() {
+  return TILIT.find(t => t.nro === '2930')
+    || TILIT.find(t => /^293[0-9]/.test(String(t.nro || '')))
+    || TILIT.find(t => /ostovel/i.test(String(t.lbl || '')));
+}
+
+/** Täyttää tositteen syötön ostolasku-riveillä (kulu + ALV + ostovelka). Tallennuksen jälkeen laskut poistetaan jonosta. */
+async function avaaTositeKohdistumattomilleLaskuille(lista) {
+  if (!lista?.length) { toast('Ei laskuja'); return; }
+  if (!curYritys) { toast('Valitse yritys'); return; }
+  pprKohdistumattomatIdxTalliin = lista.map(l => l.idx);
+  tyhjennaTositelomake();
+  const lajiEl = document.getElementById('ts-laji');
+  if (lajiEl) lajiEl.value = 'OL';
+  await paivitaTositeNro();
+  const pvEl = document.getElementById('ts-pvm');
+  const pvSorted = lista.map(l => l.pvm).filter(Boolean).sort();
+  const pvLahde = pvSorted.length ? pvSorted[0] : new Date().toISOString().slice(0, 10);
+  if (pvEl) pvEl.value = pvLahde;
+
+  for (let i = 0; i < lista.length; i++) {
+    const l = lista[i];
+    const alvp = mgSnapAlvValittavaanKantaan(l.alv_prosentti) ?? 25.5;
+    let brutto = Number(l.summa_brutto);
+    if (!Number.isFinite(brutto) || brutto <= 0) {
+      const net = Number(l.summa_netto);
+      brutto = Number.isFinite(net) && net > 0
+        ? Math.round(net * (1 + (alvp > 0 ? alvp : 0) / 100) * 100) / 100
+        : 0;
+    }
+    if (!brutto) continue;
+    const tid = (l.ehdotettu_tili && String(l.ehdotettu_tili).trim()) || '';
+    const trow = TILIT.find(t => t.nro === tid);
+    const sel = (l.toimittaja || 'Lasku') + (l.nro ? ' nro ' + l.nro : '');
+    tositeRivit.push({
+      id: Date.now() + i * 1000 + Math.floor(Math.random() * 1000),
+      tili: tid,
+      tiliLbl: trow ? (trow.lbl || '') : '',
+      sel,
+      debet: brutto.toFixed(2),
+      kredit: '',
+      alvp: alvp > 0 ? String(alvp) : '',
+      bruttoSumma: brutto
+    });
+  }
+
+  if (!tositeRivit.length) {
+    pprKohdistumattomatIdxTalliin = null;
+    toast('Laskuista ei saatu summoja riveille');
+    return;
+  }
+
+  for (let i = 0; i < tositeRivit.length; i++) {
+    if (tsParseFi(tositeRivit[i].alvp) > 0 && tositeRivit[i].bruttoSumma) tositeLaskeVeroton(i);
+  }
+  paivitaTositeTotals();
+  const ov = pankkiOstovelkaTiliOletus();
+  if (tositeBalancingRow && ov && ov.nro) {
+    tositeBalancingRow.tili = ov.nro;
+    tositeBalancingRow.tiliLbl = ov.lbl || '';
+  }
+  tositeDirty = true;
+  renderTositeRivit();
+  paivitaTositeTotals();
+  if (tositeBalancingRow && !tositeBalancingRow.tili) {
+    toast('Valitse tasausriville ostovelkatili (esim. 2930), jos tiliä ei löytynyt automaattisesti.');
+  }
+  showPanel('tosite');
+}
+
 function pankkiPostMatchKyllä() {
   suljePankkiPostMatchKysely();
-  showPanel('tositteet');
+  if (!pankkiKyselyKohdistumattomatLaskutJosTarve()) showPanel('tositteet');
 }
 
 function pankkiPostMatchEi() {
   suljePankkiPostMatchKysely();
-  if (curYritys) lataaEtusivu();
-  showPanel('etusivu');
+  if (!pankkiKyselyKohdistumattomatLaskutJosTarve()) {
+    if (curYritys) lataaEtusivu();
+    showPanel('etusivu');
+  }
 }
 
 function mgDefaultsKey() {
@@ -5612,7 +5731,12 @@ async function mgProcessApplyQueue() {
         chain = lataaRivit(asiakasId).catch(e => console.warn('lataaRivit (match game) epäonnistui:', e));
       }
       chain.then(() => {
+        try { LS.saveLaskut(laskut); } catch (e) {}
         if (pendingAsk && mgKirjattu > 0) naytaPankkiPostMatchKysely();
+        else if (!pankkiKyselyKohdistumattomatLaskutJosTarve()) {
+          if (curYritys) lataaEtusivu();
+          showPanel('etusivu');
+        }
       });
     }
   }
@@ -5680,8 +5804,13 @@ function lopetaMatchGame() {
     return;
   }
   renderImpTable();
+  try { LS.saveLaskut(laskut); } catch (e) {}
   const naytaSeuraava = () => {
     if (kirjattu > 0) naytaPankkiPostMatchKysely();
+    else if (!pankkiKyselyKohdistumattomatLaskutJosTarve()) {
+      if (curYritys) lataaEtusivu();
+      showPanel('etusivu');
+    }
   };
   if (mgNeedsLedgerReload && curYritys?.id) {
     const asiakasId = curYritys.id;
@@ -7246,7 +7375,9 @@ TÄRKEÄT TULKINTASÄÄNNÖT:
   try {
     const pdfOsat = palat || [pdfBytesAll];
     const kayttaaYksiPromptia = palat && palat.length > 1;
-    laskut = [];
+    const carry = (LS.loadLaskut() || []).filter(l => l && (l.tapIdx === null || l.tapIdx === undefined))
+      .map(l => ({ ...l, tapIdx: null }));
+    laskut = carry;
 
     for (let pi = 0; pi < pdfOsat.length; pi++) {
       const osaBytes = pdfOsat[pi];
@@ -7308,6 +7439,10 @@ TÄRKEÄT TULKINTASÄÄNNÖT:
         laskut = [...laskut, ...uudet];
       } catch(e) { console.warn('JSON parse epäonnistui osalle', pi, e); }
     }
+
+    laskut.forEach((l, i) => { l.idx = i; });
+    try { LS.saveLaskut(laskut); } catch (e) {}
+    for (const k of Object.keys(laskuCanvasCache)) delete laskuCanvasCache[k];
 
     statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${laskut.length} laskua${palat ? ' (' + palat.length + ' PDF-osaa)' : ''}</span>`;
     paivitaJatkaBtn();
@@ -10648,6 +10783,14 @@ async function tallennaTositteet() {
       await lataaRivit(curYritys.id);
       await paivitaTositeNro();
       document.getElementById('ts-pvm').value = tallennettuPvm;
+      if (Array.isArray(pprKohdistumattomatIdxTalliin) && pprKohdistumattomatIdxTalliin.length) {
+        const rm = new Set(pprKohdistumattomatIdxTalliin);
+        laskut = (laskut || []).filter(l => !rm.has(l.idx));
+        laskut.forEach((l, i) => { l.idx = i; });
+        pprKohdistumattomatIdxTalliin = null;
+        try { LS.saveLaskut(laskut); } catch (e) {}
+        for (const k of Object.keys(laskuCanvasCache)) delete laskuCanvasCache[k];
+      }
     } else {
       // Palauta rivit
       console.error('Tallennus epäonnistui:', res.status, json);
