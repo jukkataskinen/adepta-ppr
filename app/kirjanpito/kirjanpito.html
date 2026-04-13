@@ -1207,6 +1207,16 @@ input[type=number] { -moz-appearance: textfield; }
         <div id="reskontra-status" style="font-size:11px;color:var(--inu)"></div>
       </div>
 
+      <div style="background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-top:16px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--inu);margin-bottom:10px">2. Kuittaa myyntisaamiset tiliotteesta (OP / Fennoa PDF)</div>
+        <div style="font-size:11px;color:var(--inm);line-height:1.45;margin-bottom:10px">Lataa tulostettu tiliote-PDF (esim. Keski-Suomen OP, Fennoa). Etsitään viitesiirrot (Maksaja + summa + VIITE) ja täsmäytetään avoimiin reskontra-laskuihin viitenumerolla ja summalla. Kirjaus: pankkitili debet, myyntisaamiset kredit (SM).</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <input type="file" id="resk-tiliote-file" accept=".pdf" style="font-size:11px;flex:1;min-width:200px">
+          <button type="button" onclick="reskKuittaaTiliotteesta()" style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:#fff;cursor:pointer">Lue tiliote ja kuittaa</button>
+        </div>
+        <div id="resk-tiliote-status" style="font-size:11px;color:var(--inu);white-space:pre-wrap"></div>
+      </div>
+
       <!-- Laskutaulukko -->
       <div id="reskontra-lista" style="display:none;margin-top:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -2236,6 +2246,7 @@ function showPanel(name) {
   if (name === 'ostolaskut') lataaOlData();
   if (name === 'yritystiedot') ytLataa();
   if (name === 'tosite') paivitaTositeNro();
+  if (name === 'reskontra') lataaReskontra();
   if (name === 'raportit') {
     const rptSub = document.getElementById('rpt-sub');
     if (rptSub) rptSub.textContent = (curYritys?.nimi || '') + ' · Tilikausi ' + (curTilikausiVuosi || new Date().getFullYear());
@@ -9741,6 +9752,187 @@ async function lueMyyLaskutPdf() {
 function reskParsePvm(ddmmyyyy) {
   const m = ddmmyyyy.match(/(\d{2})\.(\d{2})\.(\d{4})/);
   return m ? m[3] + '-' + m[2] + '-' + m[1] : ddmmyyyy;
+}
+
+/** Päivämäärä muodossa 7.5.2025 → ISO (tiliote / Fennoa). */
+function reskParsePvmFiLoose(s) {
+  const m = String(s || '').trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!m) return '';
+  const d = m[1].padStart(2, '0');
+  const mo = m[2].padStart(2, '0');
+  return m[3] + '-' + mo + '-' + d;
+}
+
+/** Viitteen vertailuavain (etunollat pois). */
+function reskViiteAvain(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  const t = d.replace(/^0+/, '') || '0';
+  return t;
+}
+
+/**
+ * Parsii OP/Fennoa -tyyppisestä tiliotetekstistä viitesiirrot: KIRJAUSPÄIVÄ → Maksaja → tap.nro + summa + → VIITE.
+ */
+function reskParsOpFennoViitesiirrot(kokoTeksti) {
+  const re = /KIRJAUSPÄIVÄ\s+(\d{1,2}\.\d{1,2}\.\d{4})[\s\S]{0,6000}?Maksaja:\s*[^\n\r]+[\r\n]+\s*(\d+)\s+([\d\s,]+)\s*\+[\s\S]{0,1200}?VIITE:\s*([0-9\s]+)/gi;
+  const byKey = new Map();
+  let m;
+  while ((m = re.exec(kokoTeksti)) !== null) {
+    const pvm = reskParsePvmFiLoose(m[1]);
+    const summa = Math.round((parseFloat(String(m[3]).replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
+    const viite = String(m[4]).replace(/\D/g, '');
+    if (summa > 0.009 && viite.length >= 4) {
+      const avain = reskViiteAvain(viite) + '|' + summa.toFixed(2);
+      if (!byKey.has(avain)) {
+        byKey.set(avain, {
+          pvm: pvm || new Date().toISOString().slice(0, 10),
+          summa,
+          viite,
+          tapnro: m[2],
+        });
+      }
+    }
+  }
+  return Array.from(byKey.values());
+}
+
+function reskLoydaAvoinReskontraRivi(viiteDigits, summa) {
+  const avain = reskViiteAvain(viiteDigits);
+  const avoimet = (reskApiData || []).filter(r => r && (r.tila || 'avoin') !== 'maksettu');
+  const tol = 0.02;
+  return avoimet.find(r => {
+    const rv = reskViiteAvain(r.viite);
+    if (rv !== avain) return false;
+    const s = Number(r.summa) || 0;
+    return Math.abs(s - summa) < tol;
+  }) || null;
+}
+
+async function reskKuittaaTiliotteesta() {
+  const fileEl = document.getElementById('resk-tiliote-file');
+  const statusEl = document.getElementById('resk-tiliote-status');
+  const file = fileEl?.files?.[0];
+  if (!file) { toast('Valitse tiliote-PDF'); return; }
+  if (!curYritys) { toast('Valitse yritys'); return; }
+  if (typeof pdfjsLib === 'undefined') {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red)">PDF.js ei ole ladattu.</span>';
+    return;
+  }
+  statusEl.innerHTML = '<span style="color:var(--amber)">⏳ Luetaan PDF…</span>';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  try {
+    await lataaReskontra();
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    let kokoTeksti = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      kokoTeksti += '\n' + tc.items.map(it => it.str).join(' ');
+    }
+    const siirrot = reskParsOpFennoViitesiirrot(kokoTeksti);
+    if (!siirrot.length) {
+      statusEl.innerHTML = '<span style="color:var(--red)">Viitesiirtoja ei löytynyt. Varmista että PDF on tekstitason tiliote (Fennoa / OP).</span>';
+      return;
+    }
+    const vahv = confirm(
+      'Löytyi ' + siirrot.length + ' viitesiirtoa tiliotteelta.\n\n' +
+      'Kuittaan avoimet reskontra-laskut (viite + summa täsmää) ja kirjaan tositteet: D 1910 pankki, K 1701 myyntisaamiset.\n\nJatketaanko?'
+    );
+    if (!vahv) {
+      statusEl.textContent = 'Peruutettu.';
+      return;
+    }
+    let ok = 0, skip = 0, virhe = 0;
+    const raportti = [];
+    for (const pr of siirrot) {
+      const row = reskLoydaAvoinReskontraRivi(pr.viite, pr.summa);
+      if (!row?.id) {
+        skip++;
+        raportti.push('Ei avointa: viite ' + reskViiteAvain(pr.viite) + ' / ' + pr.summa.toFixed(2) + ' €');
+        continue;
+      }
+      const nimi = row.osakas?.nimi || row.asiakas?.nimi || 'Asiakas';
+      const sel = nimi + ' — suoritus, viite ' + reskViiteAvain(pr.viite);
+      let tosite_nro = null;
+      for (const laji of ['SM', 'MU']) {
+        const nroRes = await fetch('/api/ppr/paivakirja/seuraava?asiakas_id=' + encodeURIComponent(curYritys.id) + '&laji=' + encodeURIComponent(laji));
+        const nroData = await nroRes.json().catch(() => ({}));
+        if (nroData?.tosite_nro) {
+          tosite_nro = nroData.tosite_nro;
+          break;
+        }
+      }
+      if (!tosite_nro) {
+        virhe++;
+        raportti.push('Tositenumero puuttuu: viite ' + reskViiteAvain(pr.viite));
+        continue;
+      }
+      const rivit = [
+        { asiakas_id: curYritys.id, tosite_nro, paivamaara: pr.pvm, tili: '1910', selite: sel, saldo: pr.summa },
+        { asiakas_id: curYritys.id, tosite_nro, paivamaara: pr.pvm, tili: '1701', selite: sel, saldo: -pr.summa },
+      ];
+      try {
+        const res = await fetch('/api/ppr/paivakirja/lisaa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rivit }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          virhe++;
+          raportti.push('Kirjaus: ' + reskViiteAvain(pr.viite) + ' — ' + (j.error || res.status));
+          continue;
+        }
+        const patch = await fetch('/api/ppr/reskontra', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: row.id,
+            tila: 'maksettu',
+            maksettu_pvm: pr.pvm,
+            maksettu_summa: pr.summa,
+          }),
+        });
+        if (!patch.ok) {
+          virhe++;
+          raportti.push('Reskontra PATCH: viite ' + reskViiteAvain(pr.viite) + ' — ' + (await patch.text()).slice(0, 80));
+          continue;
+        }
+        ok++;
+        const idx = reskApiData.findIndex(r => r.id === row.id);
+        if (idx >= 0) {
+          reskApiData[idx].tila = 'maksettu';
+          reskApiData[idx].maksettu_pvm = pr.pvm;
+          reskApiData[idx].maksettu_summa = pr.summa;
+        }
+      } catch (e) {
+        virhe++;
+        raportti.push(String(pr.viite) + ': ' + (e && e.message));
+      }
+    }
+    await lataaRivit(curYritys.id);
+    await lataaReskontra();
+    statusEl.innerHTML =
+      '<span style="color:var(--fg3)">✓ Kuittaus valmis: ' + ok + ' kpl kirjattu</span>' +
+      (skip ? ' · <span style="color:var(--amber)">' + skip + ' ei täsmännyt</span>' : '') +
+      (virhe ? ' · <span style="color:var(--red)">' + virhe + ' virhettä</span>' : '') +
+      (raportti.length ? '<div style="margin-top:8px;font-size:10px;color:var(--inu);max-height:160px;overflow-y:auto">' +
+        raportti.slice(0, 40).map(x => reskEsc(x)).join('<br>') +
+        (raportti.length > 40 ? '<br>… +' + (raportti.length - 40) + ' riviä' : '') +
+        '</div>' : '');
+    toast('Kuittaus: ' + ok + ' ok' + (skip ? ', ' + skip + ' ohitettu' : '') + (virhe ? ', ' + virhe + ' virhe' : ''));
+  } catch (e) {
+    console.error('reskKuittaaTiliotteesta:', e);
+    statusEl.innerHTML = '<span style="color:var(--red)">Virhe: ' + reskEsc(e.message || String(e)) + '</span>';
+  }
+}
+
+function reskEsc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function reskRenderLista() {
