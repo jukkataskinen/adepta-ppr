@@ -2050,6 +2050,10 @@ const LS = {
   laskutKey: () => `adepta_laskut_${curYritys.id}`,
   saveLaskut:(l) => { try { localStorage.setItem(LS.laskutKey(), JSON.stringify(l)); } catch(e){} },
   loadLaskut:() => { try { const d=localStorage.getItem(LS.laskutKey()); return d?JSON.parse(d):[]; } catch(e){ return []; } },
+  // Myyntireskontran luettu laskuaineisto (paneeli "Laskuaineiston tuonti")
+  reskLaskutKey: () => `adepta_resk_laskut_${curYritys.id}`,
+  saveReskLaskut:(l) => { try { localStorage.setItem(LS.reskLaskutKey(), JSON.stringify(l)); } catch(e){} },
+  loadReskLaskut:() => { try { const d=localStorage.getItem(LS.reskLaskutKey()); return d?JSON.parse(d):[]; } catch(e){ return []; } },
 };
 
 // ── INIT ─────────────────────────────────────────────────────
@@ -9663,6 +9667,7 @@ let reskApiData = []; // API:sta ladattu reskontra-data
 async function lataaReskontra() {
   if (!curYritys) { reskApiData = []; return; }
   try {
+    if (!reskLaskut?.length) reskLaskut = LS.loadReskLaskut();
     const res = await fetch('/api/ppr/reskontra?kirjanpitoasiakas_id=' + curYritys.id);
     if (!res.ok) { console.warn('reskontra fetch:', res.status); reskApiData = []; return; }
     reskApiData = await res.json();
@@ -9784,6 +9789,7 @@ async function lueMyyLaskutPdf() {
 
     console.log('Myyntilaskut luettu:', reskLaskut.length);
     if (reskLaskut.length > 0) console.table(reskLaskut.slice(0, 5));
+    LS.saveReskLaskut(reskLaskut);
 
     reskRenderLista();
     statusEl.innerHTML = `<span style="color:var(--fg3)">✓ Luettu: ${reskLaskut.length} laskua</span>`;
@@ -9985,9 +9991,16 @@ async function reskKuittaaTiliotteesta() {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   try {
     await lataaReskontra();
+    if ((!reskLaskut || !reskLaskut.length) && curYritys) {
+      reskLaskut = LS.loadReskLaskut();
+    }
     const varm = await reskVarmistaAvoimetKannassa();
     if (varm && varm.ok === false) {
       statusEl.innerHTML = '<span style="color:var(--red)">Reskontran varmistus epäonnistui: ' + reskEsc(varm.error || 'tuntematon virhe') + '</span>';
+      return;
+    }
+    if ((!reskLaskut || !reskLaskut.length) && (!reskApiData || !reskApiData.length)) {
+      statusEl.innerHTML = '<span style="color:var(--red)">Avoimia laskuja ei löytynyt. Lue ensin laskuaineisto tässä paneelissa (Lue laskut), sitten kuittaa tiliotteesta.</span>';
       return;
     }
     const buf = await file.arrayBuffer();
