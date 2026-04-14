@@ -9670,6 +9670,37 @@ async function lataaReskontra() {
   } catch(e) { console.warn('lataaReskontra:', e); reskApiData = []; }
 }
 
+/** Jos reskontra-API on tyhjä mutta laskuaineisto on luettu, tallenna avoimet laskut kantaan kuittausta varten. */
+async function reskVarmistaAvoimetKannassa() {
+  if (!curYritys) return;
+  if ((reskApiData || []).length > 0) return;
+  const ehdokkaat = (reskLaskut || []).filter(l => l && l.viite && Number(l.summa) > 0);
+  if (!ehdokkaat.length) return;
+  const payload = ehdokkaat.map(l => ({
+    kirjanpitoasiakas_id: curYritys.id,
+    lasku_nro: l.lasku_nro || null,
+    asiakas: l.asiakas || null,
+    osoite: l.osoite || null,
+    postinro: l.postinro || null,
+    kaupunki: l.kaupunki || null,
+    pvm: l.pvm || null,
+    erapv: l.erapv || null,
+    viite: l.viite || null,
+    summa: Number(l.summa) || 0,
+    tila: 'avoin',
+  }));
+  try {
+    await fetch('/api/ppr/reskontra', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    await lataaReskontra();
+  } catch (e) {
+    console.warn('reskVarmistaAvoimetKannassa:', e);
+  }
+}
+
 async function lueMyyLaskutPdf() {
   const fileEl = document.getElementById('reskontra-file');
   const file = fileEl?.files?.[0];
@@ -9941,6 +9972,7 @@ async function reskKuittaaTiliotteesta() {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   try {
     await lataaReskontra();
+    await reskVarmistaAvoimetKannassa();
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
     let kokoTeksti = await reskPdfTekstiRiveittain(pdf);
