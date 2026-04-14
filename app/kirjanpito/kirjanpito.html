@@ -9798,46 +9798,68 @@ function reskViiteAvain(v) {
  * Toimii myös kun PDF-rakenne sekoittaa rivinvaihtoja.
  */
 function reskParsOpFennoViitesiirrot(kokoTeksti) {
-  const teksti = String(kokoTeksti || '');
-  const kirjp = [];
-  const reK = /KIRJAUSPÄIVÄ\s+(\d{1,2}\.\d{1,2}\.\d{4})/gi;
-  let km;
-  while ((km = reK.exec(teksti)) !== null) kirjp.push({ idx: km.index, pvm: reskParsePvmFiLoose(km[1]) });
-  function pvmEnnen(pos) {
-    let best = '';
-    for (let i = 0; i < kirjp.length; i++) if (kirjp[i].idx < pos && kirjp[i].pvm) best = kirjp[i].pvm;
-    return best || new Date().toISOString().slice(0, 10);
-  }
-
+  const lines = String(kokoTeksti || '')
+    .split(/\r?\n/)
+    .map(s => s.trim())
+    .filter(Boolean);
   const byKey = new Map();
-  const reV = /(?:VIITE|Viite)\s*:\s*([0-9\s]{6,40})/g;
-  let m;
-  while ((m = reV.exec(teksti)) !== null) {
-    const viite = String(m[1] || '').replace(/\D/g, '');
-    if (viite.length < 4) continue;
 
-    const start = Math.max(0, m.index - 2500);
-    const end = Math.min(teksti.length, reV.lastIndex + 800);
-    const ctx = teksti.slice(start, end);
-    if (!/710\s+VIITESIIRTO/i.test(ctx)) continue;
+  let currentPvm = new Date().toISOString().slice(0, 10);
+  let inViitesiirto = false;
+  let pendingTap = '';
+  let pendingSumma = 0;
 
-    let summa = 0;
-    let tapnro = '';
-    const mAmt1 = ctx.match(/\b(\d{1,4})\s+([0-9\s]{1,16},\d{2})\s*\+/);
-    const mAmt2 = !mAmt1 ? ctx.match(/([0-9\s]{1,16},\d{2})\s*\+/) : null;
-    if (mAmt1) {
-      tapnro = mAmt1[1];
-      summa = parseFloat(String(mAmt1[2]).replace(/\s/g, '').replace(',', '.')) || 0;
-    } else if (mAmt2) {
-      summa = parseFloat(String(mAmt2[1]).replace(/\s/g, '').replace(',', '.')) || 0;
+  for (const line of lines) {
+    const k = line.match(/^KIRJAUSPÄIVÄ\s+(\d{1,2}\.\d{1,2}\.\d{4})$/i);
+    if (k) {
+      currentPvm = reskParsePvmFiLoose(k[1]) || currentPvm;
+      inViitesiirto = false;
+      pendingTap = '';
+      pendingSumma = 0;
+      continue;
     }
-    summa = Math.round(summa * 100) / 100;
-    if (summa <= 0.009) continue;
 
-    const pvm = pvmEnnen(m.index);
-    const avain = reskViiteAvain(viite) + '|' + summa.toFixed(2);
-    if (!byKey.has(avain)) byKey.set(avain, { pvm, summa, viite, tapnro });
+    // Uusi tapahtumablokki alkaa tästä; kerätään summa+viite tämän jälkeen.
+    if (/^710\s+VIITESIIRTO$/i.test(line)) {
+      inViitesiirto = true;
+      pendingTap = '';
+      pendingSumma = 0;
+      continue;
+    }
+
+    if (!inViitesiirto) continue;
+
+    // Tapahtuman summa-rivi: "2  138,79 +"
+    const mAmt = line.match(/^(\d{1,4})\s+([0-9 ]{1,16},\d{2})\s*\+$/);
+    if (mAmt) {
+      pendingTap = mAmt[1];
+      pendingSumma = Math.round((parseFloat(mAmt[2].replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
+      continue;
+    }
+
+    // Viite-rivi
+    const mv = line.match(/(?:VIITE|Viite)\s*:\s*([0-9 ]{4,40})/);
+    if (mv && pendingSumma > 0.009) {
+      let viite = String(mv[1] || '').replace(/\D/g, '');
+      // Suomalainen viitenumero max 20 numeroa: leikkaa häntäroska pois.
+      if (viite.length > 20) viite = viite.slice(0, 20);
+      if (viite.length >= 4) {
+        const avain = reskViiteAvain(viite) + '|' + pendingSumma.toFixed(2);
+        if (!byKey.has(avain)) {
+          byKey.set(avain, {
+            pvm: currentPvm,
+            summa: pendingSumma,
+            viite,
+            tapnro: pendingTap,
+          });
+        }
+      }
+      inViitesiirto = false;
+      pendingTap = '';
+      pendingSumma = 0;
+    }
   }
+
   return Array.from(byKey.values());
 }
 
