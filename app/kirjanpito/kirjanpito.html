@@ -9713,10 +9713,16 @@ async function reskVarmistaAvoimetKannassa() {
 }
 
 function reskLoydaLuetuistaLaskuista(viiteDigits, summa) {
-  const tol = 0.02;
-  return (reskLaskut || []).find(l =>
-    l && reskViiteTasmaa(l.viite, viiteDigits) && Math.abs((Number(l.summa) || 0) - summa) < tol
-  ) || null;
+  const lista = (reskLaskut || []).filter(l => l && reskViiteTasmaa(l.viite, viiteDigits));
+  if (!lista.length) return null;
+  if (lista.length === 1) return lista[0];
+  let best = lista[0];
+  let bestd = Math.abs((Number(best.summa) || 0) - Number(summa || 0));
+  for (let i = 1; i < lista.length; i++) {
+    const d = Math.abs((Number(lista[i].summa) || 0) - Number(summa || 0));
+    if (d < bestd) { bestd = d; best = lista[i]; }
+  }
+  return best;
 }
 
 async function lueMyyLaskutPdf() {
@@ -9969,12 +9975,16 @@ function reskViiteTasmaa(a, b) {
 
 function reskLoydaAvoinReskontraRivi(viiteDigits, summa) {
   const avoimet = (reskApiData || []).filter(r => r && (r.tila || 'avoin') !== 'maksettu');
-  const tol = 0.02;
-  return avoimet.find(r => {
-    if (!reskViiteTasmaa(r.viite, viiteDigits)) return false;
-    const s = Number(r.summa) || 0;
-    return Math.abs(s - summa) < tol;
-  }) || null;
+  const viiteMatch = avoimet.filter(r => reskViiteTasmaa(r.viite, viiteDigits));
+  if (!viiteMatch.length) return null;
+  if (viiteMatch.length === 1) return viiteMatch[0];
+  let best = viiteMatch[0];
+  let bestd = Math.abs((Number(best.summa) || 0) - Number(summa || 0));
+  for (let i = 1; i < viiteMatch.length; i++) {
+    const d = Math.abs((Number(viiteMatch[i].summa) || 0) - Number(summa || 0));
+    if (d < bestd) { bestd = d; best = viiteMatch[i]; }
+  }
+  return best;
 }
 
 async function reskKuittaaTiliotteesta() {
@@ -10068,7 +10078,8 @@ async function reskKuittaaTiliotteesta() {
       }
       if (!row?.id) {
         skip++;
-        raportti.push('Ei avointa: viite ' + reskViiteAvain(pr.viite) + ' / ' + pr.summa.toFixed(2) + ' €');
+        const viiteOnly = (reskApiData || []).filter(r => r && (r.tila || 'avoin') !== 'maksettu' && reskViiteTasmaa(r.viite, pr.viite)).length;
+        raportti.push('Ei avointa: viite ' + reskViiteAvain(pr.viite) + ' / ' + pr.summa.toFixed(2) + ' €' + (viiteOnly ? ' (viite löytyi, summaero)' : ''));
         continue;
       }
       const nimi = row.osakas?.nimi || row.asiakas?.nimi || 'Asiakas';
