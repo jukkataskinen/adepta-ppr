@@ -9860,7 +9860,44 @@ function reskParsOpFennoViitesiirrot(kokoTeksti) {
     }
   }
 
-  return Array.from(byKey.values());
+  const ensisijainen = Array.from(byKey.values());
+  if (ensisijainen.length) return ensisijainen;
+
+  // Fallback: jos PDF-rivitys menee sekaisin, etsi VIITE-tokenin ympäriltä lähin 710 VIITESIIRTO + "nro summa +".
+  const flat = String(kokoTeksti || '').replace(/\s+/g, ' ').trim();
+  const byKey2 = new Map();
+  const reV2 = /(?:VIITE|Viite)\s*:\s*([0-9 ]{4,40})/g;
+  let m2;
+  while ((m2 = reV2.exec(flat)) !== null) {
+    let viite = String(m2[1] || '').replace(/\D/g, '');
+    if (viite.length > 20) viite = viite.slice(0, 20);
+    if (viite.length < 4) continue;
+
+    const start = Math.max(0, m2.index - 1400);
+    const ctx = flat.slice(start, m2.index);
+    const pos710 = ctx.lastIndexOf('710 VIITESIIRTO');
+    if (pos710 < 0) continue;
+    const ctx710 = ctx.slice(pos710);
+
+    const am = ctx710.match(/(?:^|\s)(\d{1,4})\s+([0-9 ]{1,16},\d{2})\s*\+\s*$/);
+    if (!am) continue;
+    const tapnro = am[1];
+    const summa = Math.round((parseFloat(am[2].replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
+    if (summa <= 0.009) continue;
+
+    // Päivämäärä fallback: hae lähin KIRJAUSPÄIVÄ ennen osumaa.
+    const prev = flat.slice(0, m2.index);
+    const kmAll = prev.match(/KIRJAUSPÄIVÄ\s+\d{1,2}\.\d{1,2}\.\d{4}/g);
+    let pvm = new Date().toISOString().slice(0, 10);
+    if (kmAll && kmAll.length) {
+      const last = kmAll[kmAll.length - 1].match(/(\d{1,2}\.\d{1,2}\.\d{4})/);
+      if (last) pvm = reskParsePvmFiLoose(last[1]) || pvm;
+    }
+
+    const avain = reskViiteAvain(viite) + '|' + summa.toFixed(2);
+    if (!byKey2.has(avain)) byKey2.set(avain, { pvm, summa, viite, tapnro });
+  }
+  return Array.from(byKey2.values());
 }
 
 function reskViiteAvaimet(v) {
