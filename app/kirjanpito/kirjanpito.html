@@ -9673,9 +9673,9 @@ async function lataaReskontra() {
 /** Jos reskontra-API on tyhjä mutta laskuaineisto on luettu, tallenna avoimet laskut kantaan kuittausta varten. */
 async function reskVarmistaAvoimetKannassa() {
   if (!curYritys) return;
-  if ((reskApiData || []).length > 0) return;
+  if ((reskApiData || []).length > 0) return { ok: true, skipped: true };
   const ehdokkaat = (reskLaskut || []).filter(l => l && l.viite && Number(l.summa) > 0);
-  if (!ehdokkaat.length) return;
+  if (!ehdokkaat.length) return { ok: true, skipped: true };
   const payload = ehdokkaat.map(l => ({
     kirjanpitoasiakas_id: curYritys.id,
     lasku_nro: l.lasku_nro || null,
@@ -9690,15 +9690,28 @@ async function reskVarmistaAvoimetKannassa() {
     tila: 'avoin',
   }));
   try {
-    await fetch('/api/ppr/reskontra', {
+    const res = await fetch('/api/ppr/reskontra', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload),
     });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: j.error || res.status };
+    }
     await lataaReskontra();
+    return { ok: true, inserted: payload.length };
   } catch (e) {
     console.warn('reskVarmistaAvoimetKannassa:', e);
+    return { ok: false, error: e?.message || String(e) };
   }
+}
+
+function reskLoydaLuetuistaLaskuista(viiteDigits, summa) {
+  const tol = 0.02;
+  return (reskLaskut || []).find(l =>
+    l && reskViiteTasmaa(l.viite, viiteDigits) && Math.abs((Number(l.summa) || 0) - summa) < tol
+  ) || null;
 }
 
 async function lueMyyLaskutPdf() {
@@ -9972,7 +9985,11 @@ async function reskKuittaaTiliotteesta() {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   try {
     await lataaReskontra();
-    await reskVarmistaAvoimetKannassa();
+    const varm = await reskVarmistaAvoimetKannassa();
+    if (varm && varm.ok === false) {
+      statusEl.innerHTML = '<span style="color:var(--red)">Reskontran varmistus epäonnistui: ' + reskEsc(varm.error || 'tuntematon virhe') + '</span>';
+      return;
+    }
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
     let kokoTeksti = await reskPdfTekstiRiveittain(pdf);
@@ -10006,7 +10023,36 @@ async function reskKuittaaTiliotteesta() {
     let ok = 0, skip = 0, virhe = 0;
     const raportti = [];
     for (const pr of siirrot) {
-      const row = reskLoydaAvoinReskontraRivi(pr.viite, pr.summa);
+      let row = reskLoydaAvoinReskontraRivi(pr.viite, pr.summa);
+      if (!row?.id) {
+        // Fallback: luo puuttuva avoin rivi luetuista laskuista lennossa.
+        const src = reskLoydaLuetuistaLaskuista(pr.viite, pr.summa);
+        if (src) {
+          try {
+            const ins = await fetch('/api/ppr/reskontra', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify([{
+                kirjanpitoasiakas_id: curYritys.id,
+                lasku_nro: src.lasku_nro || null,
+                asiakas: src.asiakas || null,
+                osoite: src.osoite || null,
+                postinro: src.postinro || null,
+                kaupunki: src.kaupunki || null,
+                pvm: src.pvm || null,
+                erapv: src.erapv || null,
+                viite: src.viite || null,
+                summa: Number(src.summa) || 0,
+                tila: 'avoin',
+              }]),
+            });
+            if (ins.ok) {
+              await lataaReskontra();
+              row = reskLoydaAvoinReskontraRivi(pr.viite, pr.summa);
+            }
+          } catch (e) {}
+        }
+      }
       if (!row?.id) {
         skip++;
         raportti.push('Ei avointa: viite ' + reskViiteAvain(pr.viite) + ' / ' + pr.summa.toFixed(2) + ' €');
