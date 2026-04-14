@@ -9794,55 +9794,75 @@ function reskViiteAvain(v) {
 }
 
 /**
- * Parsii OP/Fennoa -tyyppisestä tiliotetekstistä viitesiirrot.
- * Ankkuri 710 VIITESIIRTO; Maksaja + tap.nro + summa + — välissä voi olla vain välilyöntejä (ei pakollista rivinvaihtoa).
- * Kirjauspäivä: viimeinen KIRJAUSPÄIVÄ dd.mm.yyyy ennen kutakin osumaa.
+ * Parsii OP/Fennoa -tiliotetekstistä viitesiirrot VIITE:-ankkurin ympäriltä.
+ * Toimii myös kun PDF-rakenne sekoittaa rivinvaihtoja.
  */
 function reskParsOpFennoViitesiirrot(kokoTeksti) {
   const teksti = String(kokoTeksti || '');
   const kirjp = [];
   const reK = /KIRJAUSPÄIVÄ\s+(\d{1,2}\.\d{1,2}\.\d{4})/gi;
   let km;
-  while ((km = reK.exec(teksti)) !== null) {
-    kirjp.push({ idx: km.index, pvm: reskParsePvmFiLoose(km[1]) });
-  }
+  while ((km = reK.exec(teksti)) !== null) kirjp.push({ idx: km.index, pvm: reskParsePvmFiLoose(km[1]) });
   function pvmEnnen(pos) {
     let best = '';
-    for (let i = 0; i < kirjp.length; i++) {
-      if (kirjp[i].idx < pos && kirjp[i].pvm) best = kirjp[i].pvm;
-    }
+    for (let i = 0; i < kirjp.length; i++) if (kirjp[i].idx < pos && kirjp[i].pvm) best = kirjp[i].pvm;
     return best || new Date().toISOString().slice(0, 10);
   }
 
   const byKey = new Map();
-  const re = /710\s+VIITESIIRTO[\s\S]{0,4200}?Maksaja:\s*.+?\s+(\d{1,4})\s+([\d\s,]+)\s*\+[\s\S]{0,1800}?(?:VIITE|Viite)\s*:\s*([0-9\s]+)/gi;
+  const reV = /(?:VIITE|Viite)\s*:\s*([0-9\s]{6,40})/g;
   let m;
-  while ((m = re.exec(teksti)) !== null) {
-    const pvm = pvmEnnen(m.index);
-    const summa = Math.round((parseFloat(String(m[2]).replace(/\s/g, '').replace(',', '.')) || 0) * 100) / 100;
-    const viite = String(m[3]).replace(/\D/g, '');
-    if (summa > 0.009 && viite.length >= 4) {
-      const avain = reskViiteAvain(viite) + '|' + summa.toFixed(2);
-      if (!byKey.has(avain)) {
-        byKey.set(avain, {
-          pvm,
-          summa,
-          viite,
-          tapnro: m[1],
-        });
-      }
+  while ((m = reV.exec(teksti)) !== null) {
+    const viite = String(m[1] || '').replace(/\D/g, '');
+    if (viite.length < 4) continue;
+
+    const start = Math.max(0, m.index - 2500);
+    const end = Math.min(teksti.length, reV.lastIndex + 800);
+    const ctx = teksti.slice(start, end);
+    if (!/710\s+VIITESIIRTO/i.test(ctx)) continue;
+
+    let summa = 0;
+    let tapnro = '';
+    const mAmt1 = ctx.match(/\b(\d{1,4})\s+([0-9\s]{1,16},\d{2})\s*\+/);
+    const mAmt2 = !mAmt1 ? ctx.match(/([0-9\s]{1,16},\d{2})\s*\+/) : null;
+    if (mAmt1) {
+      tapnro = mAmt1[1];
+      summa = parseFloat(String(mAmt1[2]).replace(/\s/g, '').replace(',', '.')) || 0;
+    } else if (mAmt2) {
+      summa = parseFloat(String(mAmt2[1]).replace(/\s/g, '').replace(',', '.')) || 0;
     }
+    summa = Math.round(summa * 100) / 100;
+    if (summa <= 0.009) continue;
+
+    const pvm = pvmEnnen(m.index);
+    const avain = reskViiteAvain(viite) + '|' + summa.toFixed(2);
+    if (!byKey.has(avain)) byKey.set(avain, { pvm, summa, viite, tapnro });
   }
   return Array.from(byKey.values());
 }
 
+function reskViiteAvaimet(v) {
+  const base = reskViiteAvain(v);
+  const set = new Set([base]);
+  if (base.length >= 7) {
+    set.add(base.slice(-10));
+    set.add(base.slice(-11));
+    set.add(base.slice(-12));
+  }
+  return Array.from(set).filter(Boolean);
+}
+
+function reskViiteTasmaa(a, b) {
+  const aa = reskViiteAvaimet(a);
+  const bb = reskViiteAvaimet(b);
+  return aa.some(x => bb.some(y => x === y || x.endsWith(y) || y.endsWith(x)));
+}
+
 function reskLoydaAvoinReskontraRivi(viiteDigits, summa) {
-  const avain = reskViiteAvain(viiteDigits);
   const avoimet = (reskApiData || []).filter(r => r && (r.tila || 'avoin') !== 'maksettu');
   const tol = 0.02;
   return avoimet.find(r => {
-    const rv = reskViiteAvain(r.viite);
-    if (rv !== avain) return false;
+    if (!reskViiteTasmaa(r.viite, viiteDigits)) return false;
     const s = Number(r.summa) || 0;
     return Math.abs(s - summa) < tol;
   }) || null;
