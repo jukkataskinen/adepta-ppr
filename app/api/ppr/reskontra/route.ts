@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       luodut?.forEach((a: any) => { asiakasMap[a.nimi] = a.id })
     }
 
-    // Tallenna reskontra-rivit kerralla
+    // Tallenna reskontra-rivit ilman onConflict-riippuvuutta (taulussa ei välttämättä unique(viite)-constraintia).
     const insert = rivit.map((r: any) => ({
       organisaatio_id: kayttaja.organisaatio_id,
       kirjanpitoasiakas_id: r.kirjanpitoasiakas_id || null,
@@ -106,13 +106,49 @@ export async function POST(request: NextRequest) {
       tila: r.tila || 'avoin',
     }))
 
-    const { data, error } = await supabaseAdmin!
-      .from('ppr_reskontra')
-      .upsert(insert, { onConflict: 'viite', ignoreDuplicates: true })
-      .select()
+    const viitteet = Array.from(new Set(insert.map((r: any) => String(r.viite || '').trim()).filter(Boolean)))
+    const laskuNrot = Array.from(new Set(insert.map((r: any) => String(r.lasku_nro || '').trim()).filter(Boolean)))
+
+    const olemassaViite = new Set<string>()
+    const olemassaNro = new Set<string>()
+    if (viitteet.length > 0) {
+      const { data: ev } = await supabaseAdmin!
+        .from('ppr_reskontra')
+        .select('viite')
+        .eq('organisaatio_id', kayttaja.organisaatio_id)
+        .in('viite', viitteet)
+      ;(ev || []).forEach((r: any) => { if (r?.viite) olemassaViite.add(String(r.viite)) })
+    }
+    if (laskuNrot.length > 0) {
+      const { data: en } = await supabaseAdmin!
+        .from('ppr_reskontra')
+        .select('lasku_nro')
+        .eq('organisaatio_id', kayttaja.organisaatio_id)
+        .in('lasku_nro', laskuNrot)
+      ;(en || []).forEach((r: any) => { if (r?.lasku_nro) olemassaNro.add(String(r.lasku_nro)) })
+    }
+
+    const filt = insert.filter((r: any) => {
+      const v = String(r.viite || '').trim()
+      const n = String(r.lasku_nro || '').trim()
+      if (v && olemassaViite.has(v)) return false
+      if (!v && n && olemassaNro.has(n)) return false
+      return true
+    })
+
+    let data: any[] = []
+    let error: any = null
+    if (filt.length > 0) {
+      const ins = await supabaseAdmin!
+        .from('ppr_reskontra')
+        .insert(filt)
+        .select()
+      data = ins.data || []
+      error = ins.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, tallennettu: data?.length ?? 0 }, { status: 201 })
+    return NextResponse.json({ ok: true, tallennettu: data?.length ?? 0, ohitettu: insert.length - (data?.length ?? 0) }, { status: 201 })
   } catch (e: any) {
     console.error('reskontra POST:', e)
     return NextResponse.json({ error: e.message }, { status: 500 })
