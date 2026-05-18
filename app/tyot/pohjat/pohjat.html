@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Adepta PPR — Työpohjat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fd:#1c2b1e;--fm:#2d4a31;--fl:#3d6b43;
+  --fg:#5DCAA5;--fg2:#1D9E75;--fg3:#0F6E56;
+  --fmist:#e8efe9;--fpale:#f2f6f2;
+  --amber:#a05c1a;--ambl:#fdf3e8;
+  --blue:#185FA5;--bluel:#e8f0fb;
+  --ink:#1a1c18;--inm:#3d4039;--inu:#7a7d72;--inf:#b8bab2;
+  --pp:#fafaf7;--ppw:#f5f3ee;--bd:#dddbd4;--bd2:#c4c2b8;
+  --red:#A32D2D;--redl:#FCEBEB;
+  --ffd:'Fraunces',Georgia,serif;--ffb:'DM Sans',sans-serif;--ffm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14px;min-height:100vh;overflow:hidden}
+
+.topbar{background:var(--fd);height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{font-family:var(--ffd);font-size:22px;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.logo em{color:var(--fg);font-style:italic}
+.tb-sep{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.bc .a{color:rgba(255,255,255,.75)}
+.bc-s{color:rgba(255,255,255,.2)}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-ghost{padding:5px 14px;font-family:var(--ffb);font-size:12px;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn-primary{padding:6px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer;transition:all .12s}
+.btn-primary:hover{opacity:.88}
+
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+.sb{width:228px;background:var(--fd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
+.sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
+.sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
+.sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--pp)}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.page-title{font-family:var(--ffd);font-size:20px;font-weight:500;margin-bottom:18px}
+
+/* ── LIST ── */
+.pohja-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.pohja-card{background:var(--pp);border:1px solid var(--bd);border-radius:10px;padding:16px;cursor:pointer;transition:box-shadow .1s}
+.pohja-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.pohja-card.inactive{opacity:.5}
+.pc-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pc-name{font-size:15px;font-weight:500;flex:1}
+.pc-type{font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px;text-transform:uppercase}
+.ct-kuukausikirjanpito{background:#e4f4ec;color:var(--fg3)}
+.ct-alv_ilmoitus{background:var(--bluel);color:var(--blue)}
+.ct-palkat{background:#f3e8fb;color:#6b3fa0}
+.ct-tilinpaatos{background:#fdf3e8;color:var(--amber)}
+.ct-veroilmoitus{background:var(--redl);color:var(--red)}
+.ct-konsultointi{background:#e8f0fb;color:#3a6ea5}
+.ct-muu{background:var(--ppw);color:var(--inu)}
+.pc-desc{font-size:12px;color:var(--inu);margin-bottom:8px}
+.pc-meta{display:flex;gap:14px;font-size:11px;color:var(--inu)}
+.pc-meta span{display:flex;align-items:center;gap:3px}
+.pc-tasks{margin-top:8px;font-size:12px;color:var(--inm)}
+.pc-task-item{padding:2px 0;padding-left:12px;position:relative}
+.pc-task-item::before{content:'·';position:absolute;left:2px;color:var(--inf)}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.vis{display:flex}
+.modal{background:var(--pp);border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.18);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px}
+.modal h2{font-family:var(--ffd);font-size:18px;font-weight:500;margin-bottom:16px}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:11px;font-weight:500;color:var(--inu);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.form-input{width:100%;padding:8px 10px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd2);border-radius:5px;background:var(--pp);color:var(--ink);outline:none}
+.form-input:focus{border-color:var(--fg);box-shadow:0 0 0 2px rgba(93,202,165,.15)}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.btn-cancel{padding:7px 18px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd2);border-radius:5px;background:transparent;color:var(--inm);cursor:pointer}
+.btn-cancel:hover{background:var(--ppw)}
+.btn-save{padding:7px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer}
+.btn-save:hover{opacity:.88}
+
+.task-edit-list{margin-top:6px}
+.task-edit-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.task-edit-row input{flex:1}
+.task-edit-row button{width:28px;height:28px;border:none;background:transparent;cursor:pointer;color:var(--red);font-size:16px}
+.task-edit-row button:hover{background:var(--redl);border-radius:4px}
+.toggle-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.toggle-row label{font-size:12px;color:var(--inm);cursor:pointer;display:flex;align-items:center;gap:6px}
+.toggle-row input{accent-color:var(--fg)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Adepta <em>PPR</em></div>
+  <div class="tb-sep"></div>
+  <div class="bc"><a class="a" href="/tyot" style="text-decoration:none;color:inherit">Työt</a><span class="bc-s">›</span><span class="a">Työpohjat</span></div>
+  <div class="tr">
+    <button class="btn-primary" onclick="openNewPohjaModal()">+ Uusi pohja</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sb">
+    <a class="nav-item" href="/kirjanpito" style="text-decoration:none;font-weight:600;color:rgba(255,255,255,.7)">Kirjanpito</a>
+    <div class="sb-div"></div>
+    <a class="nav-item" href="/tyot" style="text-decoration:none">Kanban</a>
+    <a class="nav-item act" href="/tyot/pohjat" style="text-decoration:none">Työpohjat</a>
+    <a class="nav-item" href="/tyot/toistuvuudet" style="text-decoration:none">Toistuvuudet</a>
+    <div class="sb-div"></div>
+    <a class="nav-item" href="/asiakkaat" style="text-decoration:none">Asiakkaat</a>
+    <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
+    <div class="sb-div"></div>
+    <a href="/auth/logout" class="nav-item" style="text-decoration:none">Kirjaudu ulos</a>
+    <div class="sb-foot">Kirjautunut:<br><strong id="sb-user-name">—</strong></div>
+  </div>
+
+  <div class="main">
+    <div class="content">
+      <div class="page-title">Työpohjat</div>
+      <div class="pohja-list" id="pohja-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="pohja-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Uusi pohja</h2>
+    <input type="hidden" id="pe-id">
+    <div class="form-row">
+      <label>Nimi *</label>
+      <input class="form-input" id="pe-nimi" placeholder="Kuukausikirjanpito">
+    </div>
+    <div class="form-row">
+      <label>Tyyppi *</label>
+      <select class="form-input" id="pe-tyyppi">
+        <option value="kuukausikirjanpito">Kuukausikirjanpito</option>
+        <option value="alv_ilmoitus">ALV-ilmoitus</option>
+        <option value="palkat">Palkat</option>
+        <option value="tilinpaatos">Tilinpäätös</option>
+        <option value="veroilmoitus">Veroilmoitus</option>
+        <option value="konsultointi">Konsultointi</option>
+        <option value="muu">Muu</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Otsikkomalli *</label>
+      <input class="form-input" id="pe-otsikko_malli" placeholder="{kausi_nimi} kirjanpito">
+    </div>
+    <div class="form-row">
+      <label>Kuvaus</label>
+      <input class="form-input" id="pe-kuvaus" placeholder="Valinnainen kuvaus">
+    </div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div>
+        <label>Prioriteetti</label>
+        <select class="form-input" id="pe-prioriteetti">
+          <option value="matala">Matala</option>
+          <option value="normaali" selected>Normaali</option>
+          <option value="korkea">Korkea</option>
+          <option value="kriittinen">Kriittinen</option>
+        </select>
+      </div>
+      <div>
+        <label>Arvio (h)</label>
+        <input class="form-input" id="pe-arvio_h" type="number" step="0.5" min="0">
+      </div>
+      <div>
+        <label>Deadline-offset (pv)</label>
+        <input class="form-input" id="pe-deadline_offset" type="number" min="0" value="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Oletustehtävät</label>
+      <div class="task-edit-list" id="pe-tehtavat"></div>
+      <button class="btn-ghost" onclick="addTaskRow()" style="margin-top:6px;color:var(--ink);border-color:var(--bd2);font-size:11px;padding:4px 12px">+ Lisää tehtävä</button>
+    </div>
+    <div class="toggle-row">
+      <label><input type="checkbox" id="pe-aktiivinen" checked> Aktiivinen</label>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="pe-delete-btn" onclick="deletePohja()" style="color:var(--red);border-color:var(--red);display:none">Poista</button>
+      <div style="flex:1"></div>
+      <button class="btn-cancel" onclick="closeModal('pohja-overlay')">Peruuta</button>
+      <button class="btn-save" onclick="savePohja()">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let pohjat = []
+
+document.addEventListener('DOMContentLoaded', () => { loadPohjat(); loadUser() })
+
+async function loadUser() {
+  try {
+    const r = await fetch('/auth/me')
+    if (!r.ok) return
+    const u = await r.json()
+    document.getElementById('sb-user-name').textContent = u.name || u.email || '—'
+  } catch {}
+}
+
+async function loadPohjat() {
+  try {
+    const r = await fetch('/api/tyo-pohjat')
+    if (!r.ok) throw new Error()
+    pohjat = await r.json()
+    renderPohjat()
+  } catch (e) { console.error('loadPohjat:', e) }
+}
+
+const TYYPPI_LABELS = {
+  kuukausikirjanpito:'Kirjanpito', alv_ilmoitus:'ALV', palkat:'Palkat',
+  tilinpaatos:'Tilinpäätös', veroilmoitus:'Veroilmoitus',
+  konsultointi:'Konsultointi', muu:'Muu'
+}
+
+function renderPohjat() {
+  const list = document.getElementById('pohja-list')
+  list.innerHTML = pohjat.map(p => {
+    const tehtavat = p.ppr_tyo_pohja_tehtavat || []
+    tehtavat.sort((a,b) => a.jarjestys - b.jarjestys)
+    return `
+      <div class="pohja-card ${p.aktiivinen ? '' : 'inactive'}" onclick="openEditPohja('${p.id}')">
+        <div class="pc-top">
+          <span class="pc-name">${esc(p.nimi)}</span>
+          <span class="pc-type ct-${p.tyyppi}">${TYYPPI_LABELS[p.tyyppi] || p.tyyppi}</span>
+        </div>
+        ${p.kuvaus ? `<div class="pc-desc">${esc(p.kuvaus)}</div>` : ''}
+        <div class="pc-meta">
+          <span>Malli: ${esc(p.otsikko_malli)}</span>
+          ${p.arvio_h ? `<span>${p.arvio_h}h</span>` : ''}
+          ${p.deadline_offset_paivat ? `<span>+${p.deadline_offset_paivat}pv</span>` : ''}
+        </div>
+        ${tehtavat.length ? `<div class="pc-tasks">${tehtavat.map(t => `<div class="pc-task-item">${esc(t.otsikko)}</div>`).join('')}</div>` : ''}
+      </div>
+    `
+  }).join('')
+}
+
+function openNewPohjaModal() {
+  document.getElementById('modal-title').textContent = 'Uusi pohja'
+  document.getElementById('pe-id').value = ''
+  document.getElementById('pe-nimi').value = ''
+  document.getElementById('pe-tyyppi').value = 'muu'
+  document.getElementById('pe-otsikko_malli').value = ''
+  document.getElementById('pe-kuvaus').value = ''
+  document.getElementById('pe-prioriteetti').value = 'normaali'
+  document.getElementById('pe-arvio_h').value = ''
+  document.getElementById('pe-deadline_offset').value = '0'
+  document.getElementById('pe-aktiivinen').checked = true
+  document.getElementById('pe-tehtavat').innerHTML = ''
+  document.getElementById('pe-delete-btn').style.display = 'none'
+  document.getElementById('pohja-overlay').classList.add('vis')
+}
+
+function openEditPohja(id) {
+  const p = pohjat.find(x => x.id === id)
+  if (!p) return
+  document.getElementById('modal-title').textContent = 'Muokkaa pohjaa'
+  document.getElementById('pe-id').value = p.id
+  document.getElementById('pe-nimi').value = p.nimi
+  document.getElementById('pe-tyyppi').value = p.tyyppi
+  document.getElementById('pe-otsikko_malli').value = p.otsikko_malli
+  document.getElementById('pe-kuvaus').value = p.kuvaus || ''
+  document.getElementById('pe-prioriteetti').value = p.prioriteetti || 'normaali'
+  document.getElementById('pe-arvio_h').value = p.arvio_h || ''
+  document.getElementById('pe-deadline_offset').value = p.deadline_offset_paivat || 0
+  document.getElementById('pe-aktiivinen').checked = p.aktiivinen
+
+  const tehtavat = (p.ppr_tyo_pohja_tehtavat || []).sort((a,b) => a.jarjestys - b.jarjestys)
+  const container = document.getElementById('pe-tehtavat')
+  container.innerHTML = ''
+  tehtavat.forEach(t => addTaskRow(t.otsikko))
+
+  document.getElementById('pe-delete-btn').style.display = ''
+  document.getElementById('pohja-overlay').classList.add('vis')
+}
+
+function addTaskRow(value) {
+  const container = document.getElementById('pe-tehtavat')
+  const row = document.createElement('div')
+  row.className = 'task-edit-row'
+  row.innerHTML = `<input class="form-input task-input" value="${esc(value || '')}" placeholder="Tehtävän nimi"><button onclick="this.parentElement.remove()">×</button>`
+  container.appendChild(row)
+}
+
+async function savePohja() {
+  const id = document.getElementById('pe-id').value
+  const nimi = document.getElementById('pe-nimi').value.trim()
+  const tyyppi = document.getElementById('pe-tyyppi').value
+  const otsikko_malli = document.getElementById('pe-otsikko_malli').value.trim()
+  if (!nimi || !otsikko_malli) return alert('Nimi ja otsikkomalli vaaditaan')
+
+  const tehtavat = Array.from(document.querySelectorAll('.task-input'))
+    .map(i => ({ otsikko: i.value.trim() }))
+    .filter(t => t.otsikko)
+
+  const body = {
+    nimi, tyyppi, otsikko_malli,
+    kuvaus: document.getElementById('pe-kuvaus').value.trim() || null,
+    prioriteetti: document.getElementById('pe-prioriteetti').value,
+    arvio_h: parseFloat(document.getElementById('pe-arvio_h').value) || null,
+    deadline_offset_paivat: parseInt(document.getElementById('pe-deadline_offset').value) || 0,
+    aktiivinen: document.getElementById('pe-aktiivinen').checked,
+    tehtavat
+  }
+
+  try {
+    const url = id ? '/api/tyo-pohjat/' + id : '/api/tyo-pohjat'
+    const method = id ? 'PATCH' : 'POST'
+    const r = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error) }
+    closeModal('pohja-overlay')
+    await loadPohjat()
+  } catch (e) { alert('Virhe: ' + e.message) }
+}
+
+async function deletePohja() {
+  const id = document.getElementById('pe-id').value
+  if (!id || !confirm('Haluatko varmasti poistaa tämän pohjan?')) return
+  try {
+    const r = await fetch('/api/tyo-pohjat/' + id, { method: 'DELETE' })
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error) }
+    closeModal('pohja-overlay')
+    await loadPohjat()
+  } catch (e) { alert('Virhe: ' + e.message) }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('vis') }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('vis')
+})
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML }
+</script>
+</body>
+</html>
