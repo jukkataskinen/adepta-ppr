@@ -138,6 +138,60 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .comment-input{display:flex;gap:8px;margin-top:8px}
 .comment-input input{flex:1}
 .form-input-sm{padding:5px 8px;font-size:12px}
+
+/* ── VIEW TOGGLE ── */
+.view-toggle{display:flex;border:1px solid var(--bd2);border-radius:5px;overflow:hidden}
+.view-toggle button{padding:5px 14px;font-family:var(--ffb);font-size:12px;border:none;background:transparent;color:var(--inu);cursor:pointer;transition:all .1s}
+.view-toggle button.active{background:var(--fg);color:var(--fd);font-weight:500}
+.view-toggle button:not(.active):hover{background:var(--fmist)}
+
+/* ── RESOURCE VIEW ── */
+.resurssi-board{flex:1;display:flex;gap:0;overflow-x:auto;padding:0}
+.res-col{min-width:240px;width:240px;display:flex;flex-direction:column;border-right:1px solid var(--bd);background:var(--ppw)}
+.res-col:last-child{border-right:none}
+.res-col.res-col-unassigned{background:#fffdf5;min-width:220px;width:220px}
+.res-col-hdr{padding:12px 14px;border-bottom:1px solid var(--bd);flex-shrink:0;background:inherit;position:sticky;top:0;z-index:5}
+.res-hdr-name{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.res-hdr-name .av{width:26px;height:26px;font-size:10px}
+.res-hdr-name span{font-size:13px;font-weight:500;color:var(--ink)}
+.res-hdr-email{font-size:10px;color:var(--inu);margin-bottom:6px}
+.res-hdr-stats{font-size:11px;color:var(--inu);margin-bottom:6px}
+.res-bar-wrap{height:6px;background:var(--bd);border-radius:3px;overflow:hidden;margin-bottom:3px}
+.res-bar{height:100%;border-radius:3px;transition:width .3s}
+.res-hdr-cap{font-size:10px;color:var(--inu);display:flex;justify-content:space-between}
+.res-hdr-warn{font-size:10px;color:var(--red);margin-top:3px}
+.res-cards{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:4px;min-height:60px}
+.res-cards.drag-over{background:rgba(93,202,165,.06)}
+
+/* ── COMPACT CARD ── */
+.rcard{background:var(--pp);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;cursor:grab;transition:box-shadow .1s,opacity .15s;position:relative}
+.rcard:hover{box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.rcard.dragging{opacity:.4}
+.rcard-pri{position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 2px 2px 0}
+.rcard-title{font-size:12px;font-weight:500;color:var(--ink);padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcard-asiakas{font-size:10px;color:var(--inu);padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcard-meta{display:flex;align-items:center;gap:6px;margin-top:4px;padding-left:6px;flex-wrap:wrap}
+.rcard-badge{font-size:8px;font-weight:600;padding:1px 5px;border-radius:6px;text-transform:uppercase}
+.rcard-status{font-size:9px;padding:1px 5px;border-radius:6px;font-weight:500}
+.st-jonossa{background:var(--ppw);color:var(--inu)}
+.st-tyon_alla{background:#e4f4ec;color:var(--fg3)}
+.st-tarkistuksessa{background:var(--bluel);color:var(--blue)}
+.st-valmis{background:#e4f4ec;color:var(--fg3)}
+.st-toimitettu{background:var(--ppw);color:var(--inf)}
+.rcard-h{font-size:10px;font-family:var(--ffm);color:var(--inu)}
+.rcard-dl{font-size:10px;font-family:var(--ffm)}
+.rcard-tasks{font-size:10px;color:var(--inu)}
+
+/* ── TOOLBAR EXTRAS ── */
+.status-chips{display:flex;gap:4px;flex-wrap:wrap}
+.status-chip{padding:3px 10px;font-size:11px;border:1px solid var(--bd2);border-radius:12px;background:transparent;color:var(--inu);cursor:pointer;font-family:var(--ffb);transition:all .1s}
+.status-chip.active{background:var(--fg);color:var(--fd);border-color:var(--fg)}
+.status-chip:hover:not(.active){background:var(--fmist)}
+.btn-small{padding:4px 10px;font-family:var(--ffb);font-size:11px;border:1px solid var(--bd2);border-radius:5px;background:transparent;color:var(--inu);cursor:pointer}
+.btn-small:hover{background:var(--fmist)}
+.btn-small.warn{color:var(--red);border-color:var(--red)}
+.btn-small.warn:hover{background:var(--redl)}
+.res-empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--inf);padding:40px}
 </style>
 </head>
 <body>
@@ -147,6 +201,10 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
   <div class="logo">Adepta <em>PPR</em></div>
   <div class="tb-sep"></div>
   <div class="bc"><span class="a">Työt</span></div>
+  <div class="view-toggle" id="view-toggle">
+    <button class="active" data-view="kanban" onclick="switchView('kanban')">Kanban</button>
+    <button data-view="resurssit" onclick="switchView('resurssit')">Resurssit</button>
+  </div>
   <div class="tr">
     <a class="btn-ghost" href="/tyot/pohjat">Työpohjat</a>
     <button class="btn-primary" onclick="openNewTyoModal()">+ Uusi ad hoc -työ</button>
@@ -173,8 +231,8 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 
   <!-- MAIN -->
   <div class="main">
-    <!-- TOOLBAR -->
-    <div class="toolbar">
+    <!-- KANBAN TOOLBAR -->
+    <div class="toolbar" id="kanban-toolbar">
       <select class="filter-sel" id="f-asiakas" onchange="applyFilters()">
         <option value="">Kaikki asiakkaat</option>
       </select>
@@ -218,6 +276,36 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
         <div class="kb-cards" id="col-toimitettu"></div>
       </div>
     </div>
+
+    <!-- RESURSSI TOOLBAR (näkyy vain resurssi-näkymässä) -->
+    <div class="toolbar" id="res-toolbar" style="display:none">
+      <select class="filter-sel" id="rf-aikajakso" onchange="onAikajaksoChange()">
+        <option value="viikko">Tämä viikko</option>
+        <option value="kuukausi">Tämä kuukausi</option>
+        <option value="14pv">Seuraavat 14 päivää</option>
+        <option value="30pv" selected>Seuraavat 30 päivää</option>
+        <option value="mukautettu">Mukautettu</option>
+      </select>
+      <input class="form-input" id="rf-alku" type="date" style="display:none;width:130px;padding:4px 8px;font-size:12px" onchange="applyResFilters()">
+      <input class="form-input" id="rf-loppu" type="date" style="display:none;width:130px;padding:4px 8px;font-size:12px" onchange="applyResFilters()">
+      <div class="status-chips" id="res-status-chips">
+        <button class="status-chip active" data-st="jonossa" onclick="toggleResStatus(this)">Jonossa</button>
+        <button class="status-chip active" data-st="tyon_alla" onclick="toggleResStatus(this)">Työn alla</button>
+        <button class="status-chip active" data-st="tarkistuksessa" onclick="toggleResStatus(this)">Tarkistuksessa</button>
+        <button class="status-chip" data-st="valmis" onclick="toggleResStatus(this)">Valmis</button>
+        <button class="status-chip" data-st="toimitettu" onclick="toggleResStatus(this)">Toimitettu</button>
+      </div>
+      <select class="filter-sel" id="rf-asiakas" onchange="applyResFilters()">
+        <option value="">Kaikki asiakkaat</option>
+      </select>
+      <div class="toolbar-spacer"></div>
+      <button class="btn-small warn" onclick="toggleMyohassa()">Vain myöhässä</button>
+      <button class="btn-small" onclick="resetResFilters()">Tyhjennä</button>
+    </div>
+
+    <!-- RESURSSI BOARD -->
+    <div class="resurssi-board" id="resurssi-board" style="display:none"></div>
+    <div class="res-empty" id="res-empty" style="display:none">Ei töitä valituilla suodattimilla</div>
   </div>
 </div>
 
@@ -802,6 +890,376 @@ function formatDateTime(dt) {
   if (!dt) return ''
   const d = new Date(dt)
   return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESURSSINÄKYMÄ
+   ═══════════════════════════════════════════════════════ */
+
+let currentView = localStorage.getItem('ppr_view') || 'kanban'
+let kayttajat = []
+let resMyohassaOnly = false
+
+// Alusta näkymä sivun latautuessa
+;(function initView() {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('view') === 'resurssit') currentView = 'resurssit'
+  switchView(currentView, true)
+})()
+
+function switchView(view, skipHistory) {
+  currentView = view
+  localStorage.setItem('ppr_view', view)
+
+  // Toggle-painikkeet
+  document.querySelectorAll('#view-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view)
+  })
+
+  const isKanban = view === 'kanban'
+  document.getElementById('kanban').style.display = isKanban ? '' : 'none'
+  document.getElementById('kanban-toolbar').style.display = isKanban ? '' : 'none'
+  document.getElementById('res-toolbar').style.display = isKanban ? 'none' : ''
+  document.getElementById('resurssi-board').style.display = isKanban ? 'none' : ''
+  document.getElementById('res-empty').style.display = 'none'
+
+  if (!isKanban) {
+    if (kayttajat.length === 0) loadKayttajat().then(() => renderResurssiBoard())
+    else renderResurssiBoard()
+  }
+
+  // URL-parametri
+  if (!skipHistory) {
+    const url = new URL(window.location)
+    if (view === 'resurssit') url.searchParams.set('view', 'resurssit')
+    else url.searchParams.delete('view')
+    window.history.replaceState({}, '', url)
+  }
+}
+
+async function loadKayttajat() {
+  try {
+    const r = await fetch('/api/ppr/kayttajat')
+    if (!r.ok) return
+    kayttajat = await r.json()
+    // Populoi resurssi-asiakassuodatin
+    const sel = document.getElementById('rf-asiakas')
+    if (sel.options.length <= 1) {
+      asiakkaat.forEach(a => sel.add(new Option(a.nimi, a.id)))
+    }
+  } catch {}
+}
+
+function emailToName(email) {
+  if (!email) return 'Ei vastuuhenkilöä'
+  const parts = email.split('@')[0].split('.')
+  return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+}
+function emailToInitials(email) {
+  if (!email) return '?'
+  const parts = email.split('@')[0].split('.')
+  return parts.map(p => p[0]).join('').toUpperCase().slice(0,2)
+}
+
+/* ── Aikajakso ── */
+function getAikajakso() {
+  const val = document.getElementById('rf-aikajakso').value
+  const today = new Date(); today.setHours(0,0,0,0)
+  let alku = new Date(today), loppu = new Date(today)
+
+  if (val === 'viikko') {
+    const dow = today.getDay() || 7
+    alku.setDate(today.getDate() - dow + 1) // maanantai
+    loppu.setDate(alku.getDate() + 6) // sunnuntai
+  } else if (val === 'kuukausi') {
+    alku.setDate(1)
+    loppu = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+  } else if (val === '14pv') {
+    loppu.setDate(today.getDate() + 14)
+  } else if (val === '30pv') {
+    loppu.setDate(today.getDate() + 30)
+  } else if (val === 'mukautettu') {
+    const a = document.getElementById('rf-alku').value
+    const l = document.getElementById('rf-loppu').value
+    if (a) alku = new Date(a + 'T00:00:00')
+    if (l) loppu = new Date(l + 'T00:00:00')
+  }
+  return { alku, loppu }
+}
+
+function onAikajaksoChange() {
+  const muk = document.getElementById('rf-aikajakso').value === 'mukautettu'
+  document.getElementById('rf-alku').style.display = muk ? '' : 'none'
+  document.getElementById('rf-loppu').style.display = muk ? '' : 'none'
+  applyResFilters()
+}
+
+function getActiveResStatuses() {
+  return Array.from(document.querySelectorAll('#res-status-chips .status-chip.active')).map(b => b.dataset.st)
+}
+
+function toggleResStatus(btn) {
+  btn.classList.toggle('active')
+  applyResFilters()
+}
+
+function toggleMyohassa() {
+  resMyohassaOnly = !resMyohassaOnly
+  applyResFilters()
+}
+
+function resetResFilters() {
+  document.getElementById('rf-aikajakso').value = '30pv'
+  document.getElementById('rf-asiakas').value = ''
+  document.getElementById('rf-alku').style.display = 'none'
+  document.getElementById('rf-loppu').style.display = 'none'
+  resMyohassaOnly = false
+  document.querySelectorAll('#res-status-chips .status-chip').forEach(b => {
+    b.classList.toggle('active', ['jonossa','tyon_alla','tarkistuksessa'].includes(b.dataset.st))
+  })
+  applyResFilters()
+}
+
+function applyResFilters() { renderResurssiBoard() }
+
+/* ── Kuormituslaskenta ── */
+function laskeArkipaivat(alku, loppu) {
+  let count = 0
+  const d = new Date(alku)
+  while (d <= loppu) {
+    const dow = d.getDay()
+    if (dow !== 0 && dow !== 6) count++
+    d.setDate(d.getDate() + 1)
+  }
+  return count
+}
+
+function kuormitusVari(pct) {
+  if (pct < 80) return '#22C55E'
+  if (pct < 100) return '#F59E0B'
+  if (pct < 120) return '#F97316'
+  return '#EF4444'
+}
+
+/* ── Render ── */
+function renderResurssiBoard() {
+  const board = document.getElementById('resurssi-board')
+  const emptyMsg = document.getElementById('res-empty')
+  board.innerHTML = ''
+
+  const { alku, loppu } = getAikajakso()
+  const statuses = getActiveResStatuses()
+  const fAsiakas = document.getElementById('rf-asiakas').value
+  const today = new Date(); today.setHours(0,0,0,0)
+
+  // Suodata työt
+  let filtered = tyot.filter(t => {
+    if (statuses.length && !statuses.includes(t.status)) return false
+    if (fAsiakas && t.asiakas_id !== fAsiakas) return false
+    if (t.deadline) {
+      const dl = new Date(t.deadline + 'T00:00:00')
+      if (dl < alku || dl > loppu) {
+        // Myöhässä-tila: näytä myös menneet deadlinet
+        if (resMyohassaOnly && dl < today && !['valmis','toimitettu'].includes(t.status)) {
+          // ok, näytetään
+        } else if (!resMyohassaOnly) {
+          return false
+        }
+      }
+    } else if (!resMyohassaOnly) {
+      // Ei deadlinea — näytetään silti
+    }
+    if (resMyohassaOnly) {
+      if (!t.deadline) return false
+      const dl = new Date(t.deadline + 'T00:00:00')
+      if (dl >= today || ['valmis','toimitettu'].includes(t.status)) return false
+    }
+    return true
+  })
+
+  if (filtered.length === 0) {
+    board.style.display = 'none'
+    emptyMsg.style.display = ''
+    return
+  }
+  board.style.display = ''
+  emptyMsg.style.display = 'none'
+
+  // Ryhmittele vastuuhenkilön mukaan
+  const ryhmat = {}
+  const EI_VH = '__ei_vastuuhenkiloa__'
+  ryhmat[EI_VH] = []
+  for (const t of filtered) {
+    const key = t.vastuuhenkilo_email || EI_VH
+    if (!ryhmat[key]) ryhmat[key] = []
+    ryhmat[key].push(t)
+  }
+
+  // Lisää sarakkeet myös käyttäjille joilla ei ole töitä
+  const allEmails = new Set([
+    ...kayttajat.map(k => k.sahkoposti),
+    ...Object.keys(ryhmat).filter(k => k !== EI_VH)
+  ])
+
+  const arkipaivat = laskeArkipaivat(alku, loppu)
+  const kapasiteetti = arkipaivat * 7.5
+
+  // "Ei vastuuhenkilöä" -sarake ensin
+  if (ryhmat[EI_VH].length > 0) {
+    board.appendChild(createResCol(null, ryhmat[EI_VH], kapasiteetti, arkipaivat, today))
+  }
+
+  // Käyttäjäsarakkeet aakkosjärjestyksessä
+  const sortedEmails = Array.from(allEmails).sort()
+  for (const email of sortedEmails) {
+    const items = ryhmat[email] || []
+    board.appendChild(createResCol(email, items, kapasiteetti, arkipaivat, today))
+  }
+
+  setupResDragDrop()
+}
+
+function createResCol(email, items, kapasiteetti, arkipaivat, today) {
+  const col = document.createElement('div')
+  col.className = 'res-col' + (email ? '' : ' res-col-unassigned')
+  col.dataset.email = email || ''
+
+  const varattu = items.reduce((s, t) => s + (parseFloat(t.arvio_h) || 0), 0)
+  const ilmanArviota = items.filter(t => !t.arvio_h).length
+  const myohassa = items.filter(t => {
+    if (!t.deadline || ['valmis','toimitettu'].includes(t.status)) return false
+    return new Date(t.deadline + 'T00:00:00') < today
+  }).length
+  const pct = kapasiteetti > 0 ? Math.round(varattu / kapasiteetti * 100) : 0
+
+  const name = email ? emailToName(email) : 'Ei vastuuhenkilöä'
+  const initials = email ? emailToInitials(email) : '?'
+
+  let hdrHtml = `<div class="res-col-hdr">`
+  hdrHtml += `<div class="res-hdr-name"><div class="av">${initials}</div><span>${esc(name)}</span></div>`
+  if (email) hdrHtml += `<div class="res-hdr-email">${esc(email)}</div>`
+  hdrHtml += `<div class="res-hdr-stats">${items.length} töitä · ${varattu.toFixed(1)} h</div>`
+
+  if (email) {
+    const barW = Math.min(pct, 200)
+    hdrHtml += `<div class="res-bar-wrap"><div class="res-bar" style="width:${barW}%;background:${kuormitusVari(pct)}"></div></div>`
+    hdrHtml += `<div class="res-hdr-cap"><span>Kapasiteetti: ${kapasiteetti.toFixed(0)} h</span><span style="font-weight:600;color:${kuormitusVari(pct)}">${pct} %</span></div>`
+  }
+  if (ilmanArviota > 0) hdrHtml += `<div class="res-hdr-warn">⚠ ${ilmanArviota} töitä ilman arvio_h</div>`
+  if (myohassa > 0) hdrHtml += `<div class="res-hdr-warn">⚠ ${myohassa} myöhässä</div>`
+  hdrHtml += `</div>`
+
+  col.innerHTML = hdrHtml
+  const cards = document.createElement('div')
+  cards.className = 'res-cards'
+  cards.dataset.email = email || ''
+
+  items.sort((a,b) => {
+    const da = a.deadline || '9999'; const db = b.deadline || '9999'
+    return da.localeCompare(db)
+  })
+  items.forEach(t => cards.appendChild(createResCard(t, today)))
+  col.appendChild(cards)
+  return col
+}
+
+function createResCard(t, today) {
+  const card = document.createElement('div')
+  card.className = 'rcard'
+  card.draggable = true
+  card.dataset.id = t.id
+  card.onclick = () => openDetail(t.id)
+
+  let dlClass = 'dl-none', dlText = ''
+  if (t.deadline) {
+    const dl = new Date(t.deadline + 'T00:00:00')
+    const diff = Math.floor((dl - today) / 86400000)
+    dlText = formatDate(t.deadline)
+    dlClass = diff < 0 ? 'dl-late' : diff <= 3 ? 'dl-warn' : 'dl-ok'
+  }
+
+  const tehtavat = t.ppr_tyo_tehtavat || []
+  const valmiit = tehtavat.filter(tt => tt.valmis).length
+  const asNimi = t.ppr_kirjanpitoasiakkaat?.nimi || ''
+  const STATUS_LABELS = {jonossa:'Jonossa',tyon_alla:'Työn alla',tarkistuksessa:'Tarkist.',valmis:'Valmis',toimitettu:'Toimitettu'}
+
+  card.innerHTML = `
+    <div class="rcard-pri pri-${t.prioriteetti}"></div>
+    <div class="rcard-title" title="${esc(t.otsikko)}">${esc(t.otsikko)}</div>
+    ${asNimi ? `<div class="rcard-asiakas">${esc(asNimi)}</div>` : ''}
+    <div class="rcard-meta">
+      <span class="rcard-badge ct-${t.tyyppi}">${TYYPPI_LABELS[t.tyyppi] || t.tyyppi}</span>
+      <span class="rcard-status st-${t.status}">${STATUS_LABELS[t.status] || t.status}</span>
+      ${t.arvio_h ? `<span class="rcard-h">${t.arvio_h}h</span>` : ''}
+      ${dlText ? `<span class="rcard-dl ${dlClass}">${dlText}</span>` : ''}
+      ${tehtavat.length ? `<span class="rcard-tasks">${valmiit}/${tehtavat.length}</span>` : ''}
+    </div>
+  `
+  return card
+}
+
+/* ── Resurssi Drag & Drop ── */
+function setupResDragDrop() {
+  const board = document.getElementById('resurssi-board')
+  let dragId = null
+
+  board.addEventListener('dragstart', e => {
+    const card = e.target.closest('.rcard')
+    if (!card) return
+    dragId = card.dataset.id
+    card.classList.add('dragging')
+    e.dataTransfer.effectAllowed = 'move'
+  })
+
+  board.addEventListener('dragend', e => {
+    const card = e.target.closest('.rcard')
+    if (card) card.classList.remove('dragging')
+    board.querySelectorAll('.res-cards').forEach(c => c.classList.remove('drag-over'))
+    dragId = null
+  })
+
+  board.addEventListener('dragover', e => {
+    e.preventDefault()
+    const cards = e.target.closest('.res-cards')
+    if (cards) cards.classList.add('drag-over')
+  })
+
+  board.addEventListener('dragleave', e => {
+    const cards = e.target.closest('.res-cards')
+    if (cards && !cards.contains(e.relatedTarget)) cards.classList.remove('drag-over')
+  })
+
+  board.addEventListener('drop', async e => {
+    e.preventDefault()
+    board.querySelectorAll('.res-cards').forEach(c => c.classList.remove('drag-over'))
+    if (!dragId) return
+
+    const cards = e.target.closest('.res-cards')
+    if (!cards) return
+    const newEmail = cards.dataset.email || null
+
+    const tyo = tyot.find(t => t.id === dragId)
+    if (!tyo) return
+    const oldEmail = tyo.vastuuhenkilo_email
+
+    if (oldEmail === newEmail) return
+
+    // Optimistinen päivitys
+    tyo.vastuuhenkilo_email = newEmail
+    renderResurssiBoard()
+
+    try {
+      const r = await fetch('/api/tyot/' + dragId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vastuuhenkilo_email: newEmail })
+      })
+      if (!r.ok) throw new Error()
+    } catch {
+      tyo.vastuuhenkilo_email = oldEmail
+      renderResurssiBoard()
+    }
+  })
 }
 </script>
 </body>
