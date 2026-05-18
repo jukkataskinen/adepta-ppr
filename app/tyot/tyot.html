@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Adepta PPR — Työt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fd:#1c2b1e;--fm:#2d4a31;--fl:#3d6b43;
+  --fg:#5DCAA5;--fg2:#1D9E75;--fg3:#0F6E56;
+  --fmist:#e8efe9;--fpale:#f2f6f2;
+  --amber:#a05c1a;--ambl:#fdf3e8;
+  --blue:#185FA5;--bluel:#e8f0fb;
+  --ink:#1a1c18;--inm:#3d4039;--inu:#7a7d72;--inf:#b8bab2;
+  --pp:#fafaf7;--ppw:#f5f3ee;--bd:#dddbd4;--bd2:#c4c2b8;
+  --red:#A32D2D;--redl:#FCEBEB;
+  --ffd:'Fraunces',Georgia,serif;--ffb:'DM Sans',sans-serif;--ffm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14px;min-height:100vh;overflow:hidden}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--fd);height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{font-family:var(--ffd);font-size:22px;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.logo em{color:var(--fg);font-style:italic}
+.tb-sep{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.bc .a{color:rgba(255,255,255,.75)}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-ghost{padding:5px 14px;font-family:var(--ffb);font-size:12px;border:1px solid rgba(255,255,255,.18);border-radius:5px;background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn-primary{padding:6px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer;transition:all .12s}
+.btn-primary:hover{opacity:.88}
+.av{width:30px;height:30px;border-radius:50%;background:var(--fl);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;cursor:pointer}
+
+/* ── LAYOUT ── */
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sb{width:228px;background:var(--fd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
+.sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
+.sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
+.sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--pp)}
+
+/* ── TOOLBAR ── */
+.toolbar{padding:12px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.filter-sel{padding:5px 10px;font-family:var(--ffb);font-size:12px;background:var(--pp);border:1px solid var(--bd2);border-radius:5px;color:var(--ink);cursor:pointer;outline:none}
+.filter-sel:focus{border-color:var(--fg)}
+.toolbar-spacer{flex:1}
+.toggle-lbl{font-size:12px;color:var(--inu);display:flex;align-items:center;gap:6px;cursor:pointer}
+.toggle-lbl input{accent-color:var(--fg)}
+
+/* ── KANBAN ── */
+.kanban{flex:1;display:flex;gap:0;overflow-x:auto;padding:0}
+.kb-col{flex:1;min-width:220px;display:flex;flex-direction:column;border-right:1px solid var(--bd);background:var(--ppw)}
+.kb-col:last-child{border-right:none}
+.kb-col-hdr{padding:10px 14px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--inu);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--ppw);position:sticky;top:0;z-index:5}
+.kb-col-count{font-size:10px;font-weight:400;background:var(--bd);color:var(--inm);border-radius:8px;padding:1px 7px}
+.kb-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:60px}
+.kb-cards.drag-over{background:rgba(93,202,165,.06)}
+
+/* ── CARD ── */
+.card{background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;cursor:grab;transition:box-shadow .1s,opacity .15s;position:relative}
+.card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card.dragging{opacity:.4}
+.card-pri{position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 2px 2px 0}
+.pri-matala{background:var(--inf)}
+.pri-normaali{background:var(--fg)}
+.pri-korkea{background:var(--amber)}
+.pri-kriittinen{background:var(--red)}
+.card-top{display:flex;align-items:center;gap:6px;margin-bottom:4px;padding-left:6px}
+.card-type{font-size:9px;font-weight:600;padding:1px 6px;border-radius:8px;text-transform:uppercase;letter-spacing:.03em}
+.ct-kuukausikirjanpito{background:#e4f4ec;color:var(--fg3)}
+.ct-alv_ilmoitus{background:var(--bluel);color:var(--blue)}
+.ct-palkat{background:#f3e8fb;color:#6b3fa0}
+.ct-tilinpaatos{background:#fdf3e8;color:var(--amber)}
+.ct-veroilmoitus{background:var(--redl);color:var(--red)}
+.ct-konsultointi{background:#e8f0fb;color:#3a6ea5}
+.ct-muu{background:var(--ppw);color:var(--inu)}
+.card-recur{font-size:12px;color:var(--inu);title:Toistuvasta luotu}
+.card-title{font-size:13px;font-weight:500;color:var(--ink);padding-left:6px;line-height:1.3}
+.card-meta{display:flex;align-items:center;gap:8px;margin-top:6px;padding-left:6px;flex-wrap:wrap}
+.card-deadline{font-size:11px;font-family:var(--ffm);padding:1px 6px;border-radius:4px}
+.dl-ok{background:#e4f4ec;color:var(--fg3)}
+.dl-warn{background:var(--ambl);color:var(--amber)}
+.dl-late{background:var(--redl);color:var(--red)}
+.dl-none{color:var(--inf)}
+.card-tasks{font-size:11px;color:var(--inu)}
+.card-asiakas{font-size:11px;color:var(--inu);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-avatar{width:22px;height:22px;border-radius:50%;background:var(--fl);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;margin-left:auto;flex-shrink:0}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.vis{display:flex}
+.modal{background:var(--pp);border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.18);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px}
+.modal h2{font-family:var(--ffd);font-size:18px;font-weight:500;margin-bottom:16px}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:11px;font-weight:500;color:var(--inu);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.form-input{width:100%;padding:8px 10px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd2);border-radius:5px;background:var(--pp);color:var(--ink);outline:none}
+.form-input:focus{border-color:var(--fg);box-shadow:0 0 0 2px rgba(93,202,165,.15)}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.btn-cancel{padding:7px 18px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd2);border-radius:5px;background:transparent;color:var(--inm);cursor:pointer}
+.btn-cancel:hover{background:var(--ppw)}
+.btn-save{padding:7px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer}
+.btn-save:hover{opacity:.88}
+
+/* ── DETAIL MODAL ── */
+.detail-modal{width:640px}
+.detail-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.detail-header h2{flex:1;margin-bottom:0}
+.detail-status{padding:5px 12px;font-size:11px;font-weight:500;border:1px solid var(--bd2);border-radius:5px;background:var(--pp);font-family:var(--ffb);color:var(--ink);cursor:pointer;outline:none}
+.detail-status:focus{border-color:var(--fg)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.detail-field{font-size:12px}
+.detail-field .df-label{font-size:10px;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.detail-field .df-value{color:var(--ink)}
+.detail-section{margin-top:16px}
+.detail-section h3{font-size:12px;font-weight:600;color:var(--inu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.task-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)}
+.task-item:last-child{border-bottom:none}
+.task-item input[type=checkbox]{accent-color:var(--fg)}
+.task-item span{font-size:13px}
+.task-item span.done{text-decoration:line-through;color:var(--inf)}
+.comment-item{padding:8px 0;border-bottom:1px solid var(--bd)}
+.comment-item:last-child{border-bottom:none}
+.comment-author{font-size:11px;font-weight:600;color:var(--fm)}
+.comment-time{font-size:10px;color:var(--inf);margin-left:8px}
+.comment-text{font-size:13px;margin-top:2px}
+.comment-input{display:flex;gap:8px;margin-top:8px}
+.comment-input input{flex:1}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Adepta <em>PPR</em></div>
+  <div class="tb-sep"></div>
+  <div class="bc"><span class="a">Työt</span></div>
+  <div class="tr">
+    <a class="btn-ghost" href="/tyot/pohjat">Työpohjat</a>
+    <button class="btn-primary" onclick="openNewTyoModal()">+ Uusi ad hoc -työ</button>
+    <div class="av" id="user-av" title="">—</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <a class="nav-item" href="/kirjanpito" style="text-decoration:none;font-weight:600;color:rgba(255,255,255,.7)">Kirjanpito</a>
+    <div class="sb-div"></div>
+    <a class="nav-item act" href="/tyot" style="text-decoration:none">Kanban</a>
+    <a class="nav-item" href="/tyot/pohjat" style="text-decoration:none">Työpohjat</a>
+    <a class="nav-item" href="/tyot/toistuvuudet" style="text-decoration:none">Toistuvuudet</a>
+    <div class="sb-div"></div>
+    <a class="nav-item" href="/asiakkaat" style="text-decoration:none">Asiakkaat</a>
+    <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
+    <div class="sb-div"></div>
+    <a href="/auth/logout" class="nav-item" style="text-decoration:none">Kirjaudu ulos</a>
+    <div class="sb-foot">Kirjautunut:<br><strong id="sb-user-name">—</strong></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <select class="filter-sel" id="f-asiakas" onchange="applyFilters()">
+        <option value="">Kaikki asiakkaat</option>
+      </select>
+      <select class="filter-sel" id="f-vastuuhenkilo" onchange="applyFilters()">
+        <option value="">Kaikki vastuuhenkilöt</option>
+      </select>
+      <select class="filter-sel" id="f-tyyppi" onchange="applyFilters()">
+        <option value="">Kaikki tyypit</option>
+        <option value="kuukausikirjanpito">Kuukausikirjanpito</option>
+        <option value="alv_ilmoitus">ALV-ilmoitus</option>
+        <option value="palkat">Palkat</option>
+        <option value="tilinpaatos">Tilinpäätös</option>
+        <option value="veroilmoitus">Veroilmoitus</option>
+        <option value="konsultointi">Konsultointi</option>
+        <option value="muu">Muu</option>
+      </select>
+      <div class="toolbar-spacer"></div>
+      <label class="toggle-lbl"><input type="checkbox" id="f-toimitetut" onchange="applyFilters()"> Näytä toimitetut</label>
+    </div>
+
+    <!-- KANBAN -->
+    <div class="kanban" id="kanban">
+      <div class="kb-col" data-status="jonossa">
+        <div class="kb-col-hdr">Jonossa <span class="kb-col-count" id="cnt-jonossa">0</span></div>
+        <div class="kb-cards" id="col-jonossa"></div>
+      </div>
+      <div class="kb-col" data-status="tyon_alla">
+        <div class="kb-col-hdr">Työn alla <span class="kb-col-count" id="cnt-tyon_alla">0</span></div>
+        <div class="kb-cards" id="col-tyon_alla"></div>
+      </div>
+      <div class="kb-col" data-status="tarkistuksessa">
+        <div class="kb-col-hdr">Tarkistuksessa <span class="kb-col-count" id="cnt-tarkistuksessa">0</span></div>
+        <div class="kb-cards" id="col-tarkistuksessa"></div>
+      </div>
+      <div class="kb-col" data-status="valmis">
+        <div class="kb-col-hdr">Valmis <span class="kb-col-count" id="cnt-valmis">0</span></div>
+        <div class="kb-cards" id="col-valmis"></div>
+      </div>
+      <div class="kb-col" data-status="toimitettu" id="col-toimitettu-wrap" style="display:none">
+        <div class="kb-col-hdr">Toimitettu <span class="kb-col-count" id="cnt-toimitettu">0</span></div>
+        <div class="kb-cards" id="col-toimitettu"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW TYO MODAL -->
+<div class="modal-overlay" id="new-tyo-overlay">
+  <div class="modal">
+    <h2>Uusi ad hoc -työ</h2>
+    <div class="form-row">
+      <label>Asiakas *</label>
+      <select class="form-input" id="nt-asiakas"></select>
+    </div>
+    <div class="form-row">
+      <label>Tyyppi *</label>
+      <select class="form-input" id="nt-tyyppi">
+        <option value="kuukausikirjanpito">Kuukausikirjanpito</option>
+        <option value="alv_ilmoitus">ALV-ilmoitus</option>
+        <option value="palkat">Palkat</option>
+        <option value="tilinpaatos">Tilinpäätös</option>
+        <option value="veroilmoitus">Veroilmoitus</option>
+        <option value="konsultointi">Konsultointi</option>
+        <option value="muu" selected>Muu</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Otsikko *</label>
+      <input class="form-input" id="nt-otsikko" placeholder="Työn otsikko">
+    </div>
+    <div class="form-row">
+      <label>Kuvaus</label>
+      <input class="form-input" id="nt-kuvaus" placeholder="Valinnainen kuvaus">
+    </div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label>Prioriteetti</label>
+        <select class="form-input" id="nt-prioriteetti">
+          <option value="matala">Matala</option>
+          <option value="normaali" selected>Normaali</option>
+          <option value="korkea">Korkea</option>
+          <option value="kriittinen">Kriittinen</option>
+        </select>
+      </div>
+      <div>
+        <label>Deadline</label>
+        <input class="form-input" id="nt-deadline" type="date">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Vastuuhenkilö (sähköposti)</label>
+      <input class="form-input" id="nt-vastuuhenkilo" placeholder="etunimi@yritys.fi">
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal('new-tyo-overlay')">Peruuta</button>
+      <button class="btn-save" onclick="saveNewTyo()">Luo työ</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal detail-modal" id="detail-modal">
+    <div class="detail-header">
+      <h2 id="det-title">—</h2>
+      <select class="detail-status" id="det-status" onchange="updateTyoStatus()">
+        <option value="jonossa">Jonossa</option>
+        <option value="tyon_alla">Työn alla</option>
+        <option value="tarkistuksessa">Tarkistuksessa</option>
+        <option value="valmis">Valmis</option>
+        <option value="toimitettu">Toimitettu</option>
+      </select>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-field"><div class="df-label">Asiakas</div><div class="df-value" id="det-asiakas">—</div></div>
+      <div class="detail-field"><div class="df-label">Tyyppi</div><div class="df-value" id="det-tyyppi">—</div></div>
+      <div class="detail-field"><div class="df-label">Kausi</div><div class="df-value" id="det-kausi">—</div></div>
+      <div class="detail-field"><div class="df-label">Deadline</div><div class="df-value" id="det-deadline">—</div></div>
+      <div class="detail-field"><div class="df-label">Prioriteetti</div><div class="df-value" id="det-prioriteetti">—</div></div>
+      <div class="detail-field"><div class="df-label">Vastuuhenkilö</div><div class="df-value" id="det-vastuuhenkilo">—</div></div>
+      <div class="detail-field"><div class="df-label">Arvio (h)</div><div class="df-value" id="det-arvio">—</div></div>
+      <div class="detail-field"><div class="df-label">Toteutunut (h)</div><div class="df-value" id="det-toteutunut">—</div></div>
+    </div>
+    <div id="det-recur-info" style="display:none;font-size:12px;color:var(--inu);margin-bottom:12px"></div>
+
+    <div class="detail-section">
+      <h3>Tehtävät <span id="det-task-count"></span></h3>
+      <div id="det-tasks"></div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <input class="form-input" id="det-new-task" placeholder="Lisää tehtävä..." style="flex:1">
+        <button class="btn-save" onclick="addTask()" style="padding:6px 14px">+</button>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Kommentit</h3>
+      <div id="det-comments"></div>
+      <div class="comment-input">
+        <input class="form-input" id="det-new-comment" placeholder="Kirjoita kommentti...">
+        <button class="btn-save" onclick="addComment()" style="padding:6px 14px">Lähetä</button>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn-cancel" onclick="deleteTyo()" style="color:var(--red);border-color:var(--red)">Poista työ</button>
+      <div style="flex:1"></div>
+      <button class="btn-cancel" onclick="closeModal('detail-overlay')">Sulje</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── STATE ─── */
+let tyot = []
+let asiakkaat = []
+let currentTyoId = null
+let draggedCardId = null
+
+const STATUSES = ['jonossa','tyon_alla','tarkistuksessa','valmis','toimitettu']
+const TYYPPI_LABELS = {
+  kuukausikirjanpito:'Kirjanpito', alv_ilmoitus:'ALV', palkat:'Palkat',
+  tilinpaatos:'Tilinpäätös', veroilmoitus:'Veroilmoitus',
+  konsultointi:'Konsultointi', muu:'Muu'
+}
+
+/* ─── INIT ─── */
+document.addEventListener('DOMContentLoaded', async () => {
+  await Promise.all([loadTyot(), loadAsiakkaat()])
+  setupDragDrop()
+  loadUser()
+})
+
+async function loadUser() {
+  try {
+    const r = await fetch('/auth/me')
+    if (!r.ok) return
+    const u = await r.json()
+    const name = u.name || u.email || '—'
+    document.getElementById('sb-user-name').textContent = name
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
+    const av = document.getElementById('user-av')
+    av.textContent = initials
+    av.title = name
+  } catch {}
+}
+
+async function loadTyot() {
+  try {
+    const r = await fetch('/api/tyot')
+    if (!r.ok) throw new Error('Virhe')
+    tyot = await r.json()
+    renderKanban()
+  } catch (e) { console.error('loadTyot:', e) }
+}
+
+async function loadAsiakkaat() {
+  try {
+    const r = await fetch('/api/ppr/asiakkaat')
+    if (!r.ok) return
+    asiakkaat = await r.json()
+    populateAsiakasFilters()
+  } catch {}
+}
+
+function populateAsiakasFilters() {
+  const sel1 = document.getElementById('f-asiakas')
+  const sel2 = document.getElementById('nt-asiakas')
+  asiakkaat.forEach(a => {
+    const o1 = new Option(a.nimi, a.id)
+    const o2 = new Option(a.nimi, a.id)
+    sel1.add(o1)
+    sel2.add(o2)
+  })
+}
+
+/* ─── RENDER ─── */
+function renderKanban() {
+  const showToimitettu = document.getElementById('f-toimitetut').checked
+  document.getElementById('col-toimitettu-wrap').style.display = showToimitettu ? '' : 'none'
+
+  const fAsiakas = document.getElementById('f-asiakas').value
+  const fVastuuhenkilo = document.getElementById('f-vastuuhenkilo').value
+  const fTyyppi = document.getElementById('f-tyyppi').value
+
+  const filtered = tyot.filter(t => {
+    if (fAsiakas && t.asiakas_id !== fAsiakas) return false
+    if (fVastuuhenkilo && t.vastuuhenkilo_email !== fVastuuhenkilo) return false
+    if (fTyyppi && t.tyyppi !== fTyyppi) return false
+    if (!showToimitettu && t.status === 'toimitettu') return false
+    return true
+  })
+
+  STATUSES.forEach(s => {
+    const col = document.getElementById('col-' + s)
+    if (!col) return
+    col.innerHTML = ''
+    const items = filtered.filter(t => t.status === s)
+    document.getElementById('cnt-' + s).textContent = items.length
+    items.forEach(t => col.appendChild(createCard(t)))
+  })
+}
+
+function createCard(t) {
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.draggable = true
+  card.dataset.id = t.id
+  card.onclick = () => openDetail(t.id)
+
+  const today = new Date(); today.setHours(0,0,0,0)
+  let dlClass = 'dl-none', dlText = '—'
+  if (t.deadline) {
+    const dl = new Date(t.deadline + 'T00:00:00')
+    const diff = Math.floor((dl - today) / 86400000)
+    dlText = formatDate(t.deadline)
+    dlClass = diff < 0 ? 'dl-late' : diff <= 3 ? 'dl-warn' : 'dl-ok'
+  }
+
+  const tehtavat = t.ppr_tyo_tehtavat || []
+  const valmiit = tehtavat.filter(tt => tt.valmis).length
+  const asNimi = t.ppr_kirjanpitoasiakkaat?.nimi || ''
+  const initials = (t.vastuuhenkilo_email || '').split('@')[0].slice(0,2).toUpperCase()
+
+  card.innerHTML = `
+    <div class="card-pri pri-${t.prioriteetti}"></div>
+    <div class="card-top">
+      <span class="card-type ct-${t.tyyppi}">${TYYPPI_LABELS[t.tyyppi] || t.tyyppi}</span>
+      ${t.toistuvuus_id ? '<span class="card-recur" title="Toistuvasta luotu">↻</span>' : ''}
+    </div>
+    <div class="card-title">${esc(t.otsikko)}</div>
+    <div class="card-meta">
+      <span class="card-deadline ${dlClass}">${dlText}</span>
+      ${tehtavat.length ? `<span class="card-tasks">${valmiit}/${tehtavat.length}</span>` : ''}
+      ${asNimi ? `<span class="card-asiakas" title="${esc(asNimi)}">${esc(asNimi)}</span>` : ''}
+      ${initials ? `<div class="card-avatar">${initials}</div>` : ''}
+    </div>
+  `
+  return card
+}
+
+/* ─── DRAG & DROP ─── */
+function setupDragDrop() {
+  const kanban = document.getElementById('kanban')
+
+  kanban.addEventListener('dragstart', e => {
+    const card = e.target.closest('.card')
+    if (!card) return
+    draggedCardId = card.dataset.id
+    card.classList.add('dragging')
+    e.dataTransfer.effectAllowed = 'move'
+  })
+
+  kanban.addEventListener('dragend', e => {
+    const card = e.target.closest('.card')
+    if (card) card.classList.remove('dragging')
+    document.querySelectorAll('.kb-cards').forEach(c => c.classList.remove('drag-over'))
+    draggedCardId = null
+  })
+
+  kanban.addEventListener('dragover', e => {
+    e.preventDefault()
+    const col = e.target.closest('.kb-cards')
+    if (col) col.classList.add('drag-over')
+  })
+
+  kanban.addEventListener('dragleave', e => {
+    const col = e.target.closest('.kb-cards')
+    if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over')
+  })
+
+  kanban.addEventListener('drop', async e => {
+    e.preventDefault()
+    document.querySelectorAll('.kb-cards').forEach(c => c.classList.remove('drag-over'))
+    if (!draggedCardId) return
+
+    const col = e.target.closest('.kb-cards')
+    if (!col) return
+    const newStatus = col.id.replace('col-', '')
+
+    // Optimistinen päivitys
+    const tyo = tyot.find(t => t.id === draggedCardId)
+    if (!tyo || tyo.status === newStatus) return
+    const oldStatus = tyo.status
+    tyo.status = newStatus
+    renderKanban()
+
+    // Tallenna serverille
+    try {
+      const r = await fetch('/api/tyot/jarjesta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tyot: [{ id: draggedCardId, status: newStatus }] })
+      })
+      if (!r.ok) throw new Error()
+    } catch {
+      // Rollback
+      tyo.status = oldStatus
+      renderKanban()
+    }
+  })
+}
+
+/* ─── FILTERS ─── */
+function applyFilters() { renderKanban() }
+
+/* ─── NEW TYO ─── */
+function openNewTyoModal() {
+  document.getElementById('nt-otsikko').value = ''
+  document.getElementById('nt-kuvaus').value = ''
+  document.getElementById('nt-deadline').value = ''
+  document.getElementById('nt-vastuuhenkilo').value = ''
+  document.getElementById('new-tyo-overlay').classList.add('vis')
+}
+
+async function saveNewTyo() {
+  const asiakas_id = document.getElementById('nt-asiakas').value
+  const tyyppi = document.getElementById('nt-tyyppi').value
+  const otsikko = document.getElementById('nt-otsikko').value.trim()
+  if (!asiakas_id || !otsikko) return alert('Asiakas ja otsikko vaaditaan')
+
+  const body = {
+    asiakas_id, tyyppi, otsikko,
+    kuvaus: document.getElementById('nt-kuvaus').value.trim() || null,
+    prioriteetti: document.getElementById('nt-prioriteetti').value,
+    deadline: document.getElementById('nt-deadline').value || null,
+    vastuuhenkilo_email: document.getElementById('nt-vastuuhenkilo').value.trim() || null,
+  }
+
+  try {
+    const r = await fetch('/api/tyot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error) }
+    closeModal('new-tyo-overlay')
+    await loadTyot()
+  } catch (e) { alert('Virhe: ' + e.message) }
+}
+
+/* ─── DETAIL ─── */
+async function openDetail(id) {
+  currentTyoId = id
+  try {
+    const r = await fetch('/api/tyot/' + id)
+    if (!r.ok) throw new Error()
+    const t = await r.json()
+
+    document.getElementById('det-title').textContent = t.otsikko
+    document.getElementById('det-status').value = t.status
+    document.getElementById('det-asiakas').textContent = t.ppr_kirjanpitoasiakkaat?.nimi || '—'
+    document.getElementById('det-tyyppi').textContent = TYYPPI_LABELS[t.tyyppi] || t.tyyppi
+    document.getElementById('det-kausi').textContent = t.kausi || '—'
+    document.getElementById('det-deadline').textContent = t.deadline ? formatDate(t.deadline) : '—'
+    document.getElementById('det-prioriteetti').textContent = t.prioriteetti
+    document.getElementById('det-vastuuhenkilo').textContent = t.vastuuhenkilo_email || '—'
+    document.getElementById('det-arvio').textContent = t.arvio_h ?? '—'
+    document.getElementById('det-toteutunut').textContent = t.toteutunut_h ?? '0'
+
+    const recurInfo = document.getElementById('det-recur-info')
+    if (t.toistuvuus_id) {
+      recurInfo.style.display = ''
+      recurInfo.textContent = '↻ Tämä työ luotiin toistuvuudesta'
+    } else {
+      recurInfo.style.display = 'none'
+    }
+
+    renderDetailTasks(t.ppr_tyo_tehtavat || [])
+    renderDetailComments(t.ppr_tyo_kommentit || [])
+    document.getElementById('detail-overlay').classList.add('vis')
+  } catch (e) { console.error('openDetail:', e) }
+}
+
+function renderDetailTasks(tasks) {
+  tasks.sort((a,b) => a.jarjestys - b.jarjestys)
+  const valmiit = tasks.filter(t => t.valmis).length
+  document.getElementById('det-task-count').textContent = tasks.length ? `(${valmiit}/${tasks.length})` : ''
+  const container = document.getElementById('det-tasks')
+  container.innerHTML = tasks.map(t => `
+    <div class="task-item">
+      <input type="checkbox" ${t.valmis ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)">
+      <span class="${t.valmis ? 'done' : ''}">${esc(t.otsikko)}</span>
+    </div>
+  `).join('')
+}
+
+function renderDetailComments(comments) {
+  comments.sort((a,b) => new Date(a.luotu) - new Date(b.luotu))
+  const container = document.getElementById('det-comments')
+  container.innerHTML = comments.map(c => `
+    <div class="comment-item">
+      <span class="comment-author">${esc(c.kayttaja_email)}</span>
+      <span class="comment-time">${formatDateTime(c.luotu)}</span>
+      <div class="comment-text">${esc(c.kommentti)}</div>
+    </div>
+  `).join('')
+}
+
+async function updateTyoStatus() {
+  if (!currentTyoId) return
+  const status = document.getElementById('det-status').value
+  try {
+    await fetch('/api/tyot/' + currentTyoId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    })
+    const tyo = tyot.find(t => t.id === currentTyoId)
+    if (tyo) tyo.status = status
+    renderKanban()
+  } catch {}
+}
+
+async function toggleTask(taskId, valmis) {
+  try {
+    await fetch('/api/tyot/' + currentTyoId + '/tehtavat/' + taskId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valmis })
+    })
+    // Refresh detail
+    openDetail(currentTyoId)
+    await loadTyot()
+  } catch {}
+}
+
+async function addTask() {
+  const input = document.getElementById('det-new-task')
+  const otsikko = input.value.trim()
+  if (!otsikko || !currentTyoId) return
+  try {
+    await fetch('/api/tyot/' + currentTyoId + '/tehtavat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otsikko })
+    })
+    input.value = ''
+    openDetail(currentTyoId)
+    await loadTyot()
+  } catch {}
+}
+
+async function addComment() {
+  const input = document.getElementById('det-new-comment')
+  const kommentti = input.value.trim()
+  if (!kommentti || !currentTyoId) return
+  try {
+    await fetch('/api/tyot/' + currentTyoId + '/kommentit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kommentti })
+    })
+    input.value = ''
+    openDetail(currentTyoId)
+  } catch {}
+}
+
+async function deleteTyo() {
+  if (!currentTyoId) return
+  if (!confirm('Haluatko varmasti poistaa tämän työn?')) return
+  try {
+    await fetch('/api/tyot/' + currentTyoId, { method: 'DELETE' })
+    closeModal('detail-overlay')
+    currentTyoId = null
+    await loadTyot()
+  } catch {}
+}
+
+/* ─── MODALS ─── */
+function closeModal(id) { document.getElementById(id).classList.remove('vis') }
+
+// Sulje modal klikkaamalla overlayta
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('vis')
+  }
+})
+
+/* ─── HELPERS ─── */
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML }
+function formatDate(d) {
+  if (!d) return '—'
+  const [y,m,dd] = d.split('-')
+  return `${parseInt(dd)}.${parseInt(m)}.${y}`
+}
+function formatDateTime(dt) {
+  if (!dt) return ''
+  const d = new Date(dt)
+  return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+</script>
+</body>
+</html>
