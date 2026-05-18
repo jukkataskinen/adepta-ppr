@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Adepta PPR — Toistuvuudet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fd:#1c2b1e;--fm:#2d4a31;--fl:#3d6b43;
+  --fg:#5DCAA5;--fg2:#1D9E75;--fg3:#0F6E56;
+  --fmist:#e8efe9;--fpale:#f2f6f2;
+  --amber:#a05c1a;--ambl:#fdf3e8;
+  --blue:#185FA5;--bluel:#e8f0fb;
+  --ink:#1a1c18;--inm:#3d4039;--inu:#7a7d72;--inf:#b8bab2;
+  --pp:#fafaf7;--ppw:#f5f3ee;--bd:#dddbd4;--bd2:#c4c2b8;
+  --red:#A32D2D;--redl:#FCEBEB;
+  --ffd:'Fraunces',Georgia,serif;--ffb:'DM Sans',sans-serif;--ffm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14px;min-height:100vh;overflow:hidden}
+
+.topbar{background:var(--fd);height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{font-family:var(--ffd);font-size:22px;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.logo em{color:var(--fg);font-style:italic}
+.tb-sep{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.bc .a{color:rgba(255,255,255,.75)}
+.bc-s{color:rgba(255,255,255,.2)}
+.tr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-primary{padding:6px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer;transition:all .12s}
+.btn-primary:hover{opacity:.88}
+
+.layout{display:flex;height:calc(100vh - 56px);overflow:hidden}
+.sb{width:228px;background:var(--fd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.nav-item{padding:9px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .08s;display:flex;align-items:center;gap:9px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.nav-item.act{background:rgba(93,202,165,.08);border-left-color:var(--fg);color:#fff}
+.sb-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
+.sb-foot{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.28)}
+.sb-foot strong{color:rgba(255,255,255,.5);font-weight:400}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--pp)}
+.toolbar{padding:12px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.filter-sel{padding:5px 10px;font-family:var(--ffb);font-size:12px;background:var(--pp);border:1px solid var(--bd2);border-radius:5px;color:var(--ink);cursor:pointer;outline:none}
+.filter-sel:focus{border-color:var(--fg)}
+.toolbar-spacer{flex:1}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.page-title{font-family:var(--ffd);font-size:20px;font-weight:500;margin-bottom:18px}
+
+/* ── TABLE ── */
+table.tt{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--ppw);border-bottom:1px solid var(--bd2);padding:8px 10px;text-align:left;font-size:10px;font-weight:500;color:var(--inu);letter-spacing:.06em;text-transform:uppercase}
+tbody tr{border-bottom:1px solid var(--bd);cursor:pointer;transition:background .06s}
+tbody tr:hover{background:var(--fmist)}
+tbody td{padding:8px 10px;vertical-align:middle}
+.badge-active{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600}
+.badge-active.on{background:#e4f4ec;color:var(--fg3)}
+.badge-active.off{background:var(--ppw);color:var(--inf)}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.vis{display:flex}
+.modal{background:var(--pp);border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.18);width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px}
+.modal h2{font-family:var(--ffd);font-size:18px;font-weight:500;margin-bottom:16px}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:11px;font-weight:500;color:var(--inu);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.form-input{width:100%;padding:8px 10px;font-family:var(--ffb);font-size:13px;border:1px solid var(--bd2);border-radius:5px;background:var(--pp);color:var(--ink);outline:none}
+.form-input:focus{border-color:var(--fg);box-shadow:0 0 0 2px rgba(93,202,165,.15)}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.btn-cancel{padding:7px 18px;font-family:var(--ffb);font-size:12px;border:1px solid var(--bd2);border-radius:5px;background:transparent;color:var(--inm);cursor:pointer}
+.btn-cancel:hover{background:var(--ppw)}
+.btn-save{padding:7px 18px;font-family:var(--ffb);font-size:12px;font-weight:500;border:none;border-radius:5px;background:var(--fg);color:var(--fd);cursor:pointer}
+.btn-save:hover{opacity:.88}
+.freq-extra{display:none;margin-top:8px;padding:10px;background:var(--ppw);border-radius:6px;border:1px solid var(--bd)}
+.freq-extra.vis{display:block}
+.preview-list{margin-top:8px;font-size:12px;font-family:var(--ffm);color:var(--inm)}
+.preview-list div{padding:2px 0}
+.cb-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.cb-group label{font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.cb-group input{accent-color:var(--fg)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Adepta <em>PPR</em></div>
+  <div class="tb-sep"></div>
+  <div class="bc"><a class="a" href="/tyot" style="text-decoration:none;color:inherit">Työt</a><span class="bc-s">›</span><span class="a">Toistuvuudet</span></div>
+  <div class="tr">
+    <button class="btn-primary" onclick="openNewModal()">+ Uusi toistuvuus</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sb">
+    <a class="nav-item" href="/kirjanpito" style="text-decoration:none;font-weight:600;color:rgba(255,255,255,.7)">Kirjanpito</a>
+    <div class="sb-div"></div>
+    <a class="nav-item" href="/tyot" style="text-decoration:none">Kanban</a>
+    <a class="nav-item" href="/tyot/pohjat" style="text-decoration:none">Työpohjat</a>
+    <a class="nav-item act" href="/tyot/toistuvuudet" style="text-decoration:none">Toistuvuudet</a>
+    <div class="sb-div"></div>
+    <a class="nav-item" href="/asiakkaat" style="text-decoration:none">Asiakkaat</a>
+    <a class="nav-item" href="/kayttajat" style="text-decoration:none">Käyttäjät</a>
+    <div class="sb-div"></div>
+    <a href="/auth/logout" class="nav-item" style="text-decoration:none">Kirjaudu ulos</a>
+    <div class="sb-foot">Kirjautunut:<br><strong id="sb-user-name">—</strong></div>
+  </div>
+
+  <div class="main">
+    <div class="toolbar">
+      <select class="filter-sel" id="f-asiakas" onchange="filterToistuvuudet()">
+        <option value="">Kaikki asiakkaat</option>
+      </select>
+      <div class="toolbar-spacer"></div>
+    </div>
+    <div class="content">
+      <div class="page-title">Toistuvuudet</div>
+      <table class="tt">
+        <thead>
+          <tr>
+            <th>Asiakas</th>
+            <th>Pohja</th>
+            <th>Frekvenssi</th>
+            <th>Seuraava luonti</th>
+            <th>Vastuuhenkilö</th>
+            <th>Tila</th>
+          </tr>
+        </thead>
+        <tbody id="toist-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="toist-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Uusi toistuvuus</h2>
+    <input type="hidden" id="te-id">
+
+    <div class="form-row">
+      <label>Asiakas *</label>
+      <select class="form-input" id="te-asiakas"></select>
+    </div>
+    <div class="form-row">
+      <label>Pohja *</label>
+      <select class="form-input" id="te-pohja"></select>
+    </div>
+    <div class="form-row">
+      <label>Frekvenssi *</label>
+      <select class="form-input" id="te-frekvenssi" onchange="onFrekvenssiChange()">
+        <option value="paivittain">Päivittäin</option>
+        <option value="viikoittain">Viikoittain</option>
+        <option value="kuukausittain" selected>Kuukausittain</option>
+        <option value="neljannesvuosittain">Neljännesvuosittain</option>
+        <option value="puolivuosittain">Puolivuosittain</option>
+        <option value="vuosittain">Vuosittain</option>
+        <option value="mukautettu">Mukautettu (RRULE)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Intervalli</label>
+      <input class="form-input" id="te-intervalli" type="number" min="1" value="1" style="width:80px">
+    </div>
+
+    <!-- Viikoittain -->
+    <div class="freq-extra" id="fx-viikoittain">
+      <label style="font-size:11px;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block">Viikonpäivät</label>
+      <div class="cb-group">
+        <label><input type="checkbox" value="1"> Ma</label>
+        <label><input type="checkbox" value="2"> Ti</label>
+        <label><input type="checkbox" value="3"> Ke</label>
+        <label><input type="checkbox" value="4"> To</label>
+        <label><input type="checkbox" value="5" checked> Pe</label>
+        <label><input type="checkbox" value="6"> La</label>
+        <label><input type="checkbox" value="7"> Su</label>
+      </div>
+    </div>
+
+    <!-- Kuukausittain -->
+    <div class="freq-extra" id="fx-kuukausittain">
+      <label style="font-size:11px;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block">Kuukauden päivä</label>
+      <select class="form-input" id="te-kk-paiva" style="width:120px">
+        <option value="-1">Viimeinen</option>
+      </select>
+    </div>
+
+    <!-- Vuosittain / neljännesvuosittain -->
+    <div class="freq-extra" id="fx-kuukaudet">
+      <label style="font-size:11px;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block">Kuukaudet</label>
+      <div class="cb-group" id="kk-checkboxes"></div>
+    </div>
+
+    <!-- Mukautettu -->
+    <div class="freq-extra" id="fx-mukautettu">
+      <label style="font-size:11px;color:var(--inu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block">RRULE-lauseke</label>
+      <input class="form-input" id="te-rrule" placeholder="FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1">
+    </div>
+
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+      <div>
+        <label>Alkupvm *</label>
+        <input class="form-input" id="te-alkupvm" type="date">
+      </div>
+      <div>
+        <label>Loppupvm</label>
+        <input class="form-input" id="te-loppupvm" type="date">
+      </div>
+    </div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label>Seuraava luonti *</label>
+        <input class="form-input" id="te-seuraava" type="date">
+      </div>
+      <div>
+        <label>Luo etukäteen (pv)</label>
+        <input class="form-input" id="te-etukateen" type="number" min="0" value="14">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Vastuuhenkilö (sähköposti)</label>
+      <input class="form-input" id="te-vastuuhenkilo" placeholder="etunimi@yritys.fi">
+    </div>
+
+    <!-- Esikatselu -->
+    <div id="preview-section" style="margin-top:12px;display:none">
+      <label style="font-size:11px;font-weight:500;color:var(--inu);text-transform:uppercase;letter-spacing:.05em">Seuraavat 10 luontipäivää</label>
+      <div class="preview-list" id="preview-dates"></div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-cancel" id="te-delete-btn" onclick="deleteToistuvuus()" style="color:var(--red);border-color:var(--red);display:none">Poista</button>
+      <button class="btn-cancel" id="te-preview-btn" onclick="loadPreview()" style="display:none">Esikatselu</button>
+      <div style="flex:1"></div>
+      <button class="btn-cancel" onclick="closeModal('toist-overlay')">Peruuta</button>
+      <button class="btn-save" onclick="saveToistuvuus()">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let toistuvuudet = []
+let asiakkaat = []
+let pohjat = []
+
+const KK_NIMET = ['Tammi','Helmi','Maalis','Huhti','Touko','Kesä','Heinä','Elo','Syys','Loka','Marras','Joulu']
+const FREQ_LABELS = {
+  paivittain:'Päivittäin', viikoittain:'Viikoittain', kuukausittain:'Kuukausittain',
+  neljannesvuosittain:'Neljännesvuosittain', puolivuosittain:'Puolivuosittain',
+  vuosittain:'Vuosittain', mukautettu:'Mukautettu'
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Alusta kuukauden päivä -dropdown
+  const sel = document.getElementById('te-kk-paiva')
+  for (let i = 1; i <= 31; i++) sel.add(new Option(String(i), String(i)))
+
+  // Alusta kuukaudet-checkboxit
+  const kkC = document.getElementById('kk-checkboxes')
+  KK_NIMET.forEach((n, i) => {
+    kkC.innerHTML += `<label><input type="checkbox" value="${i+1}"> ${n}</label>`
+  })
+
+  await Promise.all([loadToistuvuudet(), loadAsiakkaat(), loadPohjat()])
+  loadUser()
+  onFrekvenssiChange()
+})
+
+async function loadUser() {
+  try {
+    const r = await fetch('/auth/me')
+    if (!r.ok) return
+    const u = await r.json()
+    document.getElementById('sb-user-name').textContent = u.name || u.email || '—'
+  } catch {}
+}
+
+async function loadToistuvuudet() {
+  try {
+    const r = await fetch('/api/toistuvuudet')
+    if (!r.ok) throw new Error()
+    toistuvuudet = await r.json()
+    renderTable()
+  } catch (e) { console.error('loadToistuvuudet:', e) }
+}
+
+async function loadAsiakkaat() {
+  try {
+    const r = await fetch('/api/ppr/asiakkaat')
+    if (!r.ok) return
+    asiakkaat = await r.json()
+    const sel1 = document.getElementById('f-asiakas')
+    const sel2 = document.getElementById('te-asiakas')
+    asiakkaat.forEach(a => {
+      sel1.add(new Option(a.nimi, a.id))
+      sel2.add(new Option(a.nimi, a.id))
+    })
+  } catch {}
+}
+
+async function loadPohjat() {
+  try {
+    const r = await fetch('/api/tyo-pohjat')
+    if (!r.ok) return
+    pohjat = await r.json()
+    const sel = document.getElementById('te-pohja')
+    sel.innerHTML = ''
+    pohjat.forEach(p => sel.add(new Option(p.nimi, p.id)))
+  } catch {}
+}
+
+function renderTable() {
+  const fAsiakas = document.getElementById('f-asiakas').value
+  const filtered = fAsiakas ? toistuvuudet.filter(t => t.asiakas_id === fAsiakas) : toistuvuudet
+
+  const body = document.getElementById('toist-body')
+  body.innerHTML = filtered.map(t => {
+    const asNimi = asiakkaat.find(a => a.id === t.asiakas_id)?.nimi || t.asiakas_id
+    const pohjaNimi = t.ppr_tyo_pohjat?.nimi || '—'
+    return `
+      <tr onclick="openEditToistuvuus('${t.id}')">
+        <td>${esc(asNimi)}</td>
+        <td>${esc(pohjaNimi)}</td>
+        <td>${FREQ_LABELS[t.frekvenssi] || t.frekvenssi}${t.intervalli > 1 ? ' (joka ' + t.intervalli + '.)' : ''}</td>
+        <td style="font-family:var(--ffm);font-size:12px">${t.seuraava_luonti_pvm || '—'}</td>
+        <td>${esc(t.vastuuhenkilo_email || '—')}</td>
+        <td><span class="badge-active ${t.aktiivinen ? 'on' : 'off'}">${t.aktiivinen ? 'Aktiivinen' : 'Passiivinen'}</span></td>
+      </tr>
+    `
+  }).join('')
+}
+
+function filterToistuvuudet() { renderTable() }
+
+function onFrekvenssiChange() {
+  const f = document.getElementById('te-frekvenssi').value
+  document.getElementById('fx-viikoittain').classList.toggle('vis', f === 'viikoittain')
+  document.getElementById('fx-kuukausittain').classList.toggle('vis', ['kuukausittain','neljannesvuosittain','puolivuosittain','vuosittain'].includes(f))
+  document.getElementById('fx-kuukaudet').classList.toggle('vis', ['neljannesvuosittain','puolivuosittain','vuosittain'].includes(f))
+  document.getElementById('fx-mukautettu').classList.toggle('vis', f === 'mukautettu')
+}
+
+function openNewModal() {
+  document.getElementById('modal-title').textContent = 'Uusi toistuvuus'
+  document.getElementById('te-id').value = ''
+  document.getElementById('te-frekvenssi').value = 'kuukausittain'
+  document.getElementById('te-intervalli').value = '1'
+  document.getElementById('te-kk-paiva').value = '1'
+  document.getElementById('te-rrule').value = ''
+  document.getElementById('te-alkupvm').value = new Date().toISOString().slice(0,10)
+  document.getElementById('te-seuraava').value = new Date().toISOString().slice(0,10)
+  document.getElementById('te-loppupvm').value = ''
+  document.getElementById('te-etukateen').value = '14'
+  document.getElementById('te-vastuuhenkilo').value = ''
+  document.getElementById('te-delete-btn').style.display = 'none'
+  document.getElementById('te-preview-btn').style.display = 'none'
+  document.getElementById('preview-section').style.display = 'none'
+  onFrekvenssiChange()
+  // Reset checkboxes
+  document.querySelectorAll('#fx-viikoittain input').forEach(i => i.checked = i.value === '5')
+  document.querySelectorAll('#kk-checkboxes input').forEach(i => i.checked = false)
+  document.getElementById('toist-overlay').classList.add('vis')
+}
+
+function openEditToistuvuus(id) {
+  const t = toistuvuudet.find(x => x.id === id)
+  if (!t) return
+  document.getElementById('modal-title').textContent = 'Muokkaa toistuvuutta'
+  document.getElementById('te-id').value = t.id
+  document.getElementById('te-asiakas').value = t.asiakas_id
+  document.getElementById('te-pohja').value = t.pohja_id
+  document.getElementById('te-frekvenssi').value = t.frekvenssi
+  document.getElementById('te-intervalli').value = t.intervalli || 1
+  document.getElementById('te-kk-paiva').value = t.kuukauden_paiva ?? '1'
+  document.getElementById('te-rrule').value = t.rrule_lauseke || ''
+  document.getElementById('te-alkupvm').value = t.alkupvm || ''
+  document.getElementById('te-seuraava').value = t.seuraava_luonti_pvm || ''
+  document.getElementById('te-loppupvm').value = t.loppupvm || ''
+  document.getElementById('te-etukateen').value = t.luo_paivia_etukateen || 14
+  document.getElementById('te-vastuuhenkilo').value = t.vastuuhenkilo_email || ''
+
+  // Viikonpäivät
+  const vkp = t.viikonpaivat || []
+  document.querySelectorAll('#fx-viikoittain input').forEach(i => i.checked = vkp.includes(parseInt(i.value)))
+
+  // Kuukaudet
+  const kk = t.kuukaudet || []
+  document.querySelectorAll('#kk-checkboxes input').forEach(i => i.checked = kk.includes(parseInt(i.value)))
+
+  document.getElementById('te-delete-btn').style.display = ''
+  document.getElementById('te-preview-btn').style.display = ''
+  document.getElementById('preview-section').style.display = 'none'
+  onFrekvenssiChange()
+  document.getElementById('toist-overlay').classList.add('vis')
+}
+
+async function saveToistuvuus() {
+  const id = document.getElementById('te-id').value
+  const asiakas_id = document.getElementById('te-asiakas').value
+  const pohja_id = document.getElementById('te-pohja').value
+  const frekvenssi = document.getElementById('te-frekvenssi').value
+  const alkupvm = document.getElementById('te-alkupvm').value
+  const seuraava_luonti_pvm = document.getElementById('te-seuraava').value
+
+  if (!asiakas_id || !pohja_id || !alkupvm || !seuraava_luonti_pvm) {
+    return alert('Asiakas, pohja, alkupvm ja seuraava luonti vaaditaan')
+  }
+
+  const viikonpaivat = Array.from(document.querySelectorAll('#fx-viikoittain input:checked')).map(i => parseInt(i.value))
+  const kuukaudet = Array.from(document.querySelectorAll('#kk-checkboxes input:checked')).map(i => parseInt(i.value))
+
+  const body = {
+    asiakas_id, pohja_id, frekvenssi,
+    intervalli: parseInt(document.getElementById('te-intervalli').value) || 1,
+    viikonpaivat: viikonpaivat.length ? viikonpaivat : null,
+    kuukauden_paiva: parseInt(document.getElementById('te-kk-paiva').value) || null,
+    kuukaudet: kuukaudet.length ? kuukaudet : null,
+    rrule_lauseke: document.getElementById('te-rrule').value.trim() || null,
+    alkupvm, seuraava_luonti_pvm,
+    loppupvm: document.getElementById('te-loppupvm').value || null,
+    luo_paivia_etukateen: parseInt(document.getElementById('te-etukateen').value) || 14,
+    vastuuhenkilo_email: document.getElementById('te-vastuuhenkilo').value.trim() || null,
+  }
+
+  // PATCH: lisää aktiivinen
+  if (id) body.aktiivinen = true
+
+  try {
+    const url = id ? '/api/toistuvuudet/' + id : '/api/toistuvuudet'
+    const method = id ? 'PATCH' : 'POST'
+    const r = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error) }
+    closeModal('toist-overlay')
+    await loadToistuvuudet()
+  } catch (e) { alert('Virhe: ' + e.message) }
+}
+
+async function deleteToistuvuus() {
+  const id = document.getElementById('te-id').value
+  if (!id || !confirm('Haluatko varmasti poistaa tämän toistuvuuden?')) return
+  try {
+    await fetch('/api/toistuvuudet/' + id, { method: 'DELETE' })
+    closeModal('toist-overlay')
+    await loadToistuvuudet()
+  } catch (e) { alert('Virhe: ' + e.message) }
+}
+
+async function loadPreview() {
+  const id = document.getElementById('te-id').value
+  if (!id) return alert('Tallenna toistuvuus ensin nähdäksesi esikatselun')
+  try {
+    const r = await fetch('/api/toistuvuudet/' + id + '/esikatselu')
+    if (!r.ok) throw new Error()
+    const data = await r.json()
+    const container = document.getElementById('preview-dates')
+    container.innerHTML = (data.paivamaarat || []).map((d, i) => `<div>${i+1}. ${formatDate(d)}</div>`).join('')
+    document.getElementById('preview-section').style.display = ''
+  } catch { alert('Esikatselun lataus epäonnistui') }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('vis') }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('vis')
+})
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML }
+function formatDate(d) {
+  if (!d) return '—'
+  const [y,m,dd] = d.split('-')
+  return `${parseInt(dd)}.${parseInt(m)}.${y}`
+}
+</script>
+</body>
+</html>
