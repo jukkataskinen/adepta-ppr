@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/luo-toistuvat-tyot",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
