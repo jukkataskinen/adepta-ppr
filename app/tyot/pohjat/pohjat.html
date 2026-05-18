@@ -85,10 +85,13 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .btn-save:hover{opacity:.88}
 
 .task-edit-list{margin-top:6px}
-.task-edit-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.task-edit-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;cursor:grab}
+.task-edit-row.dragging{opacity:.4}
 .task-edit-row input{flex:1}
 .task-edit-row button{width:28px;height:28px;border:none;background:transparent;cursor:pointer;color:var(--red);font-size:16px}
 .task-edit-row button:hover{background:var(--redl);border-radius:4px}
+.task-drag-handle{cursor:grab;color:var(--inf);font-size:14px;user-select:none;padding:0 2px}
+.task-drop-indicator{height:2px;background:var(--fg);border-radius:1px;margin:1px 0}
 .toggle-row{display:flex;align-items:center;gap:8px;margin-top:8px}
 .toggle-row label{font-size:12px;color:var(--inm);cursor:pointer;display:flex;align-items:center;gap:6px}
 .toggle-row input{accent-color:var(--fg)}
@@ -288,7 +291,42 @@ function addTaskRow(value) {
   const container = document.getElementById('pe-tehtavat')
   const row = document.createElement('div')
   row.className = 'task-edit-row'
-  row.innerHTML = `<input class="form-input task-input" value="${esc(value || '')}" placeholder="Tehtävän nimi"><button onclick="this.parentElement.remove()">×</button>`
+  row.draggable = true
+  row.innerHTML = `<span class="task-drag-handle">⠿</span><input class="form-input task-input" value="${esc(value || '')}" placeholder="Tehtävän nimi"><button onclick="this.parentElement.remove()">×</button>`
+
+  row.addEventListener('dragstart', e => {
+    row.classList.add('dragging')
+    e.dataTransfer.effectAllowed = 'move'
+  })
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging')
+    container.querySelectorAll('.task-drop-indicator').forEach(el => el.remove())
+  })
+  row.addEventListener('dragover', e => {
+    e.preventDefault()
+    container.querySelectorAll('.task-drop-indicator').forEach(el => el.remove())
+    const rect = row.getBoundingClientRect()
+    const indicator = document.createElement('div')
+    indicator.className = 'task-drop-indicator'
+    if (e.clientY < rect.top + rect.height / 2) {
+      container.insertBefore(indicator, row)
+    } else {
+      container.insertBefore(indicator, row.nextSibling)
+    }
+  })
+  row.addEventListener('drop', e => {
+    e.preventDefault()
+    container.querySelectorAll('.task-drop-indicator').forEach(el => el.remove())
+    const dragging = container.querySelector('.dragging')
+    if (!dragging || dragging === row) return
+    const rect = row.getBoundingClientRect()
+    if (e.clientY < rect.top + rect.height / 2) {
+      container.insertBefore(dragging, row)
+    } else {
+      container.insertBefore(dragging, row.nextSibling)
+    }
+  })
+
   container.appendChild(row)
 }
 

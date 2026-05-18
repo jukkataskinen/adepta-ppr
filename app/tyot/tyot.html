@@ -66,6 +66,7 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .kb-col-count{font-size:10px;font-weight:400;background:var(--bd);color:var(--inm);border-radius:8px;padding:1px 7px}
 .kb-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:60px}
 .kb-cards.drag-over{background:rgba(93,202,165,.06)}
+.drop-indicator{height:3px;background:var(--fg);border-radius:2px;margin:2px 0;transition:all .1s}
 
 /* ── CARD ── */
 .card{background:var(--pp);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;cursor:grab;transition:box-shadow .1s,opacity .15s;position:relative}
@@ -136,6 +137,7 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
 .comment-text{font-size:13px;margin-top:2px}
 .comment-input{display:flex;gap:8px;margin-top:8px}
 .comment-input input{flex:1}
+.form-input-sm{padding:5px 8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -290,11 +292,31 @@ body{font-family:var(--ffb);background:var(--ppw);color:var(--ink);font-size:14p
       <div class="detail-field"><div class="df-label">Asiakas</div><div class="df-value" id="det-asiakas">—</div></div>
       <div class="detail-field"><div class="df-label">Tyyppi</div><div class="df-value" id="det-tyyppi">—</div></div>
       <div class="detail-field"><div class="df-label">Kausi</div><div class="df-value" id="det-kausi">—</div></div>
-      <div class="detail-field"><div class="df-label">Deadline</div><div class="df-value" id="det-deadline">—</div></div>
-      <div class="detail-field"><div class="df-label">Prioriteetti</div><div class="df-value" id="det-prioriteetti">—</div></div>
-      <div class="detail-field"><div class="df-label">Vastuuhenkilö</div><div class="df-value" id="det-vastuuhenkilo">—</div></div>
-      <div class="detail-field"><div class="df-label">Arvio (h)</div><div class="df-value" id="det-arvio">—</div></div>
-      <div class="detail-field"><div class="df-label">Toteutunut (h)</div><div class="df-value" id="det-toteutunut">—</div></div>
+      <div class="detail-field">
+        <div class="df-label">Deadline</div>
+        <input class="form-input form-input-sm" id="det-deadline" type="date" onchange="updateTyoField('deadline', this.value || null)">
+      </div>
+      <div class="detail-field">
+        <div class="df-label">Prioriteetti</div>
+        <select class="form-input form-input-sm" id="det-prioriteetti" onchange="updateTyoField('prioriteetti', this.value)">
+          <option value="matala">Matala</option>
+          <option value="normaali">Normaali</option>
+          <option value="korkea">Korkea</option>
+          <option value="kriittinen">Kriittinen</option>
+        </select>
+      </div>
+      <div class="detail-field">
+        <div class="df-label">Vastuuhenkilö</div>
+        <input class="form-input form-input-sm" id="det-vastuuhenkilo" placeholder="email" onchange="updateTyoField('vastuuhenkilo_email', this.value.trim() || null)">
+      </div>
+      <div class="detail-field">
+        <div class="df-label">Arvio (h)</div>
+        <input class="form-input form-input-sm" id="det-arvio" type="number" step="0.5" min="0" onchange="updateTyoField('arvio_h', parseFloat(this.value) || null)">
+      </div>
+      <div class="detail-field">
+        <div class="df-label">Toteutunut (h)</div>
+        <input class="form-input form-input-sm" id="det-toteutunut" type="number" step="0.25" min="0" onchange="updateTyoField('toteutunut_h', parseFloat(this.value) || 0)">
+      </div>
     </div>
     <div id="det-recur-info" style="display:none;font-size:12px;color:var(--inu);margin-bottom:12px"></div>
 
@@ -363,7 +385,9 @@ async function loadTyot() {
   try {
     const r = await fetch('/api/tyot')
     if (!r.ok) throw new Error('Virhe')
-    tyot = await r.json()
+    const json = await r.json()
+    tyot = Array.isArray(json) ? json : (json.data || [])
+    populateVastuuhenkiloFilter()
     renderKanban()
   } catch (e) { console.error('loadTyot:', e) }
 }
@@ -381,11 +405,20 @@ function populateAsiakasFilters() {
   const sel1 = document.getElementById('f-asiakas')
   const sel2 = document.getElementById('nt-asiakas')
   asiakkaat.forEach(a => {
-    const o1 = new Option(a.nimi, a.id)
-    const o2 = new Option(a.nimi, a.id)
-    sel1.add(o1)
-    sel2.add(o2)
+    sel1.add(new Option(a.nimi, a.id))
+    sel2.add(new Option(a.nimi, a.id))
   })
+}
+
+function populateVastuuhenkiloFilter() {
+  const sel = document.getElementById('f-vastuuhenkilo')
+  const current = sel.value
+  // Kerää uniikit vastuuhenkilöt töistä
+  const emails = Array.from(new Set(tyot.map(t => t.vastuuhenkilo_email).filter(Boolean))).sort()
+  // Säilytä vanha valinta + tyhjennä
+  sel.innerHTML = '<option value="">Kaikki vastuuhenkilöt</option>'
+  emails.forEach(e => sel.add(new Option(e, e)))
+  sel.value = current
 }
 
 /* ─── RENDER ─── */
@@ -410,6 +443,7 @@ function renderKanban() {
     if (!col) return
     col.innerHTML = ''
     const items = filtered.filter(t => t.status === s)
+      .sort((a,b) => (a.jarjestys || 0) - (b.jarjestys || 0))
     document.getElementById('cnt-' + s).textContent = items.length
     items.forEach(t => col.appendChild(createCard(t)))
   })
@@ -469,34 +503,75 @@ function setupDragDrop() {
     const card = e.target.closest('.card')
     if (card) card.classList.remove('dragging')
     document.querySelectorAll('.kb-cards').forEach(c => c.classList.remove('drag-over'))
+    document.querySelectorAll('.drop-indicator').forEach(el => el.remove())
     draggedCardId = null
   })
 
   kanban.addEventListener('dragover', e => {
     e.preventDefault()
     const col = e.target.closest('.kb-cards')
-    if (col) col.classList.add('drag-over')
+    if (!col) return
+    col.classList.add('drag-over')
+
+    // Näytä pudotuskohta korttien välissä
+    document.querySelectorAll('.drop-indicator').forEach(el => el.remove())
+    const afterCard = getCardAfterDrag(col, e.clientY)
+    const indicator = document.createElement('div')
+    indicator.className = 'drop-indicator'
+    if (afterCard) {
+      col.insertBefore(indicator, afterCard)
+    } else {
+      col.appendChild(indicator)
+    }
   })
 
   kanban.addEventListener('dragleave', e => {
     const col = e.target.closest('.kb-cards')
-    if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over')
+    if (col && !col.contains(e.relatedTarget)) {
+      col.classList.remove('drag-over')
+      col.querySelectorAll('.drop-indicator').forEach(el => el.remove())
+    }
   })
 
   kanban.addEventListener('drop', async e => {
     e.preventDefault()
     document.querySelectorAll('.kb-cards').forEach(c => c.classList.remove('drag-over'))
+    document.querySelectorAll('.drop-indicator').forEach(el => el.remove())
     if (!draggedCardId) return
 
     const col = e.target.closest('.kb-cards')
     if (!col) return
     const newStatus = col.id.replace('col-', '')
 
-    // Optimistinen päivitys
+    // Laske uusi järjestys
+    const afterCard = getCardAfterDrag(col, e.clientY)
     const tyo = tyot.find(t => t.id === draggedCardId)
-    if (!tyo || tyo.status === newStatus) return
+    if (!tyo) return
+
     const oldStatus = tyo.status
+    const oldJarjestys = tyo.jarjestys
+
+    // Päivitä status
     tyo.status = newStatus
+
+    // Laske järjestys: kaikki saman sarakkeen työt
+    const colTyot = tyot.filter(t => t.status === newStatus && t.id !== draggedCardId)
+      .sort((a,b) => (a.jarjestys || 0) - (b.jarjestys || 0))
+
+    let insertIndex = colTyot.length
+    if (afterCard) {
+      const afterId = afterCard.dataset.id
+      insertIndex = colTyot.findIndex(t => t.id === afterId)
+      if (insertIndex < 0) insertIndex = colTyot.length
+    }
+
+    // Aseta järjestysnumerot
+    colTyot.splice(insertIndex, 0, tyo)
+    const updates = colTyot.map((t, i) => {
+      t.jarjestys = i
+      return { id: t.id, status: t.status, jarjestys: i }
+    })
+
     renderKanban()
 
     // Tallenna serverille
@@ -504,15 +579,24 @@ function setupDragDrop() {
       const r = await fetch('/api/tyot/jarjesta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tyot: [{ id: draggedCardId, status: newStatus }] })
+        body: JSON.stringify({ tyot: updates })
       })
       if (!r.ok) throw new Error()
     } catch {
-      // Rollback
       tyo.status = oldStatus
+      tyo.jarjestys = oldJarjestys
       renderKanban()
     }
   })
+}
+
+function getCardAfterDrag(col, y) {
+  const cards = [...col.querySelectorAll('.card:not(.dragging)')]
+  for (const card of cards) {
+    const box = card.getBoundingClientRect()
+    if (y < box.top + box.height / 2) return card
+  }
+  return null
 }
 
 /* ─── FILTERS ─── */
@@ -566,11 +650,11 @@ async function openDetail(id) {
     document.getElementById('det-asiakas').textContent = t.ppr_kirjanpitoasiakkaat?.nimi || '—'
     document.getElementById('det-tyyppi').textContent = TYYPPI_LABELS[t.tyyppi] || t.tyyppi
     document.getElementById('det-kausi').textContent = t.kausi || '—'
-    document.getElementById('det-deadline').textContent = t.deadline ? formatDate(t.deadline) : '—'
-    document.getElementById('det-prioriteetti').textContent = t.prioriteetti
-    document.getElementById('det-vastuuhenkilo').textContent = t.vastuuhenkilo_email || '—'
-    document.getElementById('det-arvio').textContent = t.arvio_h ?? '—'
-    document.getElementById('det-toteutunut').textContent = t.toteutunut_h ?? '0'
+    document.getElementById('det-deadline').value = t.deadline || ''
+    document.getElementById('det-prioriteetti').value = t.prioriteetti || 'normaali'
+    document.getElementById('det-vastuuhenkilo').value = t.vastuuhenkilo_email || ''
+    document.getElementById('det-arvio').value = t.arvio_h ?? ''
+    document.getElementById('det-toteutunut').value = t.toteutunut_h ?? ''
 
     const recurInfo = document.getElementById('det-recur-info')
     if (t.toistuvuus_id) {
@@ -622,6 +706,22 @@ async function updateTyoStatus() {
     })
     const tyo = tyot.find(t => t.id === currentTyoId)
     if (tyo) tyo.status = status
+    renderKanban()
+  } catch {}
+}
+
+async function updateTyoField(field, value) {
+  if (!currentTyoId) return
+  try {
+    const r = await fetch('/api/tyot/' + currentTyoId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value })
+    })
+    if (!r.ok) throw new Error()
+    // Päivitä paikallinen data
+    const tyo = tyot.find(t => t.id === currentTyoId)
+    if (tyo) tyo[field] = value
     renderKanban()
   } catch {}
 }

@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const asiakas_id = searchParams.get('asiakas_id')
     const status = searchParams.get('status')
     const vastuuhenkilo = searchParams.get('vastuuhenkilo')
+    const limit = Math.min(parseInt(searchParams.get('limit') || '500'), 1000)
+    const offset = parseInt(searchParams.get('offset') || '0')
 
     let q = supabaseAdmin!
       .from('ppr_tyot')
@@ -21,17 +23,18 @@ export async function GET(request: NextRequest) {
         jarjestys, luotu, paivitetty, luoja_email,
         ppr_tyo_tehtavat ( id, otsikko, valmis, jarjestys ),
         ppr_kirjanpitoasiakkaat ( id, nimi )
-      `)
+      `, { count: 'exact' })
       .order('jarjestys')
       .order('deadline', { ascending: true, nullsFirst: false })
+      .range(offset, offset + limit - 1)
 
     if (asiakas_id) q = q.eq('asiakas_id', asiakas_id)
     if (status) q = q.eq('status', status)
     if (vastuuhenkilo) q = q.eq('vastuuhenkilo_email', vastuuhenkilo)
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data ?? [])
+    return NextResponse.json({ data: data ?? [], total: count, limit, offset })
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }

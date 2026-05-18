@@ -38,7 +38,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ luotu_kpl: 0, virheet: [] })
     }
 
-    // 2. Hae pohjat ja niiden tehtävät kerralla
+    // 2. Hae asiakkaiden nimet
+    const asiakasIdt = Array.from(new Set(toistuvuudet.map(t => t.asiakas_id)))
+    const { data: asiakkaat } = await supabaseAdmin!
+      .from('ppr_kirjanpitoasiakkaat')
+      .select('id, nimi')
+      .in('id', asiakasIdt)
+    const asiakasMap = new Map((asiakkaat ?? []).map(a => [a.id, a.nimi]))
+
+    // Hae pohjat ja niiden tehtävät kerralla
     const pohjaIdt = Array.from(new Set(toistuvuudet.map(t => t.pohja_id)))
     const { data: pohjat } = await supabaseAdmin!
       .from('ppr_tyo_pohjat')
@@ -81,9 +89,10 @@ export async function GET(request: NextRequest) {
         const deadlineStr = deadline.toISOString().slice(0, 10)
 
         // Otsikko: korvaa placeholderit
+        const asiakasNimi = asiakasMap.get(toistuvuus.asiakas_id) || ''
         const otsikko = (pohja.otsikko_malli || pohja.nimi)
           .replace('{kausi_nimi}', kausi_nimi)
-          .replace('{asiakas_nimi}', '') // täydennetään tarvittaessa
+          .replace('{asiakas_nimi}', asiakasNimi)
           .trim()
 
         // 3a. Luo työ (unique constraint estää duplikaatit)
